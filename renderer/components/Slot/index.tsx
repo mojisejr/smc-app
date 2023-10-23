@@ -12,6 +12,7 @@ interface SlotProps {
     hn?: string;
     timestamp?: number;
     opening: boolean;
+    isActive: boolean;
   };
 }
 
@@ -20,7 +21,7 @@ const Slot = ({ slotData }: SlotProps) => {
 
 
   function handleSlot() {
-    if (!slotData.opening && !slotData.occupied)
+    if (!slotData.opening && !slotData.occupied && slotData.isActive)
       if (openModal) {
         setOpenModal(false);
       } else {
@@ -29,7 +30,7 @@ const Slot = ({ slotData }: SlotProps) => {
   }
 
   return (
-     <button onClick={handleSlot}>
+     <button onClick={handleSlot} disabled={!slotData.isActive}>
       {slotData.occupied ? (
         <LockedSlot
           slotNo={slotData.slotId}
@@ -38,7 +39,7 @@ const Slot = ({ slotData }: SlotProps) => {
           time={new Date(slotData.timestamp).toLocaleTimeString()}
         />
       ) : (
-        <EmptySlot slotNo={slotData.slotId} />
+        <EmptySlot slotNo={slotData.slotId} isActive={slotData.isActive} />
       )}
       <Modal isOpen={openModal} onClose={handleSlot}>
         <InputSlot slotNo={slotData.slotId} onClose={handleSlot} />

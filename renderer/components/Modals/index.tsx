@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  overlayClosable?: boolean;
   children: ReactNode;
 }
 
-const Modal = ({ isOpen, onClose, children }: ModalProps) => {
+const Modal = ({ isOpen, onClose, overlayClosable=false, children }: ModalProps) => {
   const [ready, setReady] = useState<boolean>(false);
   const overlayVariants = {
     initial: { opacity: 0 },
@@ -40,7 +41,7 @@ const Modal = ({ isOpen, onClose, children }: ModalProps) => {
             animate="animate"
             exit="exit"
             variants={overlayVariants}
-            onClick={onClose}
+            onClick={overlayClosable ? onClose : null}
           >
             <motion.div
               className="bg-white rounded-lg"

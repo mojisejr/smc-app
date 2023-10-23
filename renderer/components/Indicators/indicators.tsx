@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Indicator from "./baseIndicator"
 import { ipcRenderer } from "electron";
 import Loading from "../Shared/Loading";
+import BatteryIndicator from "./batteryIndicator";
 
 export interface SensorData {
     site?: string;
@@ -37,11 +38,12 @@ const Indicators = () => {
     }, [])
     return(
     <>
-    { loading && sensors == undefined ? <Loading /> :  <>
+    <BatteryIndicator level={+sensors?.percent_batt} />
+    {/*{ loading && sensors == undefined ? <Loading /> :  <>
         <Indicator title="batt." value={+sensors?.percent_batt ?? 0} unit="%"/>
         <Indicator title="temp." value={+sensors?.data.p00.temp ?? 0} unit="*C" />
         <Indicator title="humid." value={+sensors?.data.p00.humid ?? 0} unit="%" />
-    </> } 
+    </> } */}
     </>
     )
 }

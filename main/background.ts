@@ -22,10 +22,11 @@ import { handleRetriveLogs } from "./mqtt/message/retriveLogs";
 import { pubGetLogs } from "./mqtt/pub/getLogs";
 import { handleRetriveSensor } from "./mqtt/message/retrieveSensors";
 import { subGetSensors } from "./mqtt/sub/getSensors";
+import { pubActivate } from "./mqtt/pub/activate";
+import { pubDeactivate } from "./mqtt/pub/dactivate";
 
 const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
-
 if (isProd) {
   serve({ directory: "app" });
 } else {
@@ -37,8 +38,8 @@ if (isProd) {
 
 
   mainWindow = createWindow("main", {
-    fullscreen: true,
-    closable: false,
+    fullscreen: false,
+    closable: true,
     autoHideMenuBar: true,
   });
 
@@ -52,6 +53,8 @@ if (isProd) {
   pubDispensingReset(mqtt);
   pubResetSlot(mqtt);
   pubGetLogs(mqtt);
+  pubActivate(mqtt);
+  pubDeactivate(mqtt);
 
   //Subscriber
   subKuState(mqtt);
@@ -89,6 +92,12 @@ if (isProd) {
         }
         case "get_sensors": {
           handleRetriveSensor(mainWindow, parsedPayload);
+          break;
+        }
+        case "activated": {
+          break;
+        }
+        case "deactivated": {
           break;
         }
       }

@@ -14,25 +14,25 @@ const Navbar = ({active}: NavbarProps) => {
               <Link href="/home">
                 <button className={`btn btn-ghost flex justify-start items-center gap-2  ${active == 1 ? "btn-active" : null}`} >
                   <BsHouseDoor size={16} />
-                  <span>Home</span>
+                  <span className={`${active == 1 ? "font-bold" : null}`}>Home</span>
                 </button>
               </Link>
               <Link href="/document">
                 <button className={`btn btn-ghost flex justify-start items-center gap-2  ${active == 2? "btn-active" : null}`} >
                 <BsBook size={16} />
-                <span>Documents</span>
+                <span className={`${active == 2 ? "font-bold" : null}`}>Documents</span>
               </button>
               </Link>
               <Link href="/about">
                 <button className={`btn btn-ghost flex justify-start items-center gap-2  ${active == 3 ? "btn-active" : null}`} >
                 <BsQuestionCircle size={16} />
-                <span>About</span>
+                <span className={`${active == 3 ? "font-bold" : null}`}>About</span>
               </button>
               </Link>
             <Link href="/logs">
-                <button className={`btn btn-ghost flex justify-start items-center gap-2  ${active == 4 ? "btn-active" : null}`} >
+                <button className={`btn btn-ghost flex justify-start items-center gap-2  ${active == 4 ? "btn-active font-bold" : null}`} >
                 <BsFillTerminalFill size={16} />
-                <span>Logs</span>
+                <span className={`${active == 4 ? "font-bold" : null}`}>Logs</span>
               </button>
               </Link>
             </div>

@@ -1,10 +1,11 @@
 import { FaLock } from "react-icons/fa";
 interface EmptySlotProps {
   slotNo: number;
+  isActive: boolean;
 }
-export const EmptySlot = ({ slotNo }: EmptySlotProps) => {
+export const EmptySlot = ({ slotNo, isActive }: EmptySlotProps) => {
   return (
-    <div className="relative min-w-[150px] min-h-[137px] bg-[#F6F6F6] shadow-xl rounded-xl p-3">
+    <div className={`relative min-w-[150px] min-h-[180px] ${isActive ? "bg-[#F6F6F6]" : "bg-[#eee] opacity-30"} shadow-xl rounded-xl p-3`}>
       <div className="flex justify-between">
         <div className="font-bold"></div>
         <div>

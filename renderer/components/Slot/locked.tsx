@@ -38,7 +38,7 @@ export const LockedSlot = ({ slotNo, hn, date, time }: LockedSlotProps) => {
 
   return (
     <div
-      className={`relative min-w-[150px] min-h-[137px] ${bg} shadow-xl rounded-xl p-3 cursor-default`}
+      className={`relative min-w-[150px] min-h-[180px] ${bg} shadow-xl rounded-xl p-3 cursor-default`}
     >
       <div className="flex justify-between">
         <div className="font-bold">HN</div>
