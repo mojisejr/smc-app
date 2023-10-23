@@ -1,0 +1,12 @@
+appId: com.deprecision.smartdrugcart
+productName: SmartDrugCart
+copyright: Copyright © 2023 Deprecision
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - from: .
+    filter:
+      - package.json
+      - app
+publish: null
