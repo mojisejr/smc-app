@@ -319,7 +319,7 @@ function Home() {
         <DispenseSlot onClose={() => setOpenDispenseModal(false)} />
       </Modal>
       <Modal isOpen={unlocking.unlocking} onClose={() => {}}>
-        {/* <Modal isOpen={true} onClose={() => {}}> */}
+        {/*<Modal isOpen={true} onClose={() => {}}>*/}
         <LockWait slotNo={unlocking.slot} hn={unlocking.hn} />
       </Modal>
       <Modal isOpen={dispensing.dispensing} onClose={() => {}}>

@@ -6,16 +6,15 @@ import { useRef } from "react";
 
 interface DeActivateProps {
   slotNo: number;
-  reason: string;
   onClose: () => void;
 }
 
-const DeActivateProps = ({ slotNo, reason, onClose }: DeActivateProps) => {
+const DeActivate = ({ slotNo, onClose }: DeActivateProps) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const { user } = useApp();
   function handleReset() {
     const reason = inputRef.current?.value; 
-    ipcRenderer.invoke("deactivate", { slot: slotNo, reason: reason, stuffId: user.stuffId }).then(() => {
+    ipcRenderer.invoke("deactivate", { slot: slotNo, reason, stuffId: user.stuffId }).then(() => {
       onClose();
     });
   }

@@ -23,7 +23,7 @@ import { pubGetLogs } from "./mqtt/pub/getLogs";
 import { handleRetriveSensor } from "./mqtt/message/retrieveSensors";
 import { subGetSensors } from "./mqtt/sub/getSensors";
 import { pubActivate } from "./mqtt/pub/activate";
-import { pubDeactivate } from "./mqtt/pub/dactivate";
+import { pubDeactivate } from "./mqtt/pub/deactivate";
 
 const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
