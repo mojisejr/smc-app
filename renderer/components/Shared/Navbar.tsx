@@ -6,7 +6,7 @@ interface NavbarProps  {
     active: number;
 }
 const Navbar = ({active}: NavbarProps) => {
-    const { user } = useApp();
+    const { user, logged, logOut } = useApp();
     return <div className="grid grid-cols-1 gap-2">
               {user != undefined ? (
                 <div className="font-bold">User: {user.stuffId}</div>
@@ -34,7 +34,13 @@ const Navbar = ({active}: NavbarProps) => {
                 <BsFillTerminalFill size={16} />
                 <span className={`${active == 4 ? "font-bold" : null}`}>Logs</span>
               </button>
-              </Link>
+            </Link>
+            { logged ? <div className="mt-4">
+            <button className={`btn btn-error btn-outline flex justify-start items-center gap-3 w-full`} onClick={() => logOut()} >
+                <span className={"font-bold hover:text-white"}>Logout</span>
+              </button>
+            </div> : null }
+
             </div>
 }
 

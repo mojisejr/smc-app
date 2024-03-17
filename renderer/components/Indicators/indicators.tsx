@@ -30,20 +30,25 @@ const Indicators = () => {
         setLoading(true);
         ipcRenderer.on("get_sensors", (event,payload) => {
             if(payload != undefined) {
-                console.log(payload)
+                //console.log(payload)
                 setLoading(false);
                 setSensors(payload);
             }
-        })
-    }, [])
+        });
+    }, []);
+
     return(
     <>
-    <BatteryIndicator level={+sensors?.percent_batt} />
-    {/*{ loading && sensors == undefined ? <Loading /> :  <>
-        <Indicator title="batt." value={+sensors?.percent_batt ?? 0} unit="%"/>
-        <Indicator title="temp." value={+sensors?.data.p00.temp ?? 0} unit="*C" />
-        <Indicator title="humid." value={+sensors?.data.p00.humid ?? 0} unit="%" />
-    </> } */}
+{/*<div className="flex flex-col gap-4">	
+    	<BatteryIndicator level={95} />
+   	<Indicator title="temp." value={28} unit="*c" />
+    	<Indicator title="humid." value={62} unit="%" />
+</div>*/}
+   { loading && sensors == undefined ? <Loading /> :  <>
+    	<BatteryIndicator level={+sensors?.percent_batt} />
+   	<Indicator title="temp." value={+sensors?.data.p00.temp ?? 0} unit="*c" />
+    	<Indicator title="humid." value={+sensors?.data.p00.humid ?? 0} unit="%" />
+    </>} 
     </>
     )
 }

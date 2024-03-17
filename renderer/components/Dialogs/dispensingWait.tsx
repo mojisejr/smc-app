@@ -8,19 +8,25 @@ import Slot from "../Slot";
 interface DispensingWaitProps {
   slotNo: number;
   hn: string;
+  onClose: () => void;
+  onOpenDeactive: () => void;
 }
 
-const DispensingWait = ({ slotNo, hn }: DispensingWaitProps) => {
+const DispensingWait = ({ slotNo, hn, onClose, onOpenDeactive }: DispensingWaitProps) => {
   useEffect(() => {
-    // ipcRenderer.invoke(IO.WaitForDispensingLockBack, slotNo, hn);
+	ipcRenderer.on("deactivated", () => {
+console.log('deactivated on dispense');
+	onClose();
+});
   }, []);
 
   return (
     <>
       <div className="flex gap-2">
         <div className="flex flex-col rounded-md overflow-hidden gap-2 max-w-[300px]">
-          <div className="shadow-xl p-2 font-bold text-xl text-center">
-            HN: {hn}
+          <div className="flex justify-between shadow-xl p-3 font-bold text-xl text-center">
+            <span className={"font-bold"}>HN: {hn}</span>
+	    <button onClick={onOpenDeactive} className="btn btn-ghost btn-circle btn-sm font-bold text-xl">!</button>
           </div>
           <div className="flex flex-col p-3 flex-wrap jusitfy-center items-center">
             <div className="font-bold text-[#ff0000]">

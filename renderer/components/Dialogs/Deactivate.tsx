@@ -1,7 +1,7 @@
 import { ipcRenderer } from "electron";
 import { useDispense } from "../../hooks/useDispense";
 import { useApp } from "../../contexts/appContext";
-import { useRef } from "react";
+import { useRef ,useEffect } from "react";
 // import { IO } from "../../enums/ipc-enums";
 
 interface DeActivateProps {
@@ -12,6 +12,7 @@ interface DeActivateProps {
 const DeActivate = ({ slotNo, onClose }: DeActivateProps) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const { user } = useApp();
+
   function handleReset() {
     const reason = inputRef.current?.value; 
     ipcRenderer.invoke("deactivate", { slot: slotNo, reason, stuffId: user.stuffId }).then(() => {

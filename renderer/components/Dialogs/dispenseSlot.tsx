@@ -50,7 +50,10 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
 
   return (
     <>
-      <div className="font-bold p-3 rounded-md shadow-md">Dispensing</div>
+      <div className="rounded-md shadow-md flex justify-between items-center p-3">
+	<span className="font-bold" >Dispensing</span>
+	<button onClick={() => onClose()} className="btn btn-circle btn-sm btn-ghost font-bold">x</button>
+</div>
       <form
         className="flex gap-2 flex-col p-3 "
         onSubmit={handleSubmit(onSubmit)}

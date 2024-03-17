@@ -24,6 +24,9 @@ import { handleRetriveSensor } from "./mqtt/message/retrieveSensors";
 import { subGetSensors } from "./mqtt/sub/getSensors";
 import { pubActivate } from "./mqtt/pub/activate";
 import { pubDeactivate } from "./mqtt/pub/deactivate";
+import { subDeactivated } from './mqtt/sub/deactivated';
+import { handleDeactivated } from './mqtt/message/deactivated';
+import { pubReactiveAll } from "./mqtt/pub/reactiveAll";
 
 const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
@@ -38,7 +41,7 @@ if (isProd) {
 
 
   mainWindow = createWindow("main", {
-    fullscreen: false,
+    fullscreen: true,
     closable: true,
     autoHideMenuBar: true,
   });
@@ -55,6 +58,7 @@ if (isProd) {
   pubGetLogs(mqtt);
   pubActivate(mqtt);
   pubDeactivate(mqtt);
+  pubReactiveAll(mqtt);
 
   //Subscriber
   subKuState(mqtt);
@@ -63,6 +67,7 @@ if (isProd) {
   subDispensingReset(mqtt);
   subGetLogs(mqtt);
   subGetSensors(mqtt);
+  subDeactivated(mqtt);
   
 
   //Event Listener
@@ -95,10 +100,12 @@ if (isProd) {
           break;
         }
         case "activated": {
+		pubInit(mqtt);
           break;
         }
         case "deactivated": {
-          break;
+	  handleDeactivated(mainWindow);
+	  break;
         }
       }
     });

@@ -24,6 +24,7 @@ import { BsUnlockFill } from 'react-icons/bs'
 import Indicator from "../components/Indicators/baseIndicator";
 import Navbar from "../components/Shared/Navbar";
 import Indicators from "../components/Indicators/indicators";
+import DeActivate from "../components/Dialogs/Deactivate";
 
 
 
@@ -203,6 +204,9 @@ function Home() {
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   const { user, logged } = useApp();
 
+  const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
+  const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
+
   const handleCloseClearOrCon = () => {
     setCloseClearOrCon(true);
   };
@@ -211,11 +215,34 @@ function Home() {
     setOpenDispenseModal(true);
   };
 
+  const onReset = () => {
+    setCloseLockWait(true);
+  };
+
+
+
+
+
+
   useEffect(() => {
     if (dispensing.dispensing) {
       setCloseClearOrCon(false);
     }
-  }, [dispensing]);
+
+    if (unlocking.unlocking) {
+	setCloseLockWait(false);
+    }
+  }, [dispensing, unlocking]);
+
+  useEffect(() => {
+    if(user == undefined || !logged) {
+      setOpenAuthModal(true);
+    }
+
+    if(logged && user != undefined) {
+      setOpenAuthModal(false);  
+    }
+  }, [user, logged])
 
   return (
     <>
@@ -253,7 +280,7 @@ function Home() {
                     <ul className="grid grid-cols-5 gap-6 min-h-[70vh] place-content-start px-20 py-6">
                       {mockSlots.map((s, index) =>  {return {
                         ...s,
-                        ...slotts[index]
+                        ...slots[index]
                         }}).sort((a,b) => a.slotId - b.slotId).map((s, index) => (
                         <Slot key={index} slotData={s} />
                       ))}
@@ -289,8 +316,7 @@ function Home() {
               <BsUnlockFill  />
               Dispense
             </button>
-
-           
+          
           </div>
         </div>
       </div>
@@ -302,31 +328,33 @@ function Home() {
       />
       {!user ? (
         <>
+	<div>
           <Modal
             isOpen={openAuthModal}
             onClose={() => {
-              user ? setOpenAuthModal(false) : null;
+              user ? setOpenAuthModal : null;
             }}
           >
             <Auth />
           </Modal>
+	</div>
         </>
       ) : null}
       <Modal
         isOpen={openDispenseModal}
-        onClose={() => setOpenDispenseModal(false)}
+        onClose={() => setOpenDispenseModal(false)}	
       >
         <DispenseSlot onClose={() => setOpenDispenseModal(false)} />
       </Modal>
-      <Modal isOpen={unlocking.unlocking} onClose={() => {}}>
+      { user == undefined ? null : <Modal isOpen={unlocking.unlocking} onClose={() => setCloseLockWait(true)}>
         {/*<Modal isOpen={true} onClose={() => {}}>*/}
-        <LockWait slotNo={unlocking.slot} hn={unlocking.hn} />
-      </Modal>
-      <Modal isOpen={dispensing.dispensing} onClose={() => {}}>
+        <LockWait slotNo={unlocking.slot} hn={unlocking.hn} onClose={() => setCloseLockWait(true)} onOpenDeactive={() => setOpenDeactivate(true)} />
+      </Modal> }
+      { user == undefined ? null : <Modal isOpen={dispensing.dispensing} onClose={() => setCloseLockWait(true)}>
         {dispensing ? (
-          <DispensingWait slotNo={dispensing.slot} hn={dispensing.hn} />
+           <DispensingWait slotNo={dispensing.slot} hn={dispensing.hn} onClose={() => setCloseLockWait(true)} onOpenDeactive={() => setOpenDeactivate(true)}/>
         ) : null}
-      </Modal>
+      </Modal> }
       <Modal
         isOpen={
           closeClearOrCon ? false : !dispensing.dispensing && dispensing.reset
@@ -339,8 +367,12 @@ function Home() {
           onClose={handleCloseClearOrCon}
         />
       </Modal>
+      <Modal isOpen={openDeactivate} onClose={() => setOpenDeactivate(false)}>
+        <DeActivate slotNo= {unlocking.slot ?? dispensing.slot} onClose={() => setOpenDeactivate(false)} />
+      </Modal>
     </>
   );
 }
 
 export default Home;
+

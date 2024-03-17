@@ -23,6 +23,12 @@ export const useUnlock = () => {
         toast(`Unlock Successful`, { toastId: 1, type: "success" });
       }
     });
+
+    ipcRenderer.on("deactivated", (event, payload) => {
+	    console.log('set deactivated unlock');
+	   setUnlocking({dispensing: false, unlocking: false});
+    });
+
   }, []);
 
   const unlock = (slot: number, hn: string) => {

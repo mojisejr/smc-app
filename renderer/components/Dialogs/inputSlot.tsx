@@ -44,8 +44,9 @@ const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
   return (
     <>
       <div className="">
-        <div className="font-bold p-3 rounded-md shadow-md">
-          Slot #{slotNo} - Register
+        <div className="p-3 rounded-md shadow-md flex justify-between items-center">
+          <span className="font-bold">Slot #{slotNo} - Register</span>
+	<button onClick={onClose} className="btn btn-ghost btn-circle btn-sm font-bold">x</button>
         </div>
         <form
           className="flex flex-col gap-2 p-3"
