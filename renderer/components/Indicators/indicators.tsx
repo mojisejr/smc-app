@@ -3,22 +3,19 @@ import Indicator from "./baseIndicator"
 import { ipcRenderer } from "electron";
 import Loading from "../Shared/Loading";
 import BatteryIndicator from "./batteryIndicator";
+import { LargeNumberLike } from "crypto";
+
+/**
+ * {"Temp1":25.9,"Temp2":0,"Huminity1":43,"Huminity2":0,"Battery":15,"temp1":25.9,"temp2":43,"percent_batt":64}
+ */
 
 export interface SensorData {
-    site?: string;
-    data?: {
-        p00?: Sensor,
-        p01?: Sensor
-    };
-    v_batt?: number;
+    Temp1?: number;
+    Temp2?: number;
+    Huminity1?: number;
+    Huminity2?: number;
+    Bettery?: number;
     percent_batt?: number;
-
-}
-
-interface Sensor {
-    temp?: string;
-    humid?: string;
-    ir?: string;
 }
 
 
@@ -46,8 +43,8 @@ const Indicators = () => {
 </div>*/}
    { loading && sensors == undefined ? <Loading /> :  <>
     	<BatteryIndicator level={+sensors?.percent_batt} />
-   	<Indicator title="temp." value={+sensors?.data.p00.temp ?? 0} unit="*c" />
-    	<Indicator title="humid." value={+sensors?.data.p00.humid ?? 0} unit="%" />
+   	<Indicator title="temp." value={+sensors?.Temp1 ?? 0} unit="*c" />
+    	<Indicator title="humid." value={+sensors?.Huminity1 ?? 0} unit="%" />
     </>} 
     </>
     )

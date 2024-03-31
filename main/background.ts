@@ -41,8 +41,8 @@ if (isProd) {
 
 
   mainWindow = createWindow("main", {
-    fullscreen: true,
-    closable: true,
+    fullscreen: false,
+    closable: false,
     autoHideMenuBar: true,
   });
 

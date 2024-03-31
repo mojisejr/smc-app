@@ -5,7 +5,7 @@ interface EmptySlotProps {
 }
 export const EmptySlot = ({ slotNo, isActive }: EmptySlotProps) => {
   return (
-    <div className={`relative min-w-[150px] min-h-[180px] ${isActive ? "bg-[#F6F6F6]" : "bg-[#eee] opacity-30"} shadow-xl rounded-xl p-3`}>
+    <div className={`relative min-w-[120px] min-h-[135px] ${isActive ? "bg-[#F6F6F6]" : "bg-[#eee] opacity-30"} shadow-xl rounded-xl p-3`}>
       <div className="flex justify-between">
         <div className="font-bold"></div>
         <div>

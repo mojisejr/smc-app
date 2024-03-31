@@ -195,25 +195,21 @@ const slotts = [
 
 
 
-function Home() {
+function Home() {  
   const { slots, canDispense } = useKuStates();
   const { unlocking } = useUnlock();
-  const { dispensing } = useDispense();
+     const { dispensing } = useDispense();
+ 
   const [openAuthModal, setOpenAuthModal] = useState<boolean>(true);
-  const [openDispenseModal, setOpenDispenseModal] = useState<boolean>(false);
+
+
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   const { user, logged } = useApp();
 
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
 
-  const handleCloseClearOrCon = () => {
-    setCloseClearOrCon(true);
-  };
-
-  const handleDispenseButton = () => {
-    setOpenDispenseModal(true);
-  };
+ 
 
   const onReset = () => {
     setCloseLockWait(true);
@@ -225,14 +221,11 @@ function Home() {
 
 
   useEffect(() => {
-    if (dispensing.dispensing) {
-      setCloseClearOrCon(false);
-    }
 
     if (unlocking.unlocking) {
 	setCloseLockWait(false);
     }
-  }, [dispensing, unlocking]);
+  }, [unlocking]);
 
   useEffect(() => {
     if(user == undefined || !logged) {
@@ -308,14 +301,7 @@ function Home() {
                 </>
               )}
             </> */}
-            <button
-              disabled={!canDispense}
-              onClick={() => handleDispenseButton()}
-              className=" flex items-center gap-2 absolute bottom-10 right-10 text-[36px]  px-5 py-3 font-bold bg-[#eee] rounded-xl shadow-xl hover:bg-[#5495F6] hover:text-[#fff] disabled:text-[#ddd] disabled:bg-[#eee]"
-            >
-              <BsUnlockFill  />
-              Dispense
-            </button>
+          
           
           </div>
         </div>
@@ -340,12 +326,7 @@ function Home() {
 	</div>
         </>
       ) : null}
-      <Modal
-        isOpen={openDispenseModal}
-        onClose={() => setOpenDispenseModal(false)}	
-      >
-        <DispenseSlot onClose={() => setOpenDispenseModal(false)} />
-      </Modal>
+      
       { user == undefined ? null : <Modal isOpen={unlocking.unlocking} onClose={() => setCloseLockWait(true)}>
         {/*<Modal isOpen={true} onClose={() => {}}>*/}
         <LockWait slotNo={unlocking.slot} hn={unlocking.hn} onClose={() => setCloseLockWait(true)} onOpenDeactive={() => setOpenDeactivate(true)} />
@@ -355,18 +336,7 @@ function Home() {
            <DispensingWait slotNo={dispensing.slot} hn={dispensing.hn} onClose={() => setCloseLockWait(true)} onOpenDeactive={() => setOpenDeactivate(true)}/>
         ) : null}
       </Modal> }
-      <Modal
-        isOpen={
-          closeClearOrCon ? false : !dispensing.dispensing && dispensing.reset
-        }
-        onClose={() => {}}
-      >
-        <ClearOrContinue
-          slotNo={dispensing.slot}
-          hn={dispensing.hn}
-          onClose={handleCloseClearOrCon}
-        />
-      </Modal>
+
       <Modal isOpen={openDeactivate} onClose={() => setOpenDeactivate(false)}>
         <DeActivate slotNo= {unlocking.slot ?? dispensing.slot} onClose={() => setOpenDeactivate(false)} />
       </Modal>

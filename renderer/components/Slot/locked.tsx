@@ -38,7 +38,7 @@ export const LockedSlot = ({ slotNo, hn, date, time }: LockedSlotProps) => {
 
   return (
     <div
-      className={`relative min-w-[150px] min-h-[180px] ${bg} shadow-xl rounded-xl p-3 cursor-default`}
+      className={`relative min-w-[120px] min-h-[135px] ${bg} shadow-xl rounded-xl p-3 cursor-default`}
     >
       <div className="flex justify-between">
         <div className="font-bold">HN</div>
@@ -48,7 +48,7 @@ export const LockedSlot = ({ slotNo, hn, date, time }: LockedSlotProps) => {
       </div>
       <div className="flex flex-col pt-3 justify-start items-start">
         <div className="tooltip" data-tip={hn}>
-          <div className="font-bold text-[#5495f6]">{hn.length > 10 ? `${hn.slice(0,3)}...${hn.slice(6,9)}` : hn}</div>
+          <div className="font-bold text-[#5495f6]">{hn.length > 6 ? `${hn.slice(0,6)}...` : hn}</div>
         </div>
       </div>
       <div className="flex flex-col leading-4 pt-2 items-start">
