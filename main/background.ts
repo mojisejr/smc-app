@@ -46,6 +46,8 @@ if (isProd) {
     autoHideMenuBar: true,
   });
 
+  console.log("move");
+
   const mqtt = connect(url);
 
   //Publisher
