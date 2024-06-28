@@ -53,16 +53,14 @@ export const useDispense = () => {
         reset: true,
       });
     });
-    
-    ipcRenderer.on('deactivated', () => {
-	setDispensing({reset: false, unlocking:false, dispensing: false});
+
+    ipcRenderer.on("deactivated", () => {
+      setDispensing({ reset: false, unlocking: false, dispensing: false });
     });
   }, [dispensing]);
 
-
-
   const dispense = ({ slot, hn, timestamp }: Partial<Dispensing>) => {
-    ipcRenderer.invoke("dispense", { hn, slot, timestamp });
+    ipcRenderer.invoke("dispense", { hn, slotId: slot, timestamp });
   };
 
   return {

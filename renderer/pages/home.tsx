@@ -20,188 +20,185 @@ import Loading from "../components/Shared/Loading";
 import { useDispense } from "../hooks/useDispense";
 import { useUnlock } from "../hooks/useUnlock";
 import { useApp } from "../contexts/appContext";
-import { BsUnlockFill } from 'react-icons/bs'
+import { BsUnlockFill } from "react-icons/bs";
 import Indicator from "../components/Indicators/baseIndicator";
 import Navbar from "../components/Shared/Navbar";
 import Indicators from "../components/Indicators/indicators";
 import DeActivate from "../components/Dialogs/Deactivate";
 
-
-
 const mockSlots = [
-{
-  slotId: 1,
- hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 2,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 3,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 4,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 5,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 6,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 7,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 8,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 9,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 10,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 11,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 12,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 13,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 14,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-{
-  slotId: 15,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: false,
-},
-]
+  {
+    slotId: 1,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 2,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 3,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 4,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 5,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 6,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 7,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 8,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 9,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 10,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 11,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 12,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 13,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 14,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+  {
+    slotId: 15,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: false,
+  },
+];
 
 const slotts = [
-{
-  slotId: 1,
- hn: "532345",
-  occupied: true,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: true,
-},
-{
-  slotId: 2,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: true,
-},
-{
-  slotId: 3,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: true,
-},
-{
-  slotId: 4,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: true,
-},
-{
-  slotId: 5,
-  hn: "",
-  occupied: false,
-  timestamp: new Date().getTime(),
-  opening: false,
-  isActive: true,
-}];
+  {
+    slotId: 1,
+    hn: "532345",
+    occupied: true,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: true,
+  },
+  {
+    slotId: 2,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: true,
+  },
+  {
+    slotId: 3,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: true,
+  },
+  {
+    slotId: 4,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: true,
+  },
+  {
+    slotId: 5,
+    hn: "",
+    occupied: false,
+    timestamp: new Date().getTime(),
+    opening: false,
+    isActive: true,
+  },
+];
 
-
-
-function Home() {  
+function Home() {
   const { slots, canDispense } = useKuStates();
-  const { unlocking } = useUnlock();
-     const { dispensing } = useDispense();
- 
-  const [openAuthModal, setOpenAuthModal] = useState<boolean>(true);
 
+  const { unlocking } = useUnlock();
+  const { dispensing } = useDispense();
+
+  const [openAuthModal, setOpenAuthModal] = useState<boolean>(true);
 
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   const { user, logged } = useApp();
@@ -209,33 +206,25 @@ function Home() {
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
 
- 
-
   const onReset = () => {
     setCloseLockWait(true);
   };
 
-
-
-
-
-
   useEffect(() => {
-
     if (unlocking.unlocking) {
-	setCloseLockWait(false);
+      setCloseLockWait(false);
     }
   }, [unlocking]);
 
   useEffect(() => {
-    if(user == undefined || !logged) {
+    if (user == undefined || !logged) {
       setOpenAuthModal(true);
     }
 
-    if(logged && user != undefined) {
-      setOpenAuthModal(false);  
+    if (logged && user != undefined) {
+      setOpenAuthModal(false);
     }
-  }, [user, logged])
+  }, [user, logged]);
 
   return (
     <>
@@ -251,15 +240,14 @@ function Home() {
               height={85}
               alt="logo"
             />
-            <Navbar active={1}/>
-              <div className="w-full px-4 flex  flex-col gap-2 justify-start items-center">
-                <Indicators />
-              </div>
+            <Navbar active={1} />
+            <div className="w-full px-4 flex  flex-col gap-2 justify-start items-center">
+              <Indicators />
+            </div>
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
           <div className="w-full h-full p-[2rem] flex flex-col gap-[1.2rem] overflow-y-auto">
-            
             <>
               {mockSlots === undefined ? (
                 <div>Error: undefined</div>
@@ -271,12 +259,17 @@ function Home() {
                     </div>
                   ) : (
                     <ul className="grid grid-cols-5 gap-6 min-h-[70vh] place-content-start px-20 py-6">
-                      {mockSlots.map((s, index) =>  {return {
-                        ...s,
-                        ...slots[index]
-                        }}).sort((a,b) => a.slotId - b.slotId).map((s, index) => (
-                        <Slot key={index} slotData={s} />
-                      ))}
+                      {mockSlots
+                        .map((s, index) => {
+                          return {
+                            ...s,
+                            ...slots[index],
+                          };
+                        })
+                        .sort((a, b) => a.slotId - b.slotId)
+                        .map((s, index) => (
+                          <Slot key={index} slotData={s} />
+                        ))}
                     </ul>
                   )}
                 </>
@@ -301,8 +294,6 @@ function Home() {
                 </>
               )}
             </> */}
-          
-          
           </div>
         </div>
       </div>
@@ -314,35 +305,57 @@ function Home() {
       />
       {!user ? (
         <>
-	<div>
-          <Modal
-            isOpen={openAuthModal}
-            onClose={() => {
-              user ? setOpenAuthModal : null;
-            }}
-          >
-            <Auth />
-          </Modal>
-	</div>
+          <div>
+            <Modal
+              isOpen={openAuthModal}
+              onClose={() => {
+                user ? setOpenAuthModal : null;
+              }}
+            >
+              <Auth />
+            </Modal>
+          </div>
         </>
       ) : null}
-      
-      { user == undefined ? null : <Modal isOpen={unlocking.unlocking} onClose={() => setCloseLockWait(true)}>
-        {/*<Modal isOpen={true} onClose={() => {}}>*/}
-        <LockWait slotNo={unlocking.slot} hn={unlocking.hn} onClose={() => setCloseLockWait(true)} onOpenDeactive={() => setOpenDeactivate(true)} />
-      </Modal> }
-      { user == undefined ? null : <Modal isOpen={dispensing.dispensing} onClose={() => setCloseLockWait(true)}>
-        {dispensing ? (
-           <DispensingWait slotNo={dispensing.slot} hn={dispensing.hn} onClose={() => setCloseLockWait(true)} onOpenDeactive={() => setOpenDeactivate(true)}/>
-        ) : null}
-      </Modal> }
+
+      {user == undefined ? null : (
+        <Modal
+          isOpen={unlocking.unlocking}
+          onClose={() => setCloseLockWait(true)}
+        >
+          {/*<Modal isOpen={true} onClose={() => {}}>*/}
+          <LockWait
+            slotNo={unlocking.slot}
+            hn={unlocking.hn}
+            onClose={() => setCloseLockWait(true)}
+            onOpenDeactive={() => setOpenDeactivate(true)}
+          />
+        </Modal>
+      )}
+      {user == undefined ? null : (
+        <Modal
+          isOpen={dispensing.dispensing}
+          onClose={() => setCloseLockWait(true)}
+        >
+          {dispensing ? (
+            <DispensingWait
+              slotNo={dispensing.slot}
+              hn={dispensing.hn}
+              onClose={() => setCloseLockWait(true)}
+              onOpenDeactive={() => setOpenDeactivate(true)}
+            />
+          ) : null}
+        </Modal>
+      )}
 
       <Modal isOpen={openDeactivate} onClose={() => setOpenDeactivate(false)}>
-        <DeActivate slotNo= {unlocking.slot ?? dispensing.slot} onClose={() => setOpenDeactivate(false)} />
+        <DeActivate
+          slotNo={unlocking.slot ?? dispensing.slot}
+          onClose={() => setOpenDeactivate(false)}
+        />
       </Modal>
     </>
   );
 }
 
 export default Home;
-

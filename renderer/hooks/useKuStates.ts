@@ -5,7 +5,7 @@ interface IPayload {
   slotId: number;
   hn?: string;
   timestamp?: number;
-  opening: boolean;
+  // opening: boolean;
   occupied: boolean;
 }
 
@@ -25,8 +25,7 @@ export const useKuStates = () => {
     if (payload != undefined) {
       setSlots(payload);
       isDispensible(payload);
-    } 
- 
+    }
   };
 
   const isDispensible = (payload: IPayload[]) => {

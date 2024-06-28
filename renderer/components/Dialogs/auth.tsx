@@ -8,14 +8,16 @@ type Inputs = {
   stuffId: string;
 };
 
-const users = [{
-  stuffId: "user-1234",
-  role: "USER"
-},
-{
-  stuffId: "smc-admin",
-  role: "ADMIN"
-}]
+const users = [
+  {
+    stuffId: "user-1234",
+    role: "USER",
+  },
+  {
+    stuffId: "smc-admin",
+    role: "ADMIN",
+  },
+];
 
 const Auth = () => {
   const { setUser } = useApp();
@@ -32,11 +34,11 @@ const Auth = () => {
     const mockStuffId = "1234";
     const user = null;
     // if (user != null || user != undefined) {
-    const found = users.find(user => user.stuffId == data.stuffId);
-    console.log(`found`, found)
+    const found = users.find((user) => user.stuffId == data.stuffId);
+    console.log(`found`, found);
     if (found) {
       toast(`loggedin! ${found.stuffId}`, { toastId: 99, type: "success" });
-      setUser({stuffId: found.stuffId, role: found.role});
+      setUser({ stuffId: found.stuffId, role: found.role });
     } else {
       toast(`Invalid user`, { toastId: 99, type: "error" });
     }

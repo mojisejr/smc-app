@@ -25,15 +25,14 @@ export const useUnlock = () => {
     });
 
     ipcRenderer.on("deactivated", (event, payload) => {
-	    console.log('set deactivated unlock');
-	   setUnlocking({dispensing: false, unlocking: false});
+      console.log("set deactivated unlock");
+      setUnlocking({ dispensing: false, unlocking: false });
     });
-
   }, []);
 
   const unlock = (slot: number, hn: string) => {
     ipcRenderer.invoke("unlock", {
-      slot,
+      slotId: slot,
       hn,
       timestamp: new Date().getTime(),
     });
