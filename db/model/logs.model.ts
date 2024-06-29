@@ -5,15 +5,15 @@ export class Log extends Model {}
 
 Log.init(
   {
-    id: { type: DataTypes.INTEGER, autoIncrement: true },
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    user: { type: DataTypes.STRING},
     message: { type: DataTypes.TEXT },
-    timestamp: { type: DataTypes.DATE },
   },
   {
     sequelize,
-    modelName: "User",
-    tableName: "User",
-    createdAt: false,
+    modelName: "Log",
+    tableName: "Log",
+    createdAt: true,
     updatedAt: false,
   }
 );

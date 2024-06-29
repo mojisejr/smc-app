@@ -8,6 +8,7 @@ import { initHandler } from "./ku16/ipcMain/init";
 import { unlockHandler } from "./ku16/ipcMain/unlock";
 import { dispenseHandler } from "./ku16/ipcMain/dispensing";
 import { dispensingResetHanlder } from "./ku16/ipcMain/reset";
+import { LoggingHandler } from "./logger";
 
 const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
@@ -40,6 +41,7 @@ if (isProd) {
   unlockHandler(ku16);
   dispenseHandler(ku16);
   dispensingResetHanlder(ku16);
+  LoggingHandler(ku16);
 
   // const mqtt = connect(url);
 
