@@ -216,6 +216,12 @@ function Home() {
     }
   }, [unlocking]);
 
+  // useEffect(() => {
+  //   if (!dispensing.dispensing && !dispensing.unlocking && dispensing.reset) {
+  //     setCloseClearOrCon(true);
+  //   }
+  // }, [dispensing]);
+
   useEffect(() => {
     if (user == undefined || !logged) {
       setOpenAuthModal(true);
@@ -354,6 +360,13 @@ function Home() {
           onClose={() => setOpenDeactivate(false)}
         />
       </Modal>
+      {/* <Modal isOpen={closeClearOrCon} onClose={() => setCloseClearOrCon(false)}>
+        <ClearOrContinue
+          slotNo={dispensing.slot}
+          hn={dispensing.hn}
+          onClose={() => setCloseClearOrCon(false)}
+        />
+      </Modal> */}
     </>
   );
 }

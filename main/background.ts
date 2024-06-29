@@ -1,15 +1,13 @@
 import { BrowserWindow, app, ipcMain } from "electron";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
-import { url } from "./mqtt";
-import { connect } from "mqtt";
 
 import { sequelize } from "../db/sequelize";
-import { KU16 } from "./in-app-serial/serial-port";
-import { initHandler } from "./in-app-serial/ipcMain/init";
-import { getAllSlots } from "./db";
-import { unlockHandler } from "./in-app-serial/ipcMain/unlock";
-import { dispenseHandler } from "./in-app-serial/ipcMain/dispensing";
+import { KU16 } from "./ku16";
+import { initHandler } from "./ku16/ipcMain/init";
+import { unlockHandler } from "./ku16/ipcMain/unlock";
+import { dispenseHandler } from "./ku16/ipcMain/dispensing";
+import { dispensingResetHanlder } from "./ku16/ipcMain/reset";
 
 const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
@@ -33,19 +31,15 @@ if (isProd) {
     .then(() => console.log("database connected"))
     .catch((error) => console.log(error));
 
-  const serial = new KU16("/dev/tty.usbserial-A10MY6R2", 2, mainWindow);
+  const ku16 = new KU16("/dev/tty.usbserial-A10MY6R2", 2, mainWindow);
 
-  serial.receive();
+  ku16.receive();
 
   //handler
-  initHandler(serial);
-  unlockHandler(serial);
-  dispenseHandler(serial);
-
-  // await getAllSlots(mainWindow);
-
-  // serial.unlock(2);
-  // serial.checkState();
+  initHandler(ku16);
+  unlockHandler(ku16);
+  dispenseHandler(ku16);
+  dispensingResetHanlder(ku16);
 
   // const mqtt = connect(url);
 

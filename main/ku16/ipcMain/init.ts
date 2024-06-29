@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import { KU16 } from "../serial-port";
+import { KU16 } from "..";
 
 export const initHandler = (ku16: KU16) => {
   ipcMain.handle("init", async (payload) => {

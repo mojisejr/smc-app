@@ -292,6 +292,14 @@ export class KU16 {
     }
   }
 
+  async resetSlot(slotId: number) {
+    await Slot.update(
+      { hn: "", occupied: false },
+      { where: { slotId: slotId } }
+    );
+    await this.checkState();
+  }
+
   sleep(ms: number) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
@@ -330,20 +338,22 @@ export class KU16 {
           await this.checkState();
         }
 
-        if (this.dispensing) {
+        if (this.dispensing && !this.opening) {
           this.dispensing = false;
           this.opening = false;
           //set dispensing false
           this.win.webContents.send("dispensing", {
+            slot: this.openingSlot.slotId,
             hn: "",
             dispensing: false,
             unlocking: false,
+            reset: true,
           });
           //update slot state
-          await Slot.update(
-            { hn: "", occupied: false },
-            { where: { slotId: this.openingSlot.slotId } }
-          );
+          // await Slot.update(
+          //   { hn: "", occupied: false },
+          //   { where: { slotId: this.openingSlot.slotId } }
+          // );
 
           //update front state
           await this.checkState();
