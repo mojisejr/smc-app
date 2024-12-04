@@ -202,6 +202,10 @@ export class KU16 {
     this.availableSlot = _availableSlot;
   }
 
+  async listPorts () {
+    return await SerialPort.list();
+  }
+
   getSerialPort() {
     return this.serialPort;
   }
@@ -278,7 +282,6 @@ export class KU16 {
       this.dispensing = true;
       this.openingSlot = inputSlot;
       while (this.opening) {
-        console.log("dispensing");
         this.win.webContents.send("dispensing", {
           slot: inputSlot.slotId,
           ...inputSlot,
@@ -300,6 +303,24 @@ export class KU16 {
     await this.checkState();
   }
 
+  async deactivate(slotId: number) {
+     await Slot.update({ isActive: false, hn: "", occupied: false}, { where: { slotId: slotId}});
+     this.dispensing = false;
+     this.opening = false;
+      this.win.webContents.send("dispensing", {
+          slot: slotId,
+          dispensing: false,
+          unlocking: false,
+          reset: false,
+        });
+    await this.checkState();
+  }
+
+  async reactiveAllSlots() {
+    await Slot.update({ isActive: true}, { where: { isActive: false}})
+    await this.checkState();
+  }
+
   sleep(ms: number) {
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
@@ -309,9 +330,6 @@ export class KU16 {
   receive() {
     this.parser.on("data", async (data: Buffer) => {
       console.log(`received: ${this.receiveDataMessage}`, data);
-      // const binary = this.hex2bin(data[3].toString(16));
-      // const arr = this.bin2arr(binary);
-      // console.log("binary", binary, arr);
       await this.updateSlot(data[1], data[3], data[4]);
     });
   }
@@ -349,12 +367,6 @@ export class KU16 {
             unlocking: false,
             reset: true,
           });
-          //update slot state
-          // await Slot.update(
-          //   { hn: "", occupied: false },
-          //   { where: { slotId: this.openingSlot.slotId } }
-          // );
-
           //update front state
           await this.checkState();
         }

@@ -357,7 +357,7 @@ function Home() {
       <Modal isOpen={openDeactivate} onClose={() => setOpenDeactivate(false)}>
         <DeActivate
           slotNo={unlocking.slot ?? dispensing.slot}
-          onClose={() => setOpenDeactivate(false)}
+          onClose={() => { setOpenDeactivate(false); setCloseLockWait(true) }}
         />
       </Modal>
       {/* <Modal isOpen={closeClearOrCon} onClose={() => setCloseClearOrCon(false)}>

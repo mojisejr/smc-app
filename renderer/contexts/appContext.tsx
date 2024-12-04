@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { ISlot } from "../interfaces/slot";
 import { appProviderProps } from "../interfaces/appProviderProps";
 import { useRouter } from "next/router";
 

@@ -1,4 +1,4 @@
-import { BrowserWindow, app, ipcMain } from "electron";
+import { BrowserWindow, app} from "electron";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
 
@@ -9,6 +9,9 @@ import { unlockHandler } from "./ku16/ipcMain/unlock";
 import { dispenseHandler } from "./ku16/ipcMain/dispensing";
 import { dispensingResetHanlder } from "./ku16/ipcMain/reset";
 import { LoggingHandler } from "./logger";
+import { forceResetHanlder } from "./ku16/ipcMain/forceReset";
+import { reactiveAllHanlder } from "./ku16/ipcMain/reactiveAll";
+import { deactiveHanlder } from "./ku16/ipcMain/deactivate";
 
 const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
@@ -32,7 +35,9 @@ if (isProd) {
     .then(() => console.log("database connected"))
     .catch((error) => console.log(error));
 
-  const ku16 = new KU16("/dev/tty.usbserial-A10MY6R2", 2, mainWindow);
+  // const ku16 = new KU16("/dev/tty.usbserial-A10MY6R2", 2, mainWindow);
+  const ku16 = new KU16("COM3", 2,  mainWindow);
+
 
   ku16.receive();
 
@@ -42,49 +47,9 @@ if (isProd) {
   dispenseHandler(ku16);
   dispensingResetHanlder(ku16);
   LoggingHandler(ku16);
-
-  // const mqtt = connect(url);
-
-  // //Event Listener
-  // mqtt.on("connect", () => {
-  //   mqtt.on("message", (topic, payload) => {
-  //     const parsedPayload = JSON.parse(payload.toString());
-  //     switch (topic) {
-  //       case "ku_states": {
-  //         handleKuStates(mainWindow, parsedPayload);
-  //         break;
-  //       }
-  //       case "dispensing": {
-  //         handleDispensing(mainWindow, parsedPayload);
-  //         break;
-  //       }
-  //       case "unlocking": {
-  //         handleUnlocking(mainWindow, parsedPayload);
-  //         break;
-  //       }
-  //       case "dispensing-reset": {
-  //         handleDispensingReset(mainWindow, parsedPayload);
-  //         break;
-  //       }
-  //       case "retrive_logs": {
-  //         handleRetriveLogs(mainWindow, parsedPayload);
-  //         break;
-  //       }
-  //       case "get_sensors": {
-  //         handleRetriveSensor(mainWindow, parsedPayload);
-  //         break;
-  //       }
-  //       case "activated": {
-  //         pubInit(mqtt);
-  //         break;
-  //       }
-  //       case "deactivated": {
-  //         handleDeactivated(mainWindow);
-  //         break;
-  //       }
-  //     }
-  //   });
-  // });
+  forceResetHanlder(ku16);
+  deactiveHanlder(ku16);
+  reactiveAllHanlder(ku16);
 
   if (isProd) {
     await mainWindow.loadURL("app://./home.html");
@@ -98,3 +63,4 @@ if (isProd) {
 app.on("window-all-closed", () => {
   app.quit();
 });
+

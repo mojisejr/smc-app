@@ -10,7 +10,7 @@ export interface LogData {
 }
 
 export const logger = async (data: LogData) => {
-    await Log.create({ data });
+ await Log.create({ ...data, message: `${data.message} by ${data.user}`});
 }
 
 export const getLogs = async () => {
@@ -21,7 +21,6 @@ export const LoggingHandler = (ku16: KU16) => {
     ipcMain.handle("get_logs", async () => {
         const data = await getLogs();
         const logs =  data.map(log => log.dataValues);
-        console.log(logs);
         ku16.win.webContents.send("retrive_logs", logs);
         
     })

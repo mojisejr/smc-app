@@ -23,7 +23,7 @@ const Navbar = ({ active }: NavbarProps) => {
   const [openDispenseModal, setOpenDispenseModal] = useState<boolean>(false);
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   useEffect(() => {
-    if (dispensing.dispensing && dispensing.reset) {
+    if (dispensing.reset && !dispensing.dispensing) {
       setCloseClearOrCon(false);
     }
   }, [dispensing]);

@@ -9,7 +9,7 @@ Slot.init(
     hn: { type: DataTypes.TEXT },
     timestamp: { type: DataTypes.INTEGER },
     occupied: { type: DataTypes.INTEGER },
-    isActive: { type: DataTypes.INTEGER },
+    isActive: { type: DataTypes.BOOLEAN },
   },
   {
     sequelize,

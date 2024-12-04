@@ -72,7 +72,7 @@ function Document() {
                 </thead>
                 <tbody> 
                     {logs.length <= 0 ? null : logs.map((log) => <tr key={log.id}>
-                        <td>{new Date(+log.timestamp).toLocaleDateString()} : {new Date(+log.timestamp).toLocaleTimeString()}</td>
+                        <td>{new Date(log.createdAt).toLocaleDateString()} : {new Date(log.createdAt).toLocaleTimeString()}</td>
                         <td>{log.message}</td>
                         <td>{log.id}</td>
                         </tr>)}
