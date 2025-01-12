@@ -8,7 +8,8 @@ Slot.init(
     slotId: { type: DataTypes.INTEGER, primaryKey: true },
     hn: { type: DataTypes.TEXT },
     timestamp: { type: DataTypes.INTEGER },
-    occupied: { type: DataTypes.INTEGER },
+    occupied: { type: DataTypes.BOOLEAN },
+    opening: { type: DataTypes.BOOLEAN },
     isActive: { type: DataTypes.BOOLEAN },
   },
   {

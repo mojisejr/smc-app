@@ -1,15 +1,14 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { appProviderProps } from "../interfaces/appProviderProps";
 import { useRouter } from "next/router";
+import { AuthResponse, LogoutRequest } from "../interfaces/auth";
+import { ipcRenderer } from "electron";
 
 //@Dev: Define Context Type
 type appContextType = {
-  user?: {
-    stuffId: string;
-    role: string;
-  };
+  user?: AuthResponse
   logged: boolean;
-  setUser?: (user: { stuffId: string; role: string }) => void;
+  setUser?: (user: AuthResponse) => void;
   logOut?: () => void;
 };
 
@@ -19,35 +18,58 @@ const appContextDefaultValue: appContextType = {
   logged: false,
 };
 
+
 //@Dev create context with context type
 const AppContext = createContext<appContextType>(appContextDefaultValue);
 
 //@Dev create provider
 
 export function AppProvider({ children }: appProviderProps) {
-  const { replace } = useRouter()
-  const [user, setActiveUser] = useState<{ stuffId: string; role: string }>();
+  const { replace, pathname } = useRouter()
+  const [user, setActiveUser] = useState<AuthResponse>();
   const [logged, setLogged] = useState<boolean>(false);
+
+
+
+  useEffect(() => {
+    ipcRenderer.on("connection", (event, connection) => {
+      if(!user || user == null) {
+        replace("/setting");
+      }
+      replace( `/error?message=${connection.message}&title=${connection.title}&suggestion=${connection.suggestion}`);
+    });
+
+    return () => {
+      ipcRenderer.removeAllListeners("connection");
+    }
+  },[])
+
+
+
 
   useEffect(() => {
     if (user !== null || user !== undefined) {
-      console.log(user);
       setLogged(true);
     } 
     if(user == null || user == undefined) {
-      setLogged(false);
-      replace("/home");
+      if(pathname.includes("setting")) {
+        replace("/setting")
+      } else {
+        setLogged(false);
+        replace("/home");
+      }
     }
 
   }, [user]);
 
  
-  const setUser = (user: { stuffId: string; role: string }) => {
-    console.log('user', user);
+  const setUser = (user: AuthResponse) => {
     setActiveUser(user);
   };
 
   const logOut = () => {
+    //TODO: implement logout-req
+    ipcRenderer.invoke("logout-req", { name: user.name } as LogoutRequest );
     setActiveUser(undefined);
     setLogged(false);
     replace("/home");

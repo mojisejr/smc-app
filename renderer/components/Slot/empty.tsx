@@ -13,7 +13,7 @@ export const EmptySlot = ({ slotNo, isActive }: EmptySlotProps) => {
         </div>
       </div>
       <div className="flex flex-col justify-center items-center pt-3">
-        <div className="font-bold">Unlock</div>
+        <div className="font-bold">ปลดล็อค</div>
       </div>
       <div className="absolute bottom-2 right-2 text-[#615858] text-[40px] font-bold">
         {slotNo}

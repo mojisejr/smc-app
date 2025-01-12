@@ -34,12 +34,20 @@ const Navbar = ({ active }: NavbarProps) => {
   const handleCloseClearOrCon = () => {
     setCloseClearOrCon(true);
   };
-
+  
   const { user, logged, logOut } = useApp();
+
+  const handleLogout = () => {
+    // ipcRenderer.invoke("logout-re");
+    logOut(); 
+  }
+
+
+
   return (
     <div className="grid grid-cols-1 gap-2">
       {user != undefined ? (
-        <div className="font-semibold text-sm">User: {user.stuffId}</div>
+        <div className="font-semibold text-sm">User: {user.name}</div>
       ) : null}
       <button
         disabled={!canDispense || active != 1}
@@ -47,7 +55,7 @@ const Navbar = ({ active }: NavbarProps) => {
         className="btn flex justify-start items-center gap-2 font-bold bg-[#eee] rounded-xl shadow-xl hover:bg-[#5495F6] hover:text-[#fff] disabled:text-[#ddd] disabled:bg-[#eee]"
       >
         <BsUnlockFill />
-        Dispense
+        จ่ายยา
       </button>
       <Link href="/home">
         <button
@@ -56,7 +64,7 @@ const Navbar = ({ active }: NavbarProps) => {
           }`}
         >
           <BsHouseDoor size={16} />
-          <span className={`${active == 1 ? "font-bold" : null}`}>Home</span>
+          <span className={`${active == 1 ? "font-bold" : null}`}>หน้าหลัก</span>
         </button>
       </Link>
       <Link href="/document">
@@ -67,7 +75,7 @@ const Navbar = ({ active }: NavbarProps) => {
         >
           <BsBook size={16} />
           <span className={`${active == 2 ? "font-bold" : null}`}>
-            Documents
+            คู่มือการใช้งาน
           </span>
         </button>
       </Link>
@@ -78,9 +86,10 @@ const Navbar = ({ active }: NavbarProps) => {
           }`}
         >
           <BsQuestionCircle size={16} />
-          <span className={`${active == 3 ? "font-bold" : null}`}>About</span>
+          <span className={`${active == 3 ? "font-bold" : null}`}>ข้อมูลระบบ</span>
         </button>
       </Link>
+      { user && user.role == "ADMIN" ?
       <Link href="/logs">
         <button
           className={`btn btn-ghost flex justify-start items-center gap-2  ${
@@ -90,14 +99,24 @@ const Navbar = ({ active }: NavbarProps) => {
           <BsFillTerminalFill size={16} />
           <span className={`${active == 4 ? "font-bold" : null}`}>Logs</span>
         </button>
-      </Link>
+      </Link> : null }
+      { user && user.role == "ADMIN" ? <Link href="/setting">
+        <button
+          className={`btn btn-ghost flex justify-start items-center gap-2  ${
+            active == 5 ? "btn-active font-bold" : null
+          }`}
+        >
+          <BsFillTerminalFill size={16} />
+          <span className={`${active == 5 ? "font-bold" : null}`}>ตั้งค่า</span>
+        </button>
+      </Link> : null }
       {logged ? (
         <div className="mt-4">
           <button
             className={`btn btn-error btn-outline flex justify-start items-center gap-3 w-full`}
-            onClick={() => logOut()}
+            onClick={() => handleLogout()}
           >
-            <span className={"font-bold hover:text-white"}>Logout</span>
+            <span className={"font-bold hover:text-white"}>ออกจากระบบ</span>
           </button>
         </div>
       ) : null}
@@ -114,7 +133,7 @@ const Navbar = ({ active }: NavbarProps) => {
         onClose={() => {}}
       >
         <ClearOrContinue
-          slotNo={dispensing.slot}
+          slotNo={dispensing.slotId}
           hn={dispensing.hn}
           onClose={handleCloseClearOrCon}
         />

@@ -1,5 +1,4 @@
 import { ipcRenderer } from "electron";
-import { useDispense } from "../../hooks/useDispense";
 import { useApp } from "../../contexts/appContext";
 import { useRef } from "react";
 // import { IO } from "../../enums/ipc-enums";
@@ -13,7 +12,7 @@ const ReactivateAllSlots = ({  onClose }: ResetSlotOrNotProps) => {
     const { user } = useApp();
   function handleReset() {
     const reason = inputRef.current?.value; 
-    ipcRenderer.invoke("reactivate-all", { reason: reason, stuffId: user.stuffId }).then(() => {
+    ipcRenderer.invoke("reactivate-all", { reason: reason, user: user.name }).then(() => {
       onClose();
     });
   }
@@ -26,7 +25,7 @@ const ReactivateAllSlots = ({  onClose }: ResetSlotOrNotProps) => {
     <>
       <div className="flex gap-2 p-5 flex-col max-w-[300px]">
         <div className="text-[#ff0000] font-bold text-xl">
-          Warning this is [Reactivate All Slots] it only reactivate and reset slot states. please take out all of remaining drugs out of all slot
+          ระวังการ [Reactivate All Slots] จะทำให้สถานะของช่อง กลับมาเป็นว่าง กรุณาเอายาที่เหลือออกจากช่อง ก่อนนะครับ
         </div>
 
         <input type="text" className="input" placeholder="reset reason" ref={inputRef}></input>
@@ -40,7 +39,7 @@ const ReactivateAllSlots = ({  onClose }: ResetSlotOrNotProps) => {
           className="p-3 bg-gray-200 hover:bg-[#ff0000] text-white font-bold rounded-md"
           onClick={() => handleContinue()}
         >
-            No Thank!
+          ยกเลิก
         </button>
       </div>
     </>

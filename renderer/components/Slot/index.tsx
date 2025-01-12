@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import LockedSlot from "./locked";
 import EmptySlot from "./empty";
 import Modal from "../Modals";
 import InputSlot from "../Dialogs/inputSlot";
-import ResetSlotOrNot from "../Dialogs/ResetSlotOrNot";
 
 interface SlotProps {
   slotData: {

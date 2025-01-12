@@ -1,195 +1,38 @@
 import { SerialPort, PacketLengthParser } from "serialport";
 import { Slot } from "../../db/model/slot.model";
 import { BrowserWindow, ipcMain } from "electron";
+import { checkCommand, cmdCheckOpeningSlot, cmdCheckStatus, cmdUnlock } from "./utils/command-parser";
+import { SlotState } from "../interfaces/slotState";
+import { systemLog } from "../logger";
 
-let commands = [
-  {
-    channel: 0,
-    channelNo: 1,
-    unlock: [0x02, 0x00, 0x31, 0x03, 0x36],
-  },
-  {
-    channel: 1,
-    channelNo: 2,
-    unlock: [0x02, 0x01, 0x31, 0x03, 0x37],
-  },
-  {
-    channel: 2,
-    channelNo: 3,
-    unlock: [0x02, 0x02, 0x31, 0x03, 0x38],
-  },
-  {
-    channel: 3,
-    channelNo: 4,
-    unlock: [0x02, 0x03, 0x31, 0x03, 0x39],
-  },
-  {
-    channel: 4,
-    channelNo: 5,
-    unlock: [0x02, 0x04, 0x31, 0x03, 0x3a],
-  },
-  {
-    channel: 5,
-    channelNo: 6,
-    unlock: [0x02, 0x05, 0x31, 0x03, 0x3b],
-  },
-  {
-    channel: 6,
-    channelNo: 7,
-    unlock: [0x02, 0x06, 0x31, 0x03, 0x3c],
-  },
-  {
-    channel: 7,
-    channelNo: 8,
-    unlock: [0x02, 0x07, 0x31, 0x03, 0x3d],
-  },
-  {
-    channel: 8,
-    channelNo: 9,
-    unlock: [0x02, 0x08, 0x31, 0x03, 0x3e],
-  },
-  {
-    channel: 9,
-    channelNo: 10,
-    unlock: [0x02, 0x09, 0x31, 0x03, 0x3f],
-  },
-  {
-    channel: 10,
-    channelNo: 11,
-    unlock: [0x02, 0x0a, 0x31, 0x03, 0x40],
-  },
-  {
-    channel: 11,
-    channelNo: 12,
-    unlock: [0x02, 0x0b, 0x31, 0x03, 0x41],
-  },
-  {
-    channel: 12,
-    channelNo: 13,
-    unlock: [0x02, 0x0c, 0x31, 0x03, 0x42],
-  },
-  {
-    channel: 13,
-    channelNo: 14,
-    unlock: [0x02, 0x0d, 0x31, 0x03, 0x43],
-  },
-  {
-    channel: 14,
-    channelNo: 15,
-    unlock: [0x02, 0x0e, 0x31, 0x03, 0x44],
-  },
-  {
-    channel: 15,
-    channelNo: 16,
-    unlock: [0x02, 0x0f, 0x31, 0x03, 0x45],
-  },
-];
-
-const status = [0x02, 0x00, 0x30, 0x03, 0x35];
-
-const activeSlotValue = [1, 2, 4, 8, 16, 32, 64, 128];
 
 export class KU16 {
   serialPort: SerialPort;
   parser: PacketLengthParser;
-  baudRate: number = 19200;
   path: string;
   autoOpen: boolean = true;
-  receiveDataMessage: string = "";
   availableSlot: number;
   win: BrowserWindow;
   opening = false;
   dispensing = false;
   openingSlot: { slotId: number; hn: string; timestamp: number };
-  commands = [
-    {
-      channel: 0,
-      channelNo: 1,
-      unlock: [0x02, 0x00, 0x31, 0x03, 0x36],
-    },
-    {
-      channel: 1,
-      channelNo: 2,
-      unlock: [0x02, 0x01, 0x31, 0x03, 0x37],
-    },
-    {
-      channel: 2,
-      channelNo: 3,
-      unlock: [0x02, 0x02, 0x31, 0x03, 0x38],
-    },
-    {
-      channel: 3,
-      channelNo: 4,
-      unlock: [0x02, 0x03, 0x31, 0x03, 0x39],
-    },
-    {
-      channel: 4,
-      channelNo: 5,
-      unlock: [0x02, 0x04, 0x31, 0x03, 0x3a],
-    },
-    {
-      channel: 5,
-      channelNo: 6,
-      unlock: [0x02, 0x05, 0x31, 0x03, 0x3b],
-    },
-    {
-      channel: 6,
-      channelNo: 7,
-      unlock: [0x02, 0x06, 0x31, 0x03, 0x3c],
-    },
-    {
-      channel: 7,
-      channelNo: 8,
-      unlock: [0x02, 0x07, 0x31, 0x03, 0x3d],
-    },
-    {
-      channel: 8,
-      channelNo: 9,
-      unlock: [0x02, 0x08, 0x31, 0x03, 0x3e],
-    },
-    {
-      channel: 9,
-      channelNo: 10,
-      unlock: [0x02, 0x09, 0x31, 0x03, 0x3f],
-    },
-    {
-      channel: 10,
-      channelNo: 11,
-      unlock: [0x02, 0x0a, 0x31, 0x03, 0x40],
-    },
-    {
-      channel: 11,
-      channelNo: 12,
-      unlock: [0x02, 0x0b, 0x31, 0x03, 0x41],
-    },
-    {
-      channel: 12,
-      channelNo: 13,
-      unlock: [0x02, 0x0c, 0x31, 0x03, 0x42],
-    },
-    {
-      channel: 13,
-      channelNo: 14,
-      unlock: [0x02, 0x0d, 0x31, 0x03, 0x43],
-    },
-    {
-      channel: 14,
-      channelNo: 15,
-      unlock: [0x02, 0x0e, 0x31, 0x03, 0x44],
-    },
-    {
-      channel: 15,
-      channelNo: 16,
-      unlock: [0x02, 0x0f, 0x31, 0x03, 0x45],
-    },
-  ];
-
-  constructor(_path: string, _availableSlot: number, _win: BrowserWindow) {
+  connected = false;
+  waitForLockedBack = false;
+  waitForDispenseLockedBack = false;
+  constructor(_path: string,_baudRate: number, _availableSlot: number, _win: BrowserWindow) {
     this.win = _win;
     this.serialPort = new SerialPort({
       path: _path,
-      baudRate: this.baudRate,
+      baudRate: _baudRate,
       autoOpen: this.autoOpen,
+    }, error => {
+      if(error){
+        this.connected = false;
+        return;
+      } else {
+        this.connected = true;
+        return;
+      }
     });
 
     this.parser = this.serialPort.pipe(
@@ -202,9 +45,6 @@ export class KU16 {
     this.availableSlot = _availableSlot;
   }
 
-  async listPorts () {
-    return await SerialPort.list();
-  }
 
   getSerialPort() {
     return this.serialPort;
@@ -214,15 +54,22 @@ export class KU16 {
     return await SerialPort.list();
   }
 
+
   open() {
+    let result = false;
     this.serialPort.open((error) => {
       if (error) {
-        console.log("opening port error: ", error.message);
+        console.log("port open: ",error.message);
+        result = false;  
         return;
       }
       console.log("opening");
+      return true;
     });
+
+    return result;
   }
+
 
   close() {
     this.serialPort.close((error) => {
@@ -233,74 +80,135 @@ export class KU16 {
     });
   }
 
-  async checkState() {
-    this.serialPort.write(Buffer.from(status));
-    const slots = await Slot.findAll();
-    this.win.webContents.send(
-      "ku_states",
-      slots.map((s) => s.dataValues)
-    );
+  isConnected () {
+    return this.connected;
   }
 
-  async unlock(inputSlot: { slotId: number; hn: string; timestamp: number }) {
-    const data = this.commands[inputSlot.slotId - 1];
+  sendCheckState() {
+    const cmd = cmdCheckStatus();
+    this.serialPort.write(cmd);
+  }
 
-    if (!data) return;
+  async receivedCheckState(data: number) {
+    const hexData = this.decimalToHex(data);
+    const binData = this.hex2bin(hexData);
+    const binArr = this.bin2arr(binData);
+    const slotData = await this.slotBinParser(binArr, this.availableSlot); 
+    systemLog(`check_state_received:  data ${data.toString()}`)
+    this.win.webContents.send("init-res", slotData);
+  }
 
-    const result = this.serialPort.write(Buffer.from(data.unlock));
+  async receivedUnlockState(data: number) {
+    const hexData = this.decimalToHex(data);
+    const binData = this.hex2bin(hexData);
+    const binArr= this.bin2arr(binData);
+    const openingSlotNumber = cmdCheckOpeningSlot(binArr, this.availableSlot);
+    systemLog(`unlocked_receved: unlock state for slot # ${openingSlotNumber}`);
+    if(openingSlotNumber == -1) { 
+      systemLog("unlocked_received: slot not found something went wrong");
+      return
+    } ;
+    this.waitForLockedBack = true;
+    await Slot.update(
+        { ...this.openingSlot, opening: true, occupied: false },
+        { where: { slotId: this.openingSlot.slotId } }
+    );
+    this.win.webContents.send("unlocking", { ...this.openingSlot, unlocking: true });
+  }
 
-    //update state
-    if (result) {
-      this.receiveDataMessage = `slot #${data.channelNo} unlocked`;
-      this.opening = true;
-      this.openingSlot = inputSlot;
-      while (this.opening) {
-        console.log("opening");
-        this.win.webContents.send("unlocking", {
-          slot: inputSlot.slotId,
-          ...inputSlot,
-          dispensing: false,
-          unlocking: true,
-        });
-        await this.checkState();
-        await this.sleep(1000);
-      }
+  async receivedDispenseState(data: number) {
+    const hexData = this.decimalToHex(data);
+    const binData = this.hex2bin(hexData);
+    const binArr= this.bin2arr(binData);
+    const openingSlotNumber = cmdCheckOpeningSlot(binArr, this.availableSlot);
+    systemLog(`dispensed_received: dispense state for slot # ${openingSlotNumber}`);
+    if(openingSlotNumber == -1) { 
+      systemLog("dispensed_received: slot not found something went wrong");
+      return
+    } ;
+    // this.waitForLockedBack = true;
+    this.waitForDispenseLockedBack = true;
+    await Slot.update(
+        { ...this.openingSlot, opening: true },
+        { where: { slotId: this.openingSlot.slotId } }
+    );
+    this.win.webContents.send("dispensing", { ...this.openingSlot,  dispensing: true });
+  }
+
+  async receivedLockedBackState(data: number) {
+    const hexData = this.decimalToHex(data);
+    const binData = this.hex2bin(hexData);
+    const binArr= this.bin2arr(binData);
+    const openingSlotNumber = cmdCheckOpeningSlot(binArr, this.availableSlot);
+    if(openingSlotNumber == this.openingSlot.slotId) {
+        systemLog("locked_back_received: still opening");
+        this.win.webContents.send("unlocking", { ...this.openingSlot, unlocking: true, });
+        return;
+    };
+    if(openingSlotNumber == -1) {
+      systemLog(`locked_back_received: slot #${this.openingSlot.slotId} locked back`);
+      this.waitForLockedBack = false;
+      this.opening = false;
+      this.dispensing = false;
+      await Slot.update(
+        { ...this.openingSlot, opening: false, occupied: true },
+        { where: { slotId: this.openingSlot.slotId } }
+      );
+      this.win.webContents.send("unlocking", { ...this.openingSlot, unlocking: false,  });
     }
+  }
+
+  async receivedDispenseLockedBackState(data: number) {
+    const hexData = this.decimalToHex(data);
+    const binData = this.hex2bin(hexData);
+    const binArr= this.bin2arr(binData);
+    const openingSlotNumber = cmdCheckOpeningSlot(binArr, this.availableSlot);
+    if(openingSlotNumber == this.openingSlot.slotId) {
+        systemLog("dispense_locked_back_received: still opening");
+        this.win.webContents.send("dispensing", { ...this.openingSlot, dispensing: true, reset: false });
+        return;
+    };
+    if(openingSlotNumber == -1) {
+      systemLog(`dispense_locked_back_received: slot #${this.openingSlot.slotId} locked back`);
+      this.waitForDispenseLockedBack = false;
+      this.opening = false;
+      this.dispensing = false;
+      this.win.webContents.send("dispensing", { ...this.openingSlot, dispensing: false, reset: true });
+    }
+  }
+ 
+  sendUnlock(inputSlot: { slotId: number; hn: string; timestamp: number }) {
+    if(!this.isConnected() || this.waitForLockedBack) return;
+    //TODO return error if not connected
+    const cmd = cmdUnlock(inputSlot.slotId);
+    this.serialPort.write(cmd);
+    this.opening = true;
+    this.openingSlot = inputSlot;
   }
 
   async dispense(inputSlot: { slotId: number; hn: string; timestamp: number }) {
-    const data = this.commands[inputSlot.slotId - 1];
+    if(!this.isConnected() || this.waitForDispenseLockedBack) return;
+    const slot = (await Slot.findOne({where: { slotId: inputSlot.slotId}})).dataValues
 
-    if (!data) return;
-
-    const result = this.serialPort.write(Buffer.from(data.unlock));
-
-    //update state
-    if (result) {
-      this.receiveDataMessage = `slot #${data.channelNo} is dispensing`;
-      this.opening = true;
-      this.dispensing = true;
-      this.openingSlot = inputSlot;
-      while (this.opening) {
-        this.win.webContents.send("dispensing", {
-          slot: inputSlot.slotId,
-          ...inputSlot,
-          dispensing: true,
-          unlocking: false,
-          reset: false,
-        });
-        await this.checkState();
-        await this.sleep(1000);
-      }
+    if(!slot.occupied || slot.hn == "" || slot.hn == null || slot.hn == undefined) {
+      return;
     }
+
+
+    const data = cmdUnlock(inputSlot.slotId);
+    if (!data) return;
+    this.serialPort.write(data);
+
+    this.opening = true;
+    this.dispensing = true;
+    this.openingSlot = inputSlot;
   }
 
   async resetSlot(slotId: number) {
     await Slot.update(
-      { hn: "", occupied: false },
+      { hn: null, occupied: false, opening: false },
       { where: { slotId: slotId } }
     );
-    await this.checkState();
   }
 
   async deactivate(slotId: number) {
@@ -313,12 +221,10 @@ export class KU16 {
           unlocking: false,
           reset: false,
         });
-    await this.checkState();
   }
 
   async reactiveAllSlots() {
     await Slot.update({ isActive: true}, { where: { isActive: false}})
-    await this.checkState();
   }
 
   sleep(ms: number) {
@@ -329,60 +235,67 @@ export class KU16 {
 
   receive() {
     this.parser.on("data", async (data: Buffer) => {
-      console.log(`received: ${this.receiveDataMessage}`, data);
-      await this.updateSlot(data[1], data[3], data[4]);
+      const status = checkCommand(data[2]); 
+       if (status == "RETURN_SINGLE_DATA") {
+          if(this.opening && !this.dispensing && !this.waitForLockedBack) { 
+            this.receivedUnlockState(data[3]) 
+          } else if (this.opening && this.waitForLockedBack) {
+            this.receivedLockedBackState(data[3]);
+            this.receivedCheckState(data[3]);
+          } else if (this.opening && this.dispensing && !this.waitForDispenseLockedBack) {
+            this.receivedDispenseState(data[3]);
+          } else if (this.opening && this.dispensing && this.waitForDispenseLockedBack) {
+            await this.receivedDispenseLockedBackState(data[3]);
+            this.receivedCheckState(data[3]);
+          }
+       else {
+            this.receivedCheckState(data[3]);
+          };
+      } else {
+        return;
+      }
     });
   }
 
-  async updateSlot(address: number, slots1: number, slots2: number) {
-    // console.log(address);
-    if (address == 0) {
-      if (this.availableSlot == slots1) {
-        if (this.opening) {
-          this.opening = false;
-          //set unlocking false
-          this.win.webContents.send("unlocking", {
-            hn: "",
-            dispensing: false,
-            unlocking: false,
-          });
-          //update slot state
-          await Slot.update(
-            { ...this.openingSlot, occupied: true },
-            { where: { slotId: this.openingSlot.slotId } }
-          );
-
-          //update front state
-          await this.checkState();
-        }
-
-        if (this.dispensing && !this.opening) {
-          this.dispensing = false;
-          this.opening = false;
-          //set dispensing false
-          this.win.webContents.send("dispensing", {
-            slot: this.openingSlot.slotId,
-            hn: "",
-            dispensing: false,
-            unlocking: false,
-            reset: true,
-          });
-          //update front state
-          await this.checkState();
-        }
-      }
+ 
+slotBinParser = async (binArr: number[], availableSlot: number) => {
+    if(binArr.length <= 0 || availableSlot <= 0) {
+        //TODO fix null return
+        return [];
     }
 
-    if (address == 1) {
-      if (this.availableSlot >= slots2) {
-        this.win.webContents.send("unlocking", {
-          hn: "",
-          dispensing: false,
-          unlocking: false,
-        });
-      }
+    const slotFromDb = await Slot.findAll();
+
+
+    const slotArr = binArr.reverse().map((slot, index) => {
+        return {
+            slotId: slotFromDb[index] == undefined ? null : slotFromDb[index].dataValues.slotId,
+            hn: slotFromDb[index] == undefined ? null : slotFromDb[index].dataValues.hn,
+            occupied: slotFromDb[index] == undefined ? false : slotFromDb[index].dataValues.occupied,
+            timestamp: slotFromDb[index] == undefined ? null : slotFromDb[index].dataValues.timestamp,
+            opening: slotFromDb[index] == undefined ? false : slotFromDb[index].dataValues.opening,
+            isActive: slot == 1 ? true : false,
+        } as SlotState
+    })
+
+    if(slotArr.length <= 0) {
+      return [];
     }
-  }
+
+    const available = slotArr.splice(0, availableSlot);
+    return available;
+
+} 
+
+  decimalToHex(decimal) {
+    if (!Number.isInteger(decimal)) {
+        throw new Error("Input must be an integer.");
+    }
+
+    const hex = decimal.toString(16).toUpperCase(); // Convert to hexadecimal and uppercase.
+
+    return hex.padStart(2, "0");
+}
 
   hex2bin(hex: string) {
     return parseInt(hex, 16).toString(2).padStart(8, "0");

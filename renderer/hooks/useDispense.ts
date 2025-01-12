@@ -1,40 +1,40 @@
 import { ipcRenderer } from "electron";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { useApp } from "../contexts/appContext";
 
 interface Dispensing {
-  slot?: number;
+  slotId?: number;
   hn?: string;
   timestamp?: number;
   dispensing: boolean;
-  unlocking: boolean;
   reset?: boolean;
+  continue?: boolean
 }
 
 export const useDispense = () => {
+  const { user } = useApp();
   const [dispensing, setDispensing] = useState<Dispensing>({
     dispensing: false,
-    unlocking: false,
     reset: false,
+    continue: false,
   });
 
   const reset = (slot: number) => {
     const dataToReset = {
-      hn: "",
+      hn: null,
       timestamp: null,
       slot: null,
       reset: false,
-      unlocking: false,
       dispensing: false,
     };
     setDispensing(dataToReset);
-    toast(`Slot #${slot} clearing Successful`, { toastId: 2, type: "success" });
+    toast(`ช่อง #${slot} เคลียร์เรียบร้อยแล้ว`, { toastId: 2, type: "success" });
   };
 
   const keep = () => {
     setDispensing({
       reset: false,
-      unlocking: false,
       dispensing: false,
     });
   };
@@ -47,7 +47,7 @@ export const useDispense = () => {
     ipcRenderer.on("dispensing-reset", (event, payload) => {
       setDispensing({
         ...dispensing,
-        slot: payload.slotId,
+        slotId: payload.slotId,
         hn: payload.hn,
         dispensing: false,
         reset: true,
@@ -55,12 +55,12 @@ export const useDispense = () => {
     });
 
     ipcRenderer.on("deactivated", () => {
-      setDispensing({ reset: false, unlocking: false, dispensing: false });
+      setDispensing({ reset: false, dispensing: false });
     });
-  }, [dispensing]);
+  }, []);
 
-  const dispense = ({ slot, hn, timestamp }: Partial<Dispensing>) => {
-    ipcRenderer.invoke("dispense", { hn, slotId: slot, timestamp });
+  const dispense = ({ slotId, hn, timestamp }: Partial<Dispensing>) => {
+    ipcRenderer.invoke("dispense", { hn, slotId, timestamp, user: user.name });
   };
 
   return {

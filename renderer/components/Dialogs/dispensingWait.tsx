@@ -1,9 +1,6 @@
-import { useForm, SubmitHandler } from "react-hook-form";
 import { ipcRenderer } from "electron";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Loading from "../Shared/Loading";
-import Slot from "../Slot";
-// import { IO } from "../../enums/ipc-enums";
 
 interface DispensingWaitProps {
   slotNo: number;
@@ -15,10 +12,19 @@ interface DispensingWaitProps {
 const DispensingWait = ({ slotNo, hn, onClose, onOpenDeactive }: DispensingWaitProps) => {
   useEffect(() => {
 	ipcRenderer.on("deactivated", () => {
-console.log('deactivated on dispense');
 	onClose();
 });
   }, []);
+
+
+const handleCheckLockedBack = () => {
+  ipcRenderer.invoke("check-locked-back", {slotId: slotNo});
+}
+
+  
+
+
+
 
   return (
     <>
@@ -30,13 +36,13 @@ console.log('deactivated on dispense');
           </div>
           <div className="flex flex-col p-3 flex-wrap jusitfy-center items-center">
             <div className="font-bold text-[#ff0000]">
-              Slot No [{slotNo}] is Opening
+              ช่อง # {slotNo} เปิดอยู่
             </div>
             <p className="font-bold p-3">
-              Dispense drugs the opening slot and close the drawer back with in
-              30 seconds
+              เอายาออกจากช่องแล้วปิดช่อง จากนั้นกดปุ่มตกลง
             </p>
             <Loading />
+            <button className="btn" onClick={handleCheckLockedBack}>ตกลง</button>
           </div>
         </div>
       </div>

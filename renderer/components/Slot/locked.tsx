@@ -1,10 +1,8 @@
-import { ipcRenderer } from "electron";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FaLock } from "react-icons/fa";
 import { BsArrowClockwise} from 'react-icons/bs'
 import Modal from "../Modals";
 import ResetSlotOrNot from "../Dialogs/ResetSlotOrNot";
-// import { IO } from "../../enums/ipc-enums";
 interface LockedSlotProps {
   slotNo: number;
   hn: string;

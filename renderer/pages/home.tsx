@@ -3,28 +3,23 @@ import Head from "next/head";
 import Slot from "../components/Slot";
 import Image from "next/image";
 
-import { BsBook, BsGear, BsHouseDoor, BsQuestionCircle } from "react-icons/bs";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import Modal from "../components/Modals";
-import Auth from "../components/Dialogs/auth";
 import LockWait from "../components/Dialogs/lockWait";
-import DispenseSlot from "../components/Dialogs/dispenseSlot";
 import DispensingWait from "../components/Dialogs/dispensingWait";
 
-import ClearOrContinue from "../components/Dialogs/clearOrContinue";
-import Link from "next/link";
 import { useKuStates } from "../hooks/useKuStates";
 import Loading from "../components/Shared/Loading";
 import { useDispense } from "../hooks/useDispense";
 import { useUnlock } from "../hooks/useUnlock";
 import { useApp } from "../contexts/appContext";
-import { BsUnlockFill } from "react-icons/bs";
-import Indicator from "../components/Indicators/baseIndicator";
 import Navbar from "../components/Shared/Navbar";
 import Indicators from "../components/Indicators/indicators";
 import DeActivate from "../components/Dialogs/Deactivate";
+import AuthDialog from "../components/Dialogs/auth";
+import { ipcRenderer } from "electron";
 
 const mockSlots = [
   {
@@ -149,53 +144,15 @@ const mockSlots = [
   },
 ];
 
-const slotts = [
-  {
-    slotId: 1,
-    hn: "532345",
-    occupied: true,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: true,
-  },
-  {
-    slotId: 2,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: true,
-  },
-  {
-    slotId: 3,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: true,
-  },
-  {
-    slotId: 4,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: true,
-  },
-  {
-    slotId: 5,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: true,
-  },
-];
 
 function Home() {
-  const { slots, canDispense } = useKuStates();
+
+
+  const { slots } = useKuStates();
 
   const { unlocking } = useUnlock();
+
+
   const { dispensing } = useDispense();
 
   const [openAuthModal, setOpenAuthModal] = useState<boolean>(true);
@@ -206,9 +163,6 @@ function Home() {
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
 
-  const onReset = () => {
-    setCloseLockWait(true);
-  };
 
   useEffect(() => {
     if (unlocking.unlocking) {
@@ -216,11 +170,12 @@ function Home() {
     }
   }, [unlocking]);
 
-  // useEffect(() => {
-  //   if (!dispensing.dispensing && !dispensing.unlocking && dispensing.reset) {
-  //     setCloseClearOrCon(true);
-  //   }
-  // }, [dispensing]);
+
+  useEffect(() => {
+    if (dispensing.continue) {
+      setCloseClearOrCon(true);
+    }
+  }, [dispensing]);
 
   useEffect(() => {
     if (user == undefined || !logged) {
@@ -231,6 +186,7 @@ function Home() {
       setOpenAuthModal(false);
     }
   }, [user, logged]);
+
 
   return (
     <>
@@ -280,26 +236,7 @@ function Home() {
                   )}
                 </>
               )}
-            </>
-            {/*<>
-              {slots === undefined ? (
-                <div>Error: undefined</div>
-              ) : (
-                <>
-                  {slots.length <= 0 ? (
-                    <div className="min-h-[300px] flex justify-center items-center">
-                      <Loading />
-                    </div>
-                  ) : (
-                    <ul className="grid grid-cols-5 gap-2 min-h-[70vh] place-content-start">
-                      {slots.sort((a,b) => a.slotId - b.slotId).map((s, index) => (
-                        <Slot key={index} slotData={s} />
-                      ))}
-                    </ul>
-                  )}
-                </>
-              )}
-            </> */}
+            </> 
           </div>
         </div>
       </div>
@@ -311,16 +248,14 @@ function Home() {
       />
       {!user ? (
         <>
-          <div>
             <Modal
               isOpen={openAuthModal}
               onClose={() => {
                 user ? setOpenAuthModal : null;
               }}
             >
-              <Auth />
+              <AuthDialog />
             </Modal>
-          </div>
         </>
       ) : null}
 
@@ -329,9 +264,8 @@ function Home() {
           isOpen={unlocking.unlocking}
           onClose={() => setCloseLockWait(true)}
         >
-          {/*<Modal isOpen={true} onClose={() => {}}>*/}
           <LockWait
-            slotNo={unlocking.slot}
+            slotNo={unlocking.slotId}
             hn={unlocking.hn}
             onClose={() => setCloseLockWait(true)}
             onOpenDeactive={() => setOpenDeactivate(true)}
@@ -343,30 +277,21 @@ function Home() {
           isOpen={dispensing.dispensing}
           onClose={() => setCloseLockWait(true)}
         >
-          {dispensing ? (
             <DispensingWait
-              slotNo={dispensing.slot}
+              slotNo={dispensing.slotId}
               hn={dispensing.hn}
               onClose={() => setCloseLockWait(true)}
               onOpenDeactive={() => setOpenDeactivate(true)}
             />
-          ) : null}
         </Modal>
       )}
 
       <Modal isOpen={openDeactivate} onClose={() => setOpenDeactivate(false)}>
         <DeActivate
-          slotNo={unlocking.slot ?? dispensing.slot}
+          slotNo={unlocking.slotId ?? dispensing.slotId}
           onClose={() => { setOpenDeactivate(false); setCloseLockWait(true) }}
         />
       </Modal>
-      {/* <Modal isOpen={closeClearOrCon} onClose={() => setCloseClearOrCon(false)}>
-        <ClearOrContinue
-          slotNo={dispensing.slot}
-          hn={dispensing.hn}
-          onClose={() => setCloseClearOrCon(false)}
-        />
-      </Modal> */}
     </>
   );
 }

@@ -1,11 +1,7 @@
-import { useForm, SubmitHandler } from "react-hook-form";
 import { ipcRenderer } from "electron";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Loading from "../Shared/Loading";
-import DeActivate from "./Deactivate";
-import Modal from "../Modals";
 
-// import { IO } from "../../enums/ipc-enums";
 
 interface LockWaitProps {
   slotNo: number;
@@ -20,7 +16,12 @@ const LockWait = ({ slotNo, hn, onClose, onOpenDeactive }: LockWaitProps) => {
 ipcRenderer.on("deactivated", ()  =>  {
 	onClose();
 });
+
 }, []);
+
+const handleCheckLockedBack = () => {
+  ipcRenderer.invoke("check-locked-back", {slotId: slotNo});
+}
 
 
   return (
@@ -32,13 +33,13 @@ ipcRenderer.on("deactivated", ()  =>  {
         </div>
         <div className="flex flex-col p-3 flex-wrap jusitfy-center items-center">
           <div className="font-bold text-[#ff0000]">
-            Slot No [{slotNo}] is Opening
+            ช่อง #[{slotNo}] เปิดอยู่
           </div>
           <p className="font-bold p-3">
-            Put the drugs into the opening slot and close the drawer back with
-            in 30 seconds
+            นำยาเข้าช่อง #{slotNo} เปิด และปิดช่อง จากนั้นกดปุ่มตกลง
           </p>
           <Loading />
+          <button className="btn" onClick={handleCheckLockedBack}>ตกลง</button>
         </div>
 
       </div>

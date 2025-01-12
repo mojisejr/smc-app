@@ -1,11 +1,8 @@
 
 import { useForm, SubmitHandler } from "react-hook-form";
-import { MdQrCodeScanner } from "react-icons/md";
-import { ipcRenderer } from "electron";
 import { useUnlock } from "../../hooks/useUnlock";
 import { useKuStates } from "../../hooks/useKuStates";
 import { toast } from "react-toastify";
-// import { DB } from "../../enums/ipc-enums";
 
 type Inputs = {
   hn: string;
@@ -45,7 +42,7 @@ const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
     <>
       <div className="">
         <div className="p-3 rounded-md shadow-md flex justify-between items-center">
-          <span className="font-bold">Slot #{slotNo} - Register</span>
+          <span className="font-bold">ช่อง #{slotNo} - ลงทะเบียน</span>
 	<button onClick={onClose} className="btn btn-ghost btn-circle btn-sm font-bold">x</button>
         </div>
         <form
@@ -61,8 +58,7 @@ const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
             className="font-bold p-2 bg-[#eee] hover:bg-[#5495F6] hover:text-white rounded-md"
             type="submit"
           >
-            Confirm
-            {/* <MdQrCodeScanner size={30} /> */}
+            ตกลง
           </button>
         </form>
       </div>

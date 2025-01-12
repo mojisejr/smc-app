@@ -25,3 +25,8 @@ export const LoggingHandler = (ku16: KU16) => {
         
     })
 }
+
+
+export const  systemLog  = (message: string) => {
+    console.log(`${message}`.toUpperCase());
+}

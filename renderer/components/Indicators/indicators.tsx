@@ -43,8 +43,8 @@ const Indicators = () => {
 </div>*/}
    { loading && sensors == undefined ? <Loading /> :  <>
     	<BatteryIndicator level={+sensors?.percent_batt} />
-   	<Indicator title="temp." value={+sensors?.Temp1 ?? 0} unit="*c" />
-    	<Indicator title="humid." value={+sensors?.Huminity1 ?? 0} unit="%" />
+   	<Indicator title="temp." value={+sensors?.Temp1!} unit="*c" />
+    	<Indicator title="humid." value={+sensors?.Huminity1!} unit="%" />
     </>} 
     </>
     )
