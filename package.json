@@ -1,7 +1,7 @@
 {
   "private": true,
-  "name": "auto-drug-cart",
-  "description": "Auto drug cart version 1",
+  "name": "smc",
+  "description": "Smart Medication Cart Version 1",
   "version": "1.0.0",
   "author": "Nonthasak.l <nonthasak.l@gmail.com>",
   "main": "app/background.js",
@@ -27,7 +27,13 @@
         }
       ]
     },
-    "publish": null
+    "publish": null,
+    "extraResources": [
+      {
+        "from": "resources/db/database.db",
+        "to": "db/database.db"
+      }
+    ]
   },
   "dependencies": {
     "@headlessui/react": "^1.7.15",

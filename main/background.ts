@@ -40,8 +40,10 @@ if (isProd) {
 
   mainWindow = createWindow("main", {
     fullscreen: false, 
+    minWidth: 800,
+    minHeight: 600,
     closable: true,
-    // autoHideMenuBar: true,
+    autoHideMenuBar: true,
   });
 
   let dbConnection = false;
