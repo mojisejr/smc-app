@@ -1,4 +1,4 @@
-import { BrowserWindow, app} from "electron";
+import { BrowserWindow, app } from "electron";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
 
@@ -20,10 +20,9 @@ import { getSettingHandler } from "./setting/ipcMain/getSetting";
 import { updateSettingHandler } from "./setting/ipcMain/updateSetting";
 import { checkLockedBackHandler } from "./ku16/ipcMain/checkLockedBack";
 
-
 /**
  * Indicates whether the application is running in production mode.
- * 
+ *
  * This boolean value is determined by checking the `NODE_ENV` environment variable.
  * If `NODE_ENV` is set to "production", `isProd` will be `true`; otherwise, it will be `false`.
  */
@@ -39,7 +38,7 @@ if (isProd) {
   await app.whenReady();
 
   mainWindow = createWindow("main", {
-    fullscreen: false, 
+    fullscreen: false,
     minWidth: 800,
     minHeight: 600,
     closable: true,
@@ -47,30 +46,27 @@ if (isProd) {
   });
 
   let dbConnection = false;
-  
+
   //connect to database
   const sql = await sequelize.sync();
 
   const settings = await getSetting();
 
-
-  if(settings && sql) { 
+  if (settings && sql) {
     //connected after authentication
     dbConnection = true;
   }
 
-  
-  
-
   //define ku16
-  const ku16 = new KU16(settings.ku_port, settings.ku_baudrate, settings.available_slots,  mainWindow);
+  const ku16 = new KU16(
+    settings.ku_port,
+    settings.ku_baudrate,
+    settings.available_slots,
+    mainWindow
+  );
 
   //authentication
   const auth = new Authentication();
-
-
-
-
 
   //receive data from ku16
   ku16.receive();
@@ -78,12 +74,11 @@ if (isProd) {
   //handler
   getSettingHandler(mainWindow);
   updateSettingHandler(mainWindow, ku16);
-  
 
   loginRequestHandler(mainWindow, auth);
   logoutRequestHandler(auth);
 
-  initHandler(ku16,mainWindow);
+  initHandler(ku16, mainWindow);
   unlockHandler(ku16);
   checkLockedBackHandler(ku16);
   dispenseHandler(ku16);
@@ -100,12 +95,8 @@ if (isProd) {
     await mainWindow.loadURL(`http://localhost:${port}/home`);
     mainWindow.webContents.openDevTools();
   }
-
-
-
 })();
 
 app.on("window-all-closed", () => {
   app.quit();
 });
-
