@@ -1,4 +1,4 @@
-import {  useState } from "react";
+import { useState } from "react";
 import LockedSlot from "./locked";
 import EmptySlot from "./empty";
 import Modal from "../Modals";
@@ -17,7 +17,6 @@ interface SlotProps {
 
 const Slot = ({ slotData }: SlotProps) => {
   const [openModal, setOpenModal] = useState<boolean>(false);
-
 
   function handleSlot() {
     if (!slotData.opening && !slotData.occupied && slotData.isActive)

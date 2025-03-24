@@ -20,6 +20,7 @@ import Indicators from "../components/Indicators/indicators";
 import DeActivate from "../components/Dialogs/Deactivate";
 import AuthDialog from "../components/Dialogs/auth";
 import { ipcRenderer } from "electron";
+import { useErrorContext } from "../contexts/errorContext";
 
 const mockSlots = [
   {
@@ -144,25 +145,13 @@ const mockSlots = [
   },
 ];
 
-
 function Home() {
-
-
   const { slots } = useKuStates();
-
   const { unlocking } = useUnlock();
-
-
   const { dispensing } = useDispense();
-
-  const [openAuthModal, setOpenAuthModal] = useState<boolean>(true);
-
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
-  const { user, logged } = useApp();
-
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
-
 
   useEffect(() => {
     if (unlocking.unlocking) {
@@ -170,23 +159,11 @@ function Home() {
     }
   }, [unlocking]);
 
-
   useEffect(() => {
     if (dispensing.continue) {
       setCloseClearOrCon(true);
     }
   }, [dispensing]);
-
-  useEffect(() => {
-    if (user == undefined || !logged) {
-      setOpenAuthModal(true);
-    }
-
-    if (logged && user != undefined) {
-      setOpenAuthModal(false);
-    }
-  }, [user, logged]);
-
 
   return (
     <>
@@ -203,9 +180,9 @@ function Home() {
               alt="logo"
             />
             <Navbar active={1} />
-            <div className="w-full px-4 flex  flex-col gap-2 justify-start items-center">
+            {/* <div className="w-full px-4 flex  flex-col gap-2 justify-start items-center">
               <Indicators />
-            </div>
+            </div> */}
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
@@ -236,7 +213,7 @@ function Home() {
                   )}
                 </>
               )}
-            </> 
+            </>
           </div>
         </div>
       </div>
@@ -246,50 +223,37 @@ function Home() {
         position="top-center"
         hideProgressBar
       />
-      {!user ? (
-        <>
-            <Modal
-              isOpen={openAuthModal}
-              onClose={() => {
-                user ? setOpenAuthModal : null;
-              }}
-            >
-              <AuthDialog />
-            </Modal>
-        </>
-      ) : null}
 
-      {user == undefined ? null : (
-        <Modal
-          isOpen={unlocking.unlocking}
+      <Modal
+        isOpen={unlocking.unlocking}
+        onClose={() => setCloseLockWait(true)}
+      >
+        <LockWait
+          slotNo={unlocking.slotId}
+          hn={unlocking.hn}
           onClose={() => setCloseLockWait(true)}
-        >
-          <LockWait
-            slotNo={unlocking.slotId}
-            hn={unlocking.hn}
-            onClose={() => setCloseLockWait(true)}
-            onOpenDeactive={() => setOpenDeactivate(true)}
-          />
-        </Modal>
-      )}
-      {user == undefined ? null : (
-        <Modal
-          isOpen={dispensing.dispensing}
+          onOpenDeactive={() => setOpenDeactivate(true)}
+        />
+      </Modal>
+      <Modal
+        isOpen={dispensing.dispensing}
+        onClose={() => setCloseLockWait(true)}
+      >
+        <DispensingWait
+          slotNo={dispensing.slotId}
+          hn={dispensing.hn}
           onClose={() => setCloseLockWait(true)}
-        >
-            <DispensingWait
-              slotNo={dispensing.slotId}
-              hn={dispensing.hn}
-              onClose={() => setCloseLockWait(true)}
-              onOpenDeactive={() => setOpenDeactivate(true)}
-            />
-        </Modal>
-      )}
+          onOpenDeactive={() => setOpenDeactivate(true)}
+        />
+      </Modal>
 
       <Modal isOpen={openDeactivate} onClose={() => setOpenDeactivate(false)}>
         <DeActivate
           slotNo={unlocking.slotId ?? dispensing.slotId}
-          onClose={() => { setOpenDeactivate(false); setCloseLockWait(true) }}
+          onClose={() => {
+            setOpenDeactivate(false);
+            setCloseLockWait(true);
+          }}
         />
       </Modal>
     </>

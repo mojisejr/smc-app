@@ -1,7 +1,6 @@
 import { ipcRenderer } from "electron";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { useApp } from "../contexts/appContext";
 
 interface Dispensing {
   slotId?: number;
@@ -9,11 +8,11 @@ interface Dispensing {
   timestamp?: number;
   dispensing: boolean;
   reset?: boolean;
-  continue?: boolean
+  continue?: boolean;
+  passkey?: string;
 }
 
 export const useDispense = () => {
-  const { user } = useApp();
   const [dispensing, setDispensing] = useState<Dispensing>({
     dispensing: false,
     reset: false,
@@ -29,7 +28,10 @@ export const useDispense = () => {
       dispensing: false,
     };
     setDispensing(dataToReset);
-    toast(`ช่อง #${slot} เคลียร์เรียบร้อยแล้ว`, { toastId: 2, type: "success" });
+    toast(`ช่อง #${slot} เคลียร์เรียบร้อยแล้ว`, {
+      toastId: 2,
+      type: "success",
+    });
   };
 
   const keep = () => {
@@ -59,8 +61,13 @@ export const useDispense = () => {
     });
   }, []);
 
-  const dispense = ({ slotId, hn, timestamp }: Partial<Dispensing>) => {
-    ipcRenderer.invoke("dispense", { hn, slotId, timestamp, user: user.name });
+  const dispense = ({
+    slotId,
+    hn,
+    timestamp,
+    passkey,
+  }: Partial<Dispensing>) => {
+    ipcRenderer.invoke("dispense", { hn, slotId, timestamp, passkey });
   };
 
   return {

@@ -1,7 +1,8 @@
 import { ipcRenderer } from "electron";
 import { useApp } from "../../contexts/appContext";
-import { useRef, useState  } from "react";
+import { useRef, useState } from "react";
 import Loading from "../Shared/Loading";
+import { toast } from "react-toastify";
 
 interface DeActivateProps {
   slotNo: number;
@@ -11,13 +12,31 @@ interface DeActivateProps {
 const DeActivate = ({ slotNo, onClose }: DeActivateProps) => {
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { user } = useApp();
+  const passkeyRef = useRef<HTMLInputElement>(null);
 
   function handleReset() {
-    const reason = inputRef.current?.value; 
-    ipcRenderer.invoke("deactivate", { slot: slotNo, reason, user: user.name }).then(() => {
-      onClose();
-    });
+    const reason = inputRef.current?.value;
+    const passkey = passkeyRef.current?.value;
+
+    if (!passkey) {
+      toast.error("กรุณากรอกรหัสผ่าน");
+      return;
+    }
+
+    if (!reason) {
+      toast.error("กรุณากรอกเหตุผลของการปิดช่อง");
+      return;
+    }
+
+    ipcRenderer
+      .invoke("deactivate", {
+        slotId: slotNo,
+        reason,
+        passkey,
+      })
+      .then(() => {
+        onClose();
+      });
   }
   function handleContinue() {
     onClose();
@@ -30,20 +49,31 @@ const DeActivate = ({ slotNo, onClose }: DeActivateProps) => {
           อันตราย! กระบวนการนี้จะทำให้ช่อง #{slotNo} ถูกปิดใช้งาน?
         </div>
 
-        <input type="text" className="input" placeholder="reset reason" ref={inputRef}></input>
+        <input
+          type="text"
+          className="input"
+          placeholder="เหตุผลของการปิดช่อง"
+          ref={inputRef}
+        ></input>
+        <input
+          type="password"
+          className="input"
+          placeholder="รหัสผู้ใช้"
+          ref={passkeyRef}
+        ></input>
         <button
           disabled={loading}
           className="p-3 bg-gray-200 hover:bg-[#5495f6] text-white font-bold rounded-md"
           onClick={handleReset}
         >
-          { loading ? <Loading /> : `ปิดช่อง ${slotNo}` }
+          {loading ? <Loading /> : `ปิดช่อง ${slotNo}`}
         </button>
         <button
           disabled={loading}
           className="p-3 bg-gray-200 hover:bg-[#ff0000] text-white font-bold rounded-md"
           onClick={() => handleContinue()}
         >
-          { loading  ? <Loading /> : "ยกเลิก" }
+          {loading ? <Loading /> : "ยกเลิก"}
         </button>
       </div>
     </>

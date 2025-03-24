@@ -1,15 +1,13 @@
-import Head  from 'next/head';
-import { useRouter} from 'next/router';
-import  Image from 'next/image';
-import Link from 'next/link';
+import Head from "next/head";
+import { useRouter } from "next/router";
+import Image from "next/image";
+import Link from "next/link";
 
+function ErrorPage() {
+  const { query } = useRouter();
 
-
-function ErrorPage () {
-    const { query } = useRouter();
-
-
-    return  <>
+  return (
+    <>
       <Head>
         <title>Smart Medication Cart V1.0</title>
       </Head>
@@ -22,23 +20,33 @@ function ErrorPage () {
               height={85}
               alt="logo"
             />
-          </div> 
+          </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
           <div className="w-full h-full p-[2rem] flex flex-col gap-[1.2rem] overflow-y-auto">
-            <div className='flex flex-col gap-2 mt-[100px]'>
-              <div className='font-bold text-[#ff0000] underline'>{query.title}</div>
-              <p className='text-xm'>
+            <div className="flex flex-col gap-2 mt-[100px]">
+              <div className="font-bold text-[#ff0000] underline">
+                {query.title}
+              </div>
+              <p className="text-xm">
                 <div>{query.message}</div>
-                <p className='text-sm'>{query.suggestion}</p>
-                <p className='text-sm'>{"< "}ติดต่อผู้ให้บริการ{" >"}</p>
-                <Link href={query.title == "KU16" ? "/setting?r=nls" :  '/home'} className='btn btn-primary'>Back</Link>
+                <p className="text-sm">{query.suggestion}</p>
+                <p className="text-sm">
+                  {"< "}ติดต่อผู้ให้บริการ{" >"}
+                </p>
+                <Link
+                  href={query.title == "KU16" ? "/setting?r=nls" : "/home"}
+                  className="btn btn-primary"
+                >
+                  Back
+                </Link>
               </p>
             </div>
           </div>
         </div>
       </div>
-      </>
+    </>
+  );
 }
 
 export default ErrorPage;

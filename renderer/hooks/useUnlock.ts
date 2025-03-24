@@ -18,7 +18,10 @@ export const useUnlock = () => {
     ipcRenderer.on("unlocking", (event, payload) => {
       setUnlocking(payload);
       if (!payload.dispensing && !payload.unlocking && payload.hn != "") {
-        toast(`ปลดล็อกช่อง #${payload.slotId} เรียบร้อยแล้ว`, { toastId: 1, type: "success" });
+        toast(`ปลดล็อกช่อง #${payload.slotId} เรียบร้อยแล้ว`, {
+          toastId: 1,
+          type: "success",
+        });
       }
     });
 
@@ -31,12 +34,13 @@ export const useUnlock = () => {
     // }
   }, []);
 
-  const unlock = (slot: number, hn: string) => {
+  const unlock = (slot: number, hn: string, passkey: string) => {
     ipcRenderer.invoke("unlock", {
       slotId: slot,
       hn,
       timestamp: new Date().getTime(),
-    }); 
+      passkey,
+    });
   };
 
   return {

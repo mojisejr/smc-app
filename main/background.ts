@@ -1,25 +1,47 @@
-import { BrowserWindow, app } from "electron";
+import { BrowserWindow, app, dialog } from "electron";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
 
+// Import database and KU16 related modules
 import { sequelize } from "../db/sequelize";
 import { KU16 } from "./ku16";
+
+// Import IPC handlers for various functionalities
 import { initHandler } from "./ku16/ipcMain/init";
 import { unlockHandler } from "./ku16/ipcMain/unlock";
 import { dispenseHandler } from "./ku16/ipcMain/dispensing";
 import { dispensingResetHanlder } from "./ku16/ipcMain/reset";
-import { LoggingHandler } from "./logger";
+import {
+  exportLogsHandler,
+  logDispensingHanlder,
+  LoggingHandler,
+} from "./logger";
 import { forceResetHanlder } from "./ku16/ipcMain/forceReset";
 import { reactiveAllHanlder } from "./ku16/ipcMain/reactiveAll";
 import { deactiveHanlder } from "./ku16/ipcMain/deactivate";
+
+// Import authentication related modules
 import { loginRequestHandler } from "./auth/ipcMain/login";
 import { Authentication } from "./auth";
 import { logoutRequestHandler } from "./auth/ipcMain/logout";
+
+// Import settings related modules
 import { getSetting } from "./setting/getSetting";
 import { getSettingHandler } from "./setting/ipcMain/getSetting";
 import { updateSettingHandler } from "./setting/ipcMain/updateSetting";
 import { checkLockedBackHandler } from "./ku16/ipcMain/checkLockedBack";
-
+import { dispenseContinueHandler } from "./ku16/ipcMain/dispensing-continue";
+import { getPortListHandler } from "./ku16/ipcMain/getPortList";
+import { getUserHandler } from "./auth/ipcMain/getUser";
+import { getAllSlotsHandler } from "./setting/ipcMain/getAllSlots";
+import { deactiveAllHandler } from "./ku16/ipcMain/deactivateAll";
+import { reactivateAdminHandler } from "./ku16/ipcMain/reactivate-admin";
+import { deactivateAdminHandler } from "./ku16/ipcMain/deactivate-admin";
+import { createNewUserHandler } from "./user/createNewUser";
+import { deleteUserHandler } from "./user/deleteUser";
+import { setSelectedPortHandler } from "./setting/ipcMain/setSelectedPort";
+import { checkActivationKeyHandler } from "./license/ipcMain/check-activation-key";
+import { activateKeyHandler } from "./license/ipcMain/activate-key";
 /**
  * Indicates whether the application is running in production mode.
  *
@@ -28,6 +50,8 @@ import { checkLockedBackHandler } from "./ku16/ipcMain/checkLockedBack";
  */
 const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
+
+// Configure electron-serve for production mode
 if (isProd) {
   serve({ directory: "app" });
 } else {
@@ -37,27 +61,32 @@ if (isProd) {
 (async () => {
   await app.whenReady();
 
+  // Create main application window with specific dimensions and properties
   mainWindow = createWindow("main", {
     fullscreen: false,
-    minWidth: 800,
-    minHeight: 600,
+    width: 1024,
+    height: 768,
+    minWidth: 1024,
+    minHeight: 768,
+    maxWidth: 1920,
+    maxHeight: 1080,
     closable: true,
     autoHideMenuBar: true,
   });
 
   let dbConnection = false;
 
-  //connect to database
+  // Initialize database connection
   const sql = await sequelize.sync();
 
+  // Get application settings
   const settings = await getSetting();
 
   if (settings && sql) {
-    //connected after authentication
     dbConnection = true;
   }
 
-  //define ku16
+  // Initialize KU16 device with settings
   const ku16 = new KU16(
     settings.ku_port,
     settings.ku_baudrate,
@@ -65,38 +94,61 @@ if (isProd) {
     mainWindow
   );
 
-  //authentication
+  // Initialize authentication system
   const auth = new Authentication();
 
-  //receive data from ku16
+  // Start receiving data from KU16 device
   ku16.receive();
 
-  //handler
-  getSettingHandler(mainWindow);
-  updateSettingHandler(mainWindow, ku16);
+  //Activation key check
+  activateKeyHandler();
+  checkActivationKeyHandler();
 
+  // Register all IPC handlers for various functionalities
+  // Settings related handlers
+  getPortListHandler(ku16);
+  getSettingHandler(mainWindow);
+  getUserHandler(mainWindow);
+  updateSettingHandler(mainWindow, ku16);
+  getAllSlotsHandler();
+  createNewUserHandler();
+  deleteUserHandler();
+  setSelectedPortHandler();
+
+  // Authentication related handlers
   loginRequestHandler(mainWindow, auth);
   logoutRequestHandler(auth);
 
+  // KU16 device operation handlers
   initHandler(ku16, mainWindow);
   unlockHandler(ku16);
   checkLockedBackHandler(ku16);
   dispenseHandler(ku16);
   dispensingResetHanlder(ku16);
-  LoggingHandler(ku16);
+  dispenseContinueHandler(ku16);
   forceResetHanlder(ku16);
   deactiveHanlder(ku16);
+  deactiveAllHandler(ku16);
   reactiveAllHanlder(ku16);
+  reactivateAdminHandler(ku16);
+  deactivateAdminHandler(ku16);
 
+  // Logging related handlers
+  logDispensingHanlder(ku16);
+  LoggingHandler(ku16);
+  exportLogsHandler(ku16);
+
+  // Load the application UI based on environment
   if (isProd) {
     await mainWindow.loadURL("app://./home.html");
   } else {
     const port = process.argv[2];
     await mainWindow.loadURL(`http://localhost:${port}/home`);
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
   }
 })();
 
+// Quit application when all windows are closed
 app.on("window-all-closed", () => {
   app.quit();
 });

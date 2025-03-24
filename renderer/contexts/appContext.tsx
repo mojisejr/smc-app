@@ -1,88 +1,45 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { appProviderProps } from "../interfaces/appProviderProps";
-import { useRouter } from "next/router";
-import { AuthResponse, LogoutRequest } from "../interfaces/auth";
 import { ipcRenderer } from "electron";
+import { toast } from "react-toastify";
+import { useRouter } from "next/router";
 
-//@Dev: Define Context Type
 type appContextType = {
-  user?: AuthResponse
-  logged: boolean;
-  setUser?: (user: AuthResponse) => void;
-  logOut?: () => void;
+  admin: string | null;
+  isActivated: boolean;
+  setAdmin: (admin: string) => void;
 };
 
-//@Dev define context default values
 const appContextDefaultValue: appContextType = {
-  user: null,
-  logged: false,
+  admin: null,
+  isActivated: false,
+  setAdmin: () => {},
 };
 
-
-//@Dev create context with context type
 const AppContext = createContext<appContextType>(appContextDefaultValue);
 
-//@Dev create provider
-
 export function AppProvider({ children }: appProviderProps) {
-  const { replace, pathname } = useRouter()
-  const [user, setActiveUser] = useState<AuthResponse>();
-  const [logged, setLogged] = useState<boolean>(false);
-
-
+  const { replace } = useRouter();
+  const [admin, setAdmin] = useState<string | null>(null);
+  const [isActivated, setActivated] = useState<boolean>(false);
 
   useEffect(() => {
-    ipcRenderer.on("connection", (event, connection) => {
-      if(!user || user == null) {
-        replace("/setting");
-      }
-      replace( `/error?message=${connection.message}&title=${connection.title}&suggestion=${connection.suggestion}`);
-    });
+    handleCheckActivated();
+  }, [isActivated]);
 
-    return () => {
-      ipcRenderer.removeAllListeners("connection");
+  const handleCheckActivated = async () => {
+    const result = await ipcRenderer.invoke("check-activation-key");
+    if (!result) {
+      replace("/activate-key");
     }
-  },[])
-
-
-
-
-  useEffect(() => {
-    if (user !== null || user !== undefined) {
-      setLogged(true);
-    } 
-    if(user == null || user == undefined) {
-      if(pathname.includes("setting")) {
-        replace("/setting")
-      } else {
-        setLogged(false);
-        replace("/home");
-      }
-    }
-
-  }, [user]);
-
- 
-  const setUser = (user: AuthResponse) => {
-    setActiveUser(user);
+    setActivated(result);
   };
 
-  const logOut = () => {
-    //TODO: implement logout-req
-    ipcRenderer.invoke("logout-req", { name: user.name } as LogoutRequest );
-    setActiveUser(undefined);
-    setLogged(false);
-    replace("/home");
-  }
-
-  const value = {
-    user,
-    logged,
-    logOut,
-    setUser,
-  };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={{ admin, setAdmin, isActivated }}>
+      {children}
+    </AppContext.Provider>
+  );
 }
 
 export function useApp() {
