@@ -32,7 +32,7 @@ export default function SlotSetting({
           เปิดช่องยาทั้งหมด
         </button>
       </div>
-      <div>
+      <div className="h-[60vh] overflow-y-scroll">
         <h3 className="text-sm font-semibold mb-4 text-start">รายชื่อช่องยา</h3>
         <table className="table table-sm">
           <thead>

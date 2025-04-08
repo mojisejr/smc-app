@@ -232,7 +232,7 @@ export default function Document() {
       <Head>
         <title>Smart Medication Cart V1.0</title>
       </Head>
-      <div className=" grid grid-cols-12 text-2xl text-center h-screen overflow-y-auto">
+      <div className=" grid grid-cols-12 text-2xl text-center h-screen">
         <div className="col-span-2 flex flex-col justify-between">
           <div className="w-full px-3 py-10 flex flex-col gap-3 justify-center items-center">
             <Image
@@ -246,7 +246,7 @@ export default function Document() {
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
-          <div className="w-full h-[80vh]   p-[2rem] flex flex-col gap-[1.2rem] overflow-auto">
+          <div className="w-full h-[80vh] p-[2rem] flex flex-col gap-[1.2rem]">
             {/**Content Goes here */}
             <div className="w-full h-full">
               <div className="tabs tabs-boxed bg-white justify-center gap-2">

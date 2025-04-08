@@ -3,6 +3,7 @@ import { Slot } from "../../db/model/slot.model";
 import { BrowserWindow, ipcMain } from "electron";
 import {
   checkCommand,
+  cmdCheckClosedSlot,
   cmdCheckOpeningSlot,
   cmdCheckStatus,
   cmdUnlock,
@@ -99,11 +100,9 @@ export class KU16 {
     this.serialPort.write(cmd);
   }
 
-  async receivedCheckState(data: number) {
-    const hexData = this.decimalToHex(data);
-    const binData = this.hex2bin(hexData);
-    const binArr = this.bin2arr(binData);
-    const slotData = await this.slotBinParser(binArr, this.availableSlot);
+  async receivedCheckState(data: number[]) {
+    const slotData = await this.slotBinParser(data, this.availableSlot);
+
     systemLog(`check_state_received:  data ${data.toString()}`);
     await logger({
       user: "system",
@@ -112,11 +111,15 @@ export class KU16 {
     this.win.webContents.send("init-res", slotData);
   }
 
-  async receivedUnlockState(data: number) {
-    const hexData = this.decimalToHex(data);
-    const binData = this.hex2bin(hexData);
-    const binArr = this.bin2arr(binData);
-    const openingSlotNumber = cmdCheckOpeningSlot(binArr, this.availableSlot);
+  async receivedUnlockState(data: number[]) {
+    // const hexData = this.decimalToHex(data);
+    // const binData = this.hex2bin(hexData);
+    // const binArr = this.bin2arr(binData);
+    const openingSlotNumber = cmdCheckOpeningSlot(
+      data,
+      this.availableSlot,
+      this.openingSlot.slotId
+    );
     systemLog(`unlocked_receved: unlock state for slot # ${openingSlotNumber}`);
     if (openingSlotNumber == -1) {
       systemLog("unlocked_received: slot not found something went wrong");
@@ -137,11 +140,12 @@ export class KU16 {
     });
   }
 
-  async receivedDispenseState(data: number) {
-    const hexData = this.decimalToHex(data);
-    const binData = this.hex2bin(hexData);
-    const binArr = this.bin2arr(binData);
-    const openingSlotNumber = cmdCheckOpeningSlot(binArr, this.availableSlot);
+  async receivedDispenseState(data: number[]) {
+    const openingSlotNumber = cmdCheckOpeningSlot(
+      data,
+      this.availableSlot,
+      this.openingSlot.slotId
+    );
     systemLog(
       `dispensed_received: dispense state for slot # ${openingSlotNumber}`
     );
@@ -168,11 +172,14 @@ export class KU16 {
     });
   }
 
-  async receivedLockedBackState(data: number) {
-    const hexData = this.decimalToHex(data);
-    const binData = this.hex2bin(hexData);
-    const binArr = this.bin2arr(binData);
-    const openingSlotNumber = cmdCheckOpeningSlot(binArr, this.availableSlot);
+  async receivedLockedBackState(data: number[]) {
+    const openingSlotNumber = cmdCheckOpeningSlot(
+      data,
+      this.availableSlot,
+      this.openingSlot.slotId
+    );
+    console.log("this.openingSlot: ", this.openingSlot);
+    console.log("openingSlotNumber ForRightNow: ", openingSlotNumber);
     if (openingSlotNumber == this.openingSlot.slotId) {
       systemLog("locked_back_received: still opening");
       await logger({
@@ -207,11 +214,12 @@ export class KU16 {
     }
   }
 
-  async receivedDispenseLockedBackState(data: number) {
-    const hexData = this.decimalToHex(data);
-    const binData = this.hex2bin(hexData);
-    const binArr = this.bin2arr(binData);
-    const openingSlotNumber = cmdCheckOpeningSlot(binArr, this.availableSlot);
+  async receivedDispenseLockedBackState(data: number[]) {
+    const openingSlotNumber = cmdCheckOpeningSlot(
+      data,
+      this.availableSlot,
+      this.openingSlot.slotId
+    );
     if (openingSlotNumber == this.openingSlot.slotId) {
       systemLog("dispense_locked_back_received: still opening");
       this.win.webContents.send("dispensing", {
@@ -370,29 +378,39 @@ export class KU16 {
   receive() {
     this.parser.on("data", async (data: Buffer) => {
       const status = checkCommand(data[2]);
+      const slotArr = this.decToBinArrSlot(data[3], data[4]);
+      console.log("STATUS: ", status);
       if (status == "RETURN_SINGLE_DATA") {
         if (this.opening && !this.dispensing && !this.waitForLockedBack) {
-          this.receivedUnlockState(data[3]);
+          //opening but not dispensing and not wait for lock
+          console.log("open/!dispense/waitForLock");
+          await this.receivedUnlockState(slotArr);
         } else if (this.opening && this.waitForLockedBack) {
-          this.receivedLockedBackState(data[3]);
-          this.receivedCheckState(data[3]);
+          //opening and wait for lacked back
+          console.log("open/waitForLock");
+          await this.receivedLockedBackState(slotArr);
+          await this.receivedCheckState(slotArr);
         } else if (
           this.opening &&
           this.dispensing &&
           !this.waitForDispenseLockedBack
         ) {
-          this.receivedDispenseState(data[3]);
+          console.log("open/dispense/!waitForLock");
+          await this.receivedDispenseState(slotArr);
         } else if (
           this.opening &&
           this.dispensing &&
           this.waitForDispenseLockedBack
         ) {
-          await this.receivedDispenseLockedBackState(data[3]);
-          this.receivedCheckState(data[3]);
+          console.log("open/dispense/waitForLock");
+          await this.receivedDispenseLockedBackState(slotArr);
+          this.receivedCheckState(slotArr);
         } else {
-          this.receivedCheckState(data[3]);
+          console.log("ELSE CASE");
+          await this.receivedCheckState(slotArr);
         }
       } else {
+        console.log("ERROR CASE");
         return;
       }
     });
@@ -406,7 +424,8 @@ export class KU16 {
 
     const slotFromDb = await Slot.findAll();
 
-    const slotArr = binArr.reverse().map((slot, index) => {
+    // const slotArr = binArr.reverse().map((slot, index) => {
+    const slotArr = binArr.map((slot, index) => {
       return {
         slotId:
           slotFromDb[index] == undefined
@@ -440,6 +459,7 @@ export class KU16 {
     }
 
     const available = slotArr.splice(0, availableSlot);
+
     return available;
   };
 
@@ -459,5 +479,17 @@ export class KU16 {
 
   bin2arr(bstr: string) {
     return bstr.split("").map((i) => parseInt(i));
+  }
+
+  decToBinArrSlot(data1: number, data2: number) {
+    const hexData1 = this.decimalToHex(data1);
+    const hexData2 = this.decimalToHex(data2);
+    const binData1 = this.hex2bin(hexData1);
+    const binData2 = this.hex2bin(hexData2);
+    const binArr1 = this.bin2arr(binData1).reverse();
+    const binArr2 = this.bin2arr(binData2).reverse();
+    const binArr = binArr1.concat(binArr2);
+
+    return binArr;
   }
 }

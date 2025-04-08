@@ -36,33 +36,35 @@ export default function UserSetting({
             </div>
           </div>
         </div>
-        <table className="table table-sm">
-          <thead>
-            <tr className="text-[#000]">
-              <th className="font-bold">ชื่อ</th>
-              <th className="font-bold">สิทธิ์</th>
-              <th className="font-bold">actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {userList.map((user) => (
-              <tr key={user.id}>
-                <td>{user.name}</td>
-                <td>{user.role}</td>
-                <td>
-                  {user.role === "ADMIN" ? null : (
-                    <button
-                      onClick={() => handleDeleteUser(user.id)}
-                      className="btn btn-error btn-sm"
-                    >
-                      ลบ
-                    </button>
-                  )}
-                </td>
+        <div className="h-full overflow-y-auto">
+          <table className="table table-sm">
+            <thead>
+              <tr className="text-[#000]">
+                <th className="font-bold">ชื่อ</th>
+                <th className="font-bold">สิทธิ์</th>
+                <th className="font-bold">actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {userList.map((user) => (
+                <tr key={user.id}>
+                  <td>{user.name}</td>
+                  <td>{user.role}</td>
+                  <td>
+                    {user.role === "ADMIN" ? null : (
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="btn btn-error btn-sm"
+                      >
+                        ลบ
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
