@@ -13,9 +13,20 @@ interface SlotProps {
     opening: boolean;
     isActive: boolean;
   };
+  indicator: {
+    message: string;
+    success: boolean;
+    data: {
+      Temp1: number;
+      Temp2: number;
+      Huminity1: number;
+      Huminity2: number;
+      Battery: number;
+    };
+  };
 }
 
-const Slot = ({ slotData }: SlotProps) => {
+const Slot = ({ slotData, indicator }: SlotProps) => {
   const [openModal, setOpenModal] = useState<boolean>(false);
 
   function handleSlot() {
@@ -35,9 +46,16 @@ const Slot = ({ slotData }: SlotProps) => {
           hn={slotData.hn}
           date={new Date(slotData.timestamp).toLocaleDateString()}
           time={new Date(slotData.timestamp).toLocaleTimeString()}
+          temp={!indicator ? 0 : indicator.data.Temp1}
+          humid={!indicator ? 0 : indicator.data.Huminity1}
         />
       ) : (
-        <EmptySlot slotNo={slotData.slotId} isActive={slotData.isActive} />
+        <EmptySlot
+          slotNo={slotData.slotId}
+          isActive={slotData.isActive}
+          temp={!indicator ? 0 : indicator.data.Temp1}
+          humid={!indicator ? 0 : indicator.data.Huminity1}
+        />
       )}
       <Modal isOpen={openModal} onClose={handleSlot}>
         <InputSlot slotNo={slotData.slotId} onClose={handleSlot} />

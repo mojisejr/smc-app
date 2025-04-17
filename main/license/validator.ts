@@ -43,6 +43,8 @@ export async function validateLicense(): Promise<boolean> {
   const currentHWID = getHardwareId();
   if (licenseData.hwid !== currentHWID) return false; // HWID ไม่ตรง
 
+  console.log(licenseData.expiry);
+
   if (new Date(licenseData.expiry) < new Date()) return false; // License หมดอายุ
 
   const response = await Setting.findOne({ where: { id: 1 } });

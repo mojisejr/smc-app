@@ -39,9 +39,13 @@ import { reactivateAdminHandler } from "./ku16/ipcMain/reactivate-admin";
 import { deactivateAdminHandler } from "./ku16/ipcMain/deactivate-admin";
 import { createNewUserHandler } from "./user/createNewUser";
 import { deleteUserHandler } from "./user/deleteUser";
-import { setSelectedPortHandler } from "./setting/ipcMain/setSelectedPort";
+import {
+  setSelectedIndicatorPortHandler,
+  setSelectedPortHandler,
+} from "./setting/ipcMain/setSelectedPort";
 import { checkActivationKeyHandler } from "./license/ipcMain/check-activation-key";
 import { activateKeyHandler } from "./license/ipcMain/activate-key";
+import { IndicatorDevice } from "./indicator";
 /**
  * Indicates whether the application is running in production mode.
  *
@@ -64,9 +68,9 @@ if (isProd) {
   // Create main application window with specific dimensions and properties
   mainWindow = createWindow("main", {
     fullscreen: false,
-    width: 1024,
+    width: 1280,
     height: 768,
-    minWidth: 1024,
+    minWidth: 1280,
     minHeight: 768,
     maxWidth: 1920,
     maxHeight: 1080,
@@ -86,6 +90,14 @@ if (isProd) {
     dbConnection = true;
   }
 
+  // Initialize Indicator device with settings
+
+  const indicator = new IndicatorDevice(
+    settings.indi_port,
+    settings.indi_baudrate,
+    mainWindow
+  );
+
   // Initialize KU16 device with settings
   const ku16 = new KU16(
     settings.ku_port,
@@ -99,6 +111,7 @@ if (isProd) {
 
   // Start receiving data from KU16 device
   ku16.receive();
+  indicator.receive();
 
   //Activation key check
   activateKeyHandler();
@@ -114,6 +127,7 @@ if (isProd) {
   createNewUserHandler();
   deleteUserHandler();
   setSelectedPortHandler();
+  setSelectedIndicatorPortHandler();
 
   // Authentication related handlers
   loginRequestHandler(mainWindow, auth);

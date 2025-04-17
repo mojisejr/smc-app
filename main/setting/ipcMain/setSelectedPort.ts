@@ -18,3 +18,20 @@ export const setSelectedPortHandler = () => {
     }
   });
 };
+
+export const setSelectedIndicatorPortHandler = () => {
+  ipcMain.handle("set-indicator-port", async (event, payload) => {
+    try {
+      const admin = await User.findOne({ where: { name: payload.admin } });
+      if (admin.dataValues.role !== "ADMIN") {
+        throw new Error("คุณไม่มีสิทธิในการเปลี่ยน port");
+      }
+
+      await Setting.update({ indi_port: payload.port }, { where: { id: 1 } });
+
+      return { success: true, message: "เปลี่ยน indicator port เรียบร้อย" };
+    } catch (error) {
+      return { success: false, message: "เกิดข้อผิดพลาด" };
+    }
+  });
+};

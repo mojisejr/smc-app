@@ -1,53 +1,67 @@
 import { useEffect, useState } from "react";
-import Indicator from "./baseIndicator"
+import Indicator from "./baseIndicator";
 import { ipcRenderer } from "electron";
 import Loading from "../Shared/Loading";
+import { useIndicator } from "../../hooks/useIndicator";
 import BatteryIndicator from "./batteryIndicator";
-import { LargeNumberLike } from "crypto";
 
 /**
  * {"Temp1":25.9,"Temp2":0,"Huminity1":43,"Huminity2":0,"Battery":15,"temp1":25.9,"temp2":43,"percent_batt":64}
  */
 
 export interface SensorData {
-    Temp1?: number;
-    Temp2?: number;
-    Huminity1?: number;
-    Huminity2?: number;
-    Bettery?: number;
-    percent_batt?: number;
+  Temp1?: number;
+  Temp2?: number;
+  Huminity1?: number;
+  Huminity2?: number;
+  Bettery?: number;
 }
-
 
 const Indicators = () => {
-    const [sensors, setSensors ] = useState<SensorData>();
-    const [loading, setLoading] = useState<boolean>(false);
+  const { indicator } = useIndicator();
 
-    useEffect(() => {
-        setLoading(true);
-        ipcRenderer.on("get_sensors", (event,payload) => {
-            if(payload != undefined) {
-                //console.log(payload)
-                setLoading(false);
-                setSensors(payload);
-            }
-        });
-    }, []);
-
-    return(
+  return (
     <>
-{/*<div className="flex flex-col gap-4">	
-    	<BatteryIndicator level={95} />
-   	<Indicator title="temp." value={28} unit="*c" />
-    	<Indicator title="humid." value={62} unit="%" />
-</div>*/}
-   { loading && sensors == undefined ? <Loading /> :  <>
-    	<BatteryIndicator level={+sensors?.percent_batt} />
-   	<Indicator title="temp." value={+sensors?.Temp1!} unit="*c" />
-    	<Indicator title="humid." value={+sensors?.Huminity1!} unit="%" />
-    </>} 
+      {!indicator ? (
+        <Loading />
+      ) : (
+        <div>
+          <div className="text-sm font-semibold text-start px-2">
+            Indicators
+          </div>
+          <div className="grid grid-cols-2 gap-2 bg-gray-800 p-6 rounded-xl">
+            <Indicator
+              title="Temp."
+              value={indicator.data.Temp1}
+              threshold={40}
+              unit="*c"
+            />
+            <Indicator
+              title="%RH"
+              value={indicator.data.Huminity1}
+              threshold={85}
+              unit="%"
+            />
+            {/* <Indicator
+              title="temp2."
+              value={indicator.data.Temp2}
+              threshold={40}
+              unit="*c"
+            />
+            <Indicator
+              title="humid2."
+              threshold={85}
+              value={indicator.data.Huminity2}
+              unit="%"
+            /> */}
+            <div className="w-full flex justify-center col-span-2">
+              <BatteryIndicator level={100} />
+            </div>
+          </div>
+        </div>
+      )}
     </>
-    )
-}
+  );
+};
 
 export default Indicators;

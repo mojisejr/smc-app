@@ -14,13 +14,9 @@ import { useKuStates } from "../hooks/useKuStates";
 import Loading from "../components/Shared/Loading";
 import { useDispense } from "../hooks/useDispense";
 import { useUnlock } from "../hooks/useUnlock";
-import { useApp } from "../contexts/appContext";
 import Navbar from "../components/Shared/Navbar";
-import Indicators from "../components/Indicators/indicators";
 import DeActivate from "../components/Dialogs/Deactivate";
-import AuthDialog from "../components/Dialogs/auth";
-import { ipcRenderer } from "electron";
-import { useErrorContext } from "../contexts/errorContext";
+import { useIndicator } from "../hooks/useIndicator";
 
 const mockSlots = [
   {
@@ -149,6 +145,7 @@ function Home() {
   const { slots } = useKuStates();
   const { unlocking } = useUnlock();
   const { dispensing } = useDispense();
+  const { indicator } = useIndicator();
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
@@ -207,7 +204,11 @@ function Home() {
                         })
                         .sort((a, b) => a.slotId - b.slotId)
                         .map((s, index) => (
-                          <Slot key={index} slotData={s} />
+                          <Slot
+                            key={index}
+                            slotData={s}
+                            indicator={indicator}
+                          />
                         ))}
                     </ul>
                   )}

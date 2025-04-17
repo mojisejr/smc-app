@@ -15,6 +15,7 @@ import ClearOrContinue from "../Dialogs/clearOrContinue";
 import { FaLock } from "react-icons/fa";
 import AuthDialog from "../Dialogs/auth";
 import { useApp } from "../../contexts/appContext";
+import Indicators from "../Indicators/indicators";
 
 interface NavbarProps {
   active: number;
@@ -131,6 +132,7 @@ const Navbar = ({ active }: NavbarProps) => {
       <Modal isOpen={openAuthModal} onClose={() => setOpenAuthModal(false)}>
         <AuthDialog onClose={() => setOpenAuthModal(false)} />
       </Modal>
+      <Indicators />
     </div>
   );
 };

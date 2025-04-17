@@ -154,6 +154,20 @@ export default function Document() {
     toast.success("เปลี่ยน port เรียบร้อย");
   };
 
+  const handleSetIndicatorPort = async (selectedPort: string) => {
+    if (selectedPort == null || !selectedPort) {
+      toast.error("กรุณาเลือก port");
+      return;
+    }
+    await ipcRenderer.invoke("set-indicator-port", {
+      port: selectedPort,
+      admin: admin,
+    });
+    await fetchPortList();
+    getSetting();
+    toast.success("เปลี่ยน port เรียบร้อย");
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -211,6 +225,7 @@ export default function Document() {
             portList={portList}
             selectedPort={selectedPort}
             handleSetSelectedPort={handleSetSelectedPort}
+            handleSetIndicatorPort={handleSetIndicatorPort}
             setSelectedPort={setSelectedPort}
           />
         );

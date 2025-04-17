@@ -6,6 +6,7 @@ interface SystemSettingProps {
   portList: any[];
   selectedPort: string;
   handleSetSelectedPort: (port: string) => void;
+  handleSetIndicatorPort: (port: string) => void;
   setSelectedPort: (port: string) => void;
 }
 
@@ -14,6 +15,7 @@ export default function SystemSetting({
   portList,
   selectedPort,
   handleSetSelectedPort,
+  handleSetIndicatorPort,
   setSelectedPort,
 }: SystemSettingProps) {
   return (
@@ -24,7 +26,7 @@ export default function SystemSetting({
       <table className="table table-sm">
         <tbody>
           <tr>
-            <td className="font-semibold">port ที่กำลังใช้งาน</td>
+            <td className="font-semibold">port ระบบ lock ที่กำลังใช้งาน</td>
             <td className="text-center text-blue-500 font-bold">
               {setting?.ku_port}
             </td>
@@ -42,6 +44,34 @@ export default function SystemSetting({
               </select>
               <button
                 onClick={() => handleSetSelectedPort(selectedPort)}
+                className="btn btn-sm btn-primary"
+              >
+                แก้ไข
+              </button>
+              <Tooltip text="เลือก port ที่ต้องการใช้งาน แล้วกดแก้ไข" />
+            </td>
+          </tr>
+          <tr>
+            <td className="font-semibold">
+              port ระบบ indicator ที่กำลังใช้งาน
+            </td>
+            <td className="text-center text-blue-500 font-bold">
+              {setting?.indi_port}
+            </td>
+            <td className="flex gap-2 items-center justify-center">
+              <select
+                onChange={(e) => setSelectedPort(e.target.value)}
+                className="select select-sm bg-white"
+              >
+                <option value={null}>เลือก port</option>
+                {portList.map((port) => (
+                  <option key={port.path} value={port.path}>
+                    {port.path}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => handleSetIndicatorPort(selectedPort)}
                 className="btn btn-sm btn-primary"
               >
                 แก้ไข

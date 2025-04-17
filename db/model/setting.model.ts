@@ -15,6 +15,8 @@ Setting.init(
     organization: { type: DataTypes.STRING },
     customer_name: { type: DataTypes.STRING },
     activated_key: { type: DataTypes.STRING },
+    indi_port: { type: DataTypes.STRING },
+    indi_baudrate: { type: DataTypes.INTEGER },
   },
   {
     sequelize,
