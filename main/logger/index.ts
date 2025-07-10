@@ -142,7 +142,11 @@ export const exportLogs = async () => {
       const csvContent = csvRows.map((row) => row.join(",")).join("\n");
       const csvPath = path.join(saveDir, `smc-log-${new Date().getTime()}.csv`);
 
-      fs.writeFileSync(csvPath, csvContent);
+      // เพิ่ม BOM (Byte Order Mark) เพื่อให้ Excel รู้ว่าไฟล์นี้ใช้ UTF-8 encoding
+      // ซึ่งจะช่วยให้สามารถแสดงผลภาษาไทยได้ถูกต้อง
+      // ถ้าไม่ใส่ BOM Excel อาจจะไม่สามารถอ่านภาษาไทยได้
+      const BOM = "\uFEFF";
+      fs.writeFileSync(csvPath, BOM + csvContent, { encoding: "utf-8" });
 
       return {
         success: true,

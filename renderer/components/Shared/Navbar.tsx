@@ -132,7 +132,7 @@ const Navbar = ({ active }: NavbarProps) => {
       <Modal isOpen={openAuthModal} onClose={() => setOpenAuthModal(false)}>
         <AuthDialog onClose={() => setOpenAuthModal(false)} />
       </Modal>
-      <Indicators />
+      {/* <Indicators /> */}
     </div>
   );
 };

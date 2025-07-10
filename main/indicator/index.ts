@@ -20,6 +20,7 @@ export class IndicatorDevice {
 
   receive() {
     this.parser.on("data", async (data: Buffer) => {
+      console.log("input-indicator", data);
       if (!data) {
         this.win.webContents.send("retrive-indicator", {
           success: false,
