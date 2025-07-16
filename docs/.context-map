@@ -1,0 +1,24 @@
+# Context Mapping Configuration
+# Round-to-file mapping for KU16 to CU12 Migration
+
+Round1:HARDWARE-MIGRATION.md
+Round2:API-INTEGRATION.md
+Round3:UI-UPDATE.md
+
+# Token Budget Validation
+# Each round should use CLAUDE.md + supplement file ≤ 9,000 tokens
+
+Round1:9000
+Round2:8500
+Round3:9000
+
+# Context File Purposes
+CLAUDE.md:Master context, project essence, always included
+HARDWARE-MIGRATION.md:CU12 protocol specifications and migration strategy
+API-INTEGRATION.md:Database and API refactoring requirements
+UI-UPDATE.md:UI component updates and integration testing
+
+# Implementation Dependencies
+Round1:Foundation - Protocol implementation
+Round2:Round1 - Database and API updates
+Round3:Round1,Round2 - UI integration and testing 
