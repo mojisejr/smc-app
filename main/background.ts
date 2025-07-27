@@ -2,9 +2,10 @@ import { BrowserWindow, app, dialog } from "electron";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
 
-// Import database and KU16 related modules
+// Import database and hardware related modules
 import { sequelize } from "../db/sequelize";
 import { KU16 } from "./ku16";
+import { CU12SmartStateManager } from "./hardware/cu12/stateManager";
 
 // Import IPC handlers for various functionalities
 import { initHandler } from "./ku16/ipcMain/init";
@@ -46,6 +47,7 @@ import {
 import { checkActivationKeyHandler } from "./license/ipcMain/check-activation-key";
 import { activateKeyHandler } from "./license/ipcMain/activate-key";
 import { IndicatorDevice } from "./indicator";
+import { registerCU12Handlers } from "./hardware/cu12/ipcMain";
 /**
  * Indicates whether the application is running in production mode.
  *
@@ -54,6 +56,8 @@ import { IndicatorDevice } from "./indicator";
  */
 const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
+let cu12StateManager: CU12SmartStateManager | null = null;
+let cu12Initialized = false;
 
 // Configure electron-serve for production mode
 if (isProd) {
@@ -106,10 +110,37 @@ if (isProd) {
     mainWindow
   );
 
+  // Initialize CU12 Smart State Manager (12-slot hardware with adaptive monitoring)
+  cu12StateManager = new CU12SmartStateManager(mainWindow, {
+    healthCheckInterval: 5 * 60 * 1000,  // 5 minutes for 24/7 stability
+    userInactiveTimeout: 2 * 60 * 1000,  // 2 minutes user timeout
+    maxConsecutiveFailures: 3,
+    enableIntelligentCaching: true,
+    logLevel: 'INFO'
+  });
+
+  // Initialize CU12 device (using KU16 port temporarily until CU12 settings are added)
+  // TODO: Add cu12_port and cu12_baudrate to settings model in Round 3
+  const cu12Port = (settings as any).cu12_port || null; // Will be null until settings are updated
+  if (cu12Port) {
+    try {
+      cu12Initialized = await cu12StateManager.initialize({
+        port: cu12Port,
+        baudRate: (settings as any).cu12_baudrate || 19200,
+        timeout: 3000
+      });
+      console.log(`[CU12] Initialization: ${cu12Initialized ? 'SUCCESS' : 'FAILED'}`);
+    } catch (error) {
+      console.error('[CU12] Initialization failed:', error.message);
+    }
+  } else {
+    console.log('[CU12] CU12 port not configured - skipping initialization (expected until Round 3)');
+  }
+
   // Initialize authentication system
   const auth = new Authentication();
 
-  // Start receiving data from KU16 device
+  // Start receiving data from devices
   ku16.receive();
   indicator.receive();
 
@@ -152,6 +183,14 @@ if (isProd) {
   LoggingHandler(ku16);
   exportLogsHandler(ku16);
 
+  // CU12 handlers - Register only if CU12 is initialized
+  if (cu12Initialized) {
+    registerCU12Handlers(cu12StateManager, mainWindow);
+    console.log('[CU12] All IPC handlers registered successfully');
+  } else {
+    console.log('[CU12] Hardware not available - handlers not registered');
+  }
+
   // Load the application UI based on environment
   if (isProd) {
     await mainWindow.loadURL("app://./home.html");
@@ -163,6 +202,15 @@ if (isProd) {
 })();
 
 // Quit application when all windows are closed
-app.on("window-all-closed", () => {
+app.on("window-all-closed", async () => {
+  // Cleanup CU12 resources before quitting
+  if (cu12Initialized && cu12StateManager) {
+    try {
+      await cu12StateManager.cleanup();
+      console.log('[CU12] Cleanup completed successfully');
+    } catch (error) {
+      console.error('[CU12] Cleanup error:', error.message);
+    }
+  }
   app.quit();
 });
