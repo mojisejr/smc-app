@@ -112,29 +112,32 @@ if (isProd) {
 
   // Initialize CU12 Smart State Manager (12-slot hardware with adaptive monitoring)
   cu12StateManager = new CU12SmartStateManager(mainWindow, {
-    healthCheckInterval: 5 * 60 * 1000,  // 5 minutes for 24/7 stability
-    userInactiveTimeout: 2 * 60 * 1000,  // 2 minutes user timeout
+    healthCheckInterval: 5 * 60 * 1000, // 5 minutes for 24/7 stability
+    userInactiveTimeout: 2 * 60 * 1000, // 2 minutes user timeout
     maxConsecutiveFailures: 3,
     enableIntelligentCaching: true,
-    logLevel: 'INFO'
+    logLevel: "INFO",
   });
 
-  // Initialize CU12 device (using KU16 port temporarily until CU12 settings are added)
-  // TODO: Add cu12_port and cu12_baudrate to settings model in Round 3
-  const cu12Port = (settings as any).cu12_port || null; // Will be null until settings are updated
+  // Initialize CU12 device with configured port settings
+  const cu12Port = settings?.cu_port || null;
   if (cu12Port) {
     try {
       cu12Initialized = await cu12StateManager.initialize({
         port: cu12Port,
-        baudRate: (settings as any).cu12_baudrate || 19200,
-        timeout: 3000
+        baudRate: settings.cu_baudrate || 19200,
+        timeout: 3000,
       });
-      console.log(`[CU12] Initialization: ${cu12Initialized ? 'SUCCESS' : 'FAILED'}`);
+      console.log(
+        `[CU12] Initialization: ${cu12Initialized ? "SUCCESS" : "FAILED"}`
+      );
     } catch (error) {
-      console.error('[CU12] Initialization failed:', error.message);
+      console.error("[CU12] Initialization failed:", error.message);
     }
   } else {
-    console.log('[CU12] CU12 port not configured - skipping initialization (expected until Round 3)');
+    console.log(
+      "[CU12] CU12 port not configured - skipping CU12 initialization"
+    );
   }
 
   // Initialize authentication system
@@ -186,9 +189,9 @@ if (isProd) {
   // CU12 handlers - Register only if CU12 is initialized
   if (cu12Initialized) {
     registerCU12Handlers(cu12StateManager, mainWindow);
-    console.log('[CU12] All IPC handlers registered successfully');
+    console.log("[CU12] All IPC handlers registered successfully");
   } else {
-    console.log('[CU12] Hardware not available - handlers not registered');
+    console.log("[CU12] Hardware not available - handlers not registered");
   }
 
   // Load the application UI based on environment
@@ -207,9 +210,9 @@ app.on("window-all-closed", async () => {
   if (cu12Initialized && cu12StateManager) {
     try {
       await cu12StateManager.cleanup();
-      console.log('[CU12] Cleanup completed successfully');
+      console.log("[CU12] Cleanup completed successfully");
     } catch (error) {
-      console.error('[CU12] Cleanup error:', error.message);
+      console.error("[CU12] Cleanup error:", error.message);
     }
   }
   app.quit();

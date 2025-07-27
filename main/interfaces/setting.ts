@@ -20,6 +20,13 @@ export interface ISetting {
 }
 
 export interface IUpdateSetting {
-  ku_port: string;
-  ku_baudrate: number;
+  // KU16 Configuration (Legacy - 15 slots)
+  ku_port?: string;
+  ku_baudrate?: number;
+  // CU12 Configuration (Current - 12 slots)
+  cu_port?: string;
+  cu_baudrate?: number;
+  // System configuration
+  hardware_type?: 'KU16' | 'CU12';
+  available_slots?: number;
 }

@@ -4,6 +4,10 @@ import * as os from "os";
 import * as path from "path";
 import { Setting } from "../../db/model/setting.model";
 
+//ByPassConfig
+//⭕️ Need To REMOVE when release
+const bypass = true;
+
 // 🔹 ฟังก์ชันสร้าง HWID (อิงจาก MAC Address และ Hostname)
 export function getHardwareId(): string {
   const macAddress =
@@ -34,6 +38,10 @@ export async function loadLicense(): Promise<string | null> {
 
 // 🔹 ฟังก์ชันตรวจสอบ License Key
 export async function validateLicense(): Promise<boolean> {
+  //⭕️ Need to remove when release
+  if (bypass) {
+    return true;
+  }
   const licenseKey = await loadLicense();
   if (!licenseKey) return false;
 
@@ -43,7 +51,7 @@ export async function validateLicense(): Promise<boolean> {
   const currentHWID = getHardwareId();
   if (licenseData.hwid !== currentHWID) return false; // HWID ไม่ตรง
 
-  console.log(licenseData.expiry);
+  // console.log(licenseData.expiry);
 
   if (new Date(licenseData.expiry) < new Date()) return false; // License หมดอายุ
 

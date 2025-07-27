@@ -492,6 +492,8 @@ export class CU12SmartStateManager {
   }
   
   private createStructuredLogger(): CU12StructuredLogger {
+    const config = this.config; // Capture config in closure
+    
     const log = async (level: string, message: string, metadata?: Record<string, any>) => {
       const entry = {
         level,
@@ -510,31 +512,31 @@ export class CU12SmartStateManager {
     
     return {
       async trace(message: string, metadata?: Record<string, any>) {
-        if (this.config.logLevel === 'TRACE') {
+        if (config.logLevel === 'TRACE') {
           await log('TRACE', message, metadata);
         }
       },
       
       async debug(message: string, metadata?: Record<string, any>) {
-        if (['TRACE', 'DEBUG'].includes(this.config.logLevel)) {
+        if (['TRACE', 'DEBUG'].includes(config.logLevel)) {
           await log('DEBUG', message, metadata);
         }
       },
       
       async info(message: string, metadata?: Record<string, any>) {
-        if (['TRACE', 'DEBUG', 'INFO'].includes(this.config.logLevel)) {
+        if (['TRACE', 'DEBUG', 'INFO'].includes(config.logLevel)) {
           await log('INFO', message, metadata);
         }
       },
       
       async warn(message: string, metadata?: Record<string, any>) {
-        if (['TRACE', 'DEBUG', 'INFO', 'WARN'].includes(this.config.logLevel)) {
+        if (['TRACE', 'DEBUG', 'INFO', 'WARN'].includes(config.logLevel)) {
           await log('WARN', message, metadata);
         }
       },
       
       async error(message: string, metadata?: Record<string, any>) {
-        if (['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'].includes(this.config.logLevel)) {
+        if (['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'].includes(config.logLevel)) {
           await log('ERROR', message, metadata);
         }
       },
