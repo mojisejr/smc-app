@@ -30,6 +30,7 @@ import { logoutRequestHandler } from "./auth/ipcMain/logout";
 import { getSetting } from "./setting/getSetting";
 import { getSettingHandler } from "./setting/ipcMain/getSetting";
 import { updateSettingHandler } from "./setting/ipcMain/updateSetting";
+import { getHardwareType } from "./setting/getHardwareType";
 import { checkLockedBackHandler } from "./ku16/ipcMain/checkLockedBack";
 import { dispenseContinueHandler } from "./ku16/ipcMain/dispensing-continue";
 import { getPortListHandler } from "./ku16/ipcMain/getPortList";
@@ -94,104 +95,145 @@ if (isProd) {
     dbConnection = true;
   }
 
-  // Initialize Indicator device with settings
+  // Smart Hardware Selection - Initialize only one hardware type to prevent port conflicts
+  const hardwareInfo = await getHardwareType();
+  console.log(`[HARDWARE] Detected: ${hardwareInfo.type} (Port: ${hardwareInfo.port}, Max Slots: ${hardwareInfo.maxSlots})`);
 
-  const indicator = new IndicatorDevice(
-    settings.indi_port,
-    settings.indi_baudrate,
-    mainWindow
-  );
+  // Initialize Indicator device with settings (with error handling for platform compatibility)
+  let indicator: IndicatorDevice | null = null;
+  try {
+    if (settings.indi_port && !settings.indi_port.startsWith('COM')) { // Skip Windows COM ports on macOS
+      indicator = new IndicatorDevice(
+        settings.indi_port,
+        settings.indi_baudrate,
+        mainWindow
+      );
+    } else {
+      console.log('[INDICATOR] Skipping indicator initialization - Windows COM port detected on macOS');
+    }
+  } catch (error) {
+    console.error('[INDICATOR] Initialization failed:', error.message);
+  }
 
-  // Initialize KU16 device with settings
-  const ku16 = new KU16(
-    settings.ku_port,
-    settings.ku_baudrate,
-    settings.available_slots,
-    mainWindow
-  );
+  // Initialize hardware based on detected configuration (SINGLE HARDWARE MODE)
+  let ku16: KU16 | null = null;
 
-  // Initialize CU12 Smart State Manager (12-slot hardware with adaptive monitoring)
-  cu12StateManager = new CU12SmartStateManager(mainWindow, {
-    healthCheckInterval: 5 * 60 * 1000, // 5 minutes for 24/7 stability
-    userInactiveTimeout: 2 * 60 * 1000, // 2 minutes user timeout
-    maxConsecutiveFailures: 3,
-    enableIntelligentCaching: true,
-    logLevel: "INFO",
-  });
+  if (hardwareInfo.type === 'CU12' && hardwareInfo.isConfigured) {
+    // CU12 Mode - Initialize CU12 only
+    console.log('[HARDWARE] Initializing CU12 (12-slot system)...');
+    
+    cu12StateManager = new CU12SmartStateManager(mainWindow, {
+      healthCheckInterval: 5 * 60 * 1000, // 5 minutes for 24/7 stability
+      userInactiveTimeout: 2 * 60 * 1000, // 2 minutes user timeout
+      maxConsecutiveFailures: 3,
+      enableIntelligentCaching: true,
+      logLevel: "INFO",
+    });
 
-  // Initialize CU12 device with configured port settings
-  const cu12Port = settings?.cu_port || null;
-  if (cu12Port) {
     try {
       cu12Initialized = await cu12StateManager.initialize({
-        port: cu12Port,
-        baudRate: settings.cu_baudrate || 19200,
+        port: hardwareInfo.port!,
+        baudRate: hardwareInfo.baudrate!,
         timeout: 3000,
       });
-      console.log(
-        `[CU12] Initialization: ${cu12Initialized ? "SUCCESS" : "FAILED"}`
-      );
+      console.log(`[CU12] Initialization: ${cu12Initialized ? "SUCCESS" : "FAILED"}`);
     } catch (error) {
       console.error("[CU12] Initialization failed:", error.message);
     }
+
+  } else if (hardwareInfo.type === 'KU16' && hardwareInfo.isConfigured) {
+    // KU16 Mode - Initialize KU16 only
+    console.log('[HARDWARE] Initializing KU16 (15-slot system)...');
+    
+    ku16 = new KU16(
+      hardwareInfo.port!,
+      hardwareInfo.baudrate!,
+      hardwareInfo.maxSlots,
+      mainWindow
+    );
+
   } else {
-    console.log(
-      "[CU12] CU12 port not configured - skipping CU12 initialization"
+    // No hardware configured or unknown type
+    console.warn('[HARDWARE] No valid hardware configuration found - creating KU16 fallback');
+    ku16 = new KU16(
+      settings.ku_port || '/dev/tty.usbserial-default',
+      settings.ku_baudrate || 19200,
+      settings.available_slots || 15,
+      mainWindow
     );
   }
 
   // Initialize authentication system
   const auth = new Authentication();
 
-  // Start receiving data from devices
-  ku16.receive();
-  indicator.receive();
+  // Start receiving data from devices based on hardware selection
+  if (ku16) {
+    ku16.receive();
+    console.log('[HARDWARE] KU16 receiving data started');
+  }
+  
+  if (indicator) {
+    indicator.receive();
+    console.log('[INDICATOR] Indicator receiving data started');
+  }
 
   //Activation key check
   activateKeyHandler();
   checkActivationKeyHandler();
 
   // Register all IPC handlers for various functionalities
-  // Settings related handlers
-  getPortListHandler(ku16);
+  // Settings related handlers (always available)
   getSettingHandler(mainWindow);
   getUserHandler(mainWindow);
-  updateSettingHandler(mainWindow, ku16);
   getAllSlotsHandler();
   createNewUserHandler();
   deleteUserHandler();
   setSelectedPortHandler();
   setSelectedIndicatorPortHandler();
 
-  // Authentication related handlers
+  // Authentication related handlers (always available)
   loginRequestHandler(mainWindow, auth);
   logoutRequestHandler(auth);
 
-  // KU16 device operation handlers
-  initHandler(ku16, mainWindow);
-  unlockHandler(ku16);
-  checkLockedBackHandler(ku16);
-  dispenseHandler(ku16);
-  dispensingResetHanlder(ku16);
-  dispenseContinueHandler(ku16);
-  forceResetHanlder(ku16);
-  deactiveHanlder(ku16);
-  deactiveAllHandler(ku16);
-  reactiveAllHanlder(ku16);
-  reactivateAdminHandler(ku16);
-  deactivateAdminHandler(ku16);
-
-  // Logging related handlers
-  logDispensingHanlder(ku16);
-  LoggingHandler(ku16);
-  exportLogsHandler(ku16);
-
-  // CU12 handlers - Register only if CU12 is initialized
-  if (cu12Initialized) {
+  // Hardware-specific handlers registration
+  if (hardwareInfo.type === 'CU12' && cu12Initialized) {
+    // CU12 Mode - Register CU12 handlers only
+    console.log('[HARDWARE] Registering CU12 IPC handlers...');
     registerCU12Handlers(cu12StateManager, mainWindow);
     console.log("[CU12] All IPC handlers registered successfully");
+    
+    // Note: CU12 doesn't need KU16-style handlers as it has its own protocol
+    
+  } else if (ku16) {
+    // KU16 Mode or Fallback - Register KU16 handlers
+    console.log('[HARDWARE] Registering KU16 IPC handlers...');
+    
+    getPortListHandler(ku16);
+    updateSettingHandler(mainWindow, ku16);
+    
+    // KU16 device operation handlers
+    initHandler(ku16, mainWindow);
+    unlockHandler(ku16);
+    checkLockedBackHandler(ku16);
+    dispenseHandler(ku16);
+    dispensingResetHanlder(ku16);
+    dispenseContinueHandler(ku16);
+    forceResetHanlder(ku16);
+    deactiveHanlder(ku16);
+    deactiveAllHandler(ku16);
+    reactiveAllHanlder(ku16);
+    reactivateAdminHandler(ku16);
+    deactivateAdminHandler(ku16);
+
+    // Logging related handlers
+    logDispensingHanlder(ku16);
+    LoggingHandler(ku16);
+    exportLogsHandler(ku16);
+    
+    console.log("[KU16] All IPC handlers registered successfully");
+    
   } else {
-    console.log("[CU12] Hardware not available - handlers not registered");
+    console.error('[HARDWARE] No hardware available - minimal handlers registered');
   }
 
   // Load the application UI based on environment
