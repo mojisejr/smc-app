@@ -1,52 +1,52 @@
-# Round 2: Hardware Integration & Device Testing
+# Round 2: Hardware Integration & Adaptive Smart State Management
 
 **CONTEXT**: Please read the following context files thoroughly:
 
 1. `docs/context/CLAUDE.md` (Master Context - CU12 Refactor Overview)
-2. `docs/context/supplements/hardware-integration.md` (Integration & Testing Specifications)
+2. `docs/context/supplements/hardware-integration.md` (Adaptive State Management Specifications)
 
 **ROUND OBJECTIVE**:
-Integrate CU12 hardware communication into the main application with IPC handlers, real-time state management, and comprehensive error handling. Replace KU16 IPC handlers with CU12 equivalents while maintaining API compatibility.
+Integrate CU12 hardware communication with Adaptive Smart State Management for 24/7 stable operation. Implement resource-efficient monitoring that adapts to user activity while maintaining comprehensive error handling and IPC compatibility.
 
 **PAIRED TASKS**:
 
-- **Task A: IPC Handler Migration**
-  - Migrate all KU16 IPC handlers to CU12 equivalents
-  - Update channel names and maintain backwards compatibility
-  - Implement CU12-specific error handling and logging
-  - Update main/background.ts to use CU12 instead of KU16
-  - Files: `main/cu12/ipcMain/`, `main/background.ts`
+- **Task A: IPC Handler Migration & Optimization**
+  - Migrate all KU16 IPC handlers to CU12 equivalents with resource optimization
+  - Implement intelligent caching and batch operations
+  - Add structured logging with monitoring capabilities
+  - Update main/background.ts to use adaptive CU12 state manager
+  - Files: `main/hardware/cu12/ipcMain/`, `main/hardware/cu12/stateManager.ts`
 
-- **Task B: State Management & Real-time Sync**
-  - Implement real-time slot state synchronization
-  - Add connection monitoring with heartbeat
-  - Create hardware error recovery mechanisms
-  - Update hardware state management for 12-slot system
-  - Files: `main/cu12/stateManager.ts`, `main/cu12/errorHandler.ts`
+- **Task B: Adaptive State Management & Failure Detection**
+  - Implement smart monitoring with idle/active/operation modes
+  - Add intelligent hardware failure detection and recovery
+  - Create resource-efficient event-driven architecture
+  - Implement 24/7 stability patterns with minimal resource usage
+  - Files: `main/hardware/cu12/monitoringConfig.ts`, `main/hardware/cu12/errorHandler.ts`
 
 **SUCCESS CRITERIA**:
 
-- [ ] All IPC handlers successfully migrated from KU16 to CU12
-- [ ] Real-time slot state synchronization working (12 slots)
-- [ ] Connection error recovery functional with auto-reconnect
-- [ ] Hardware communication meets performance requirements (≤3s)
-- [ ] Integration tests pass for all IPC channels
+- [ ] All IPC handlers successfully migrated with resource optimization
+- [ ] Adaptive state management with idle/active/operation modes working
+- [ ] Resource efficiency: CPU usage <5% idle, <15% during operations
+- [ ] 24/7 stability: No memory leaks or performance degradation
+- [ ] Hardware failure detection and automatic recovery functional
 - [ ] No breaking changes to renderer process communication
-- [ ] Heartbeat monitoring detects and handles disconnections
+- [ ] Smart monitoring adapts to user activity patterns
 
 **IMPLEMENTATION NOTES**:
-- Maintain IPC channel compatibility for renderer process
-- Use existing error handling patterns from KU16 implementation
-- Implement exponential backoff for connection retries
-- Ensure atomic database updates for state changes
-- Test with both mock and real CU12 hardware
+- Implement event-driven architecture instead of continuous polling
+- Use intelligent caching with TTL for frequent operations
+- Health check every 5 minutes, user timeout 2 minutes
+- Structured logging: TRACE/DEBUG/INFO/WARN/ERROR/FATAL levels
+- Batch operations and connection pooling for efficiency
 
 **TESTING APPROACH**:
-- Create comprehensive IPC handler tests
-- Test connection failure and recovery scenarios
-- Validate real-time state synchronization accuracy
-- Performance testing for concurrent operations
-- Integration testing with existing renderer components
+- Resource usage monitoring during idle and active states
+- 24/7 stability testing with continuous operation
+- Failure injection testing for error recovery validation
+- Performance benchmarking for adaptive state transitions
+- Memory leak detection and resource cleanup validation
 
 **REFERENCE FILES**:
 - Current PRD: `docs/PRD.md` (IPC Architecture)

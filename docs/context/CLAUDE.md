@@ -123,14 +123,14 @@ const newLayout = {
 - Basic device communication established
 - Unit tests passing for protocol layer
 
-### Round 2: Hardware Integration & Testing  
+### Round 2: Hardware Integration & Adaptive Smart State Management  
 **Context**: CLAUDE.md + hardware-integration.md (~9,000 tokens)
-**Focus**: Device communication and hardware testing
-**Files**: Hardware integration, IPC handlers, device management
+**Focus**: Adaptive state management for 24/7 stability with resource efficiency
+**Files**: Smart state manager, optimized IPC handlers, failure detection
 **Success Criteria**:
-- Full hardware communication pipeline
-- Device auto-detection working
-- Error handling and recovery implemented
+- Adaptive monitoring with idle/active/operation modes
+- Resource efficiency: <5% CPU idle, <15% during operations
+- 24/7 stability with intelligent failure detection and recovery
 
 ### Round 3: Database & Configuration Migration
 **Context**: CLAUDE.md + database-migration.md (~8,500 tokens)
@@ -204,10 +204,11 @@ const projectDependencies = {
 
 ### Technical Success Indicators
 - ✅ **Protocol Compatibility**: All CU12 commands working correctly
-- ✅ **Slot Management**: 12-slot system fully functional
+- ✅ **Slot Management**: 12-slot system fully functional  
 - ✅ **Data Integrity**: No data loss during migration
-- ✅ **Performance**: Response times ≤ original KU16 system
-- ✅ **Reliability**: Error rates ≤ 1% for hardware communication
+- ✅ **Resource Efficiency**: CPU usage <5% idle, <15% during operations
+- ✅ **24/7 Stability**: No memory leaks or performance degradation
+- ✅ **Adaptive Monitoring**: Smart state management with mode switching
 
 ### Code Quality Indicators
 - ✅ **Maintainability**: Clear separation between CU12 and application logic
@@ -237,9 +238,12 @@ const projectDependencies = {
 
 ### Performance Requirements
 - **Hardware Communication**: ≤ 3 seconds response time
-- **UI Responsiveness**: ≤ 500ms for user interactions
+- **UI Responsiveness**: ≤ 500ms for user interactions  
 - **Database Operations**: ≤ 1 second for queries
 - **Slot Operations**: ≤ 2 seconds for unlock/lock cycles
+- **Resource Usage**: <5% CPU idle, <15% during operations
+- **Memory Efficiency**: No memory leaks in 24/7 operation
+- **Mode Switching**: <100ms transition between idle/active/operation states
 
 ---
 
