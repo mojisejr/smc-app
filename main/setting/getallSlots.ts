@@ -1,10 +1,15 @@
 import { Slot } from "../../db/model/slot.model";
-import { getSetting } from "./getSetting";
+import { getHardwareType } from "./getHardwareType";
 
 export async function getAllSlots() {
-  // Get current system configuration
-  const settings = await getSetting();
-  const maxSlots = settings?.available_slots || 12; // Default to CU12 (12 slots)
+  // Get current hardware configuration
+  const hardware = await getHardwareType();
+  const maxSlots = hardware.maxSlots;
+  
+  if (!hardware.isConfigured) {
+    console.warn('[getAllSlots] No hardware configured, returning empty slot list');
+    return [];
+  }
   
   // Fetch slots based on current system configuration
   const response = await Slot.findAll({
@@ -22,6 +27,6 @@ export async function getAllSlots() {
     };
   });
 
-  console.log(`[getAllSlots] Retrieved ${slots.length} slots for ${maxSlots}-slot system`);
+  console.log(`[getAllSlots] Retrieved ${slots.length} slots for ${hardware.type} (${maxSlots}-slot system)`);
   return slots;
 }
