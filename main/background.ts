@@ -8,11 +8,7 @@ import { KU16 } from "./ku16";
 import { CU12SmartStateManager } from "./hardware/cu12/stateManager";
 
 // Import IPC handlers for various functionalities
-import { unlockHandler } from "./ku16/ipcMain/unlock";
-import { dispenseHandler } from "./ku16/ipcMain/dispensing";
-import { dispensingResetHanlder } from "./ku16/ipcMain/reset";
-import { forceResetHanlder } from "./ku16/ipcMain/forceReset";
-import { reactiveAllHanlder } from "./ku16/ipcMain/reactiveAll";
+// NOTE: Core operation handlers (unlock, dispense, reset, etc.) are now managed by universal adapters
 import { deactiveHanlder } from "./ku16/ipcMain/deactivate";
 
 // Import authentication related modules
@@ -25,13 +21,9 @@ import { getSetting } from "./setting/getSetting";
 import { getSettingHandler } from "./setting/ipcMain/getSetting";
 import { updateSettingHandler } from "./setting/ipcMain/updateSetting";
 import { getHardwareType } from "./setting/getHardwareType";
-import { checkLockedBackHandler } from "./ku16/ipcMain/checkLockedBack";
-import { dispenseContinueHandler } from "./ku16/ipcMain/dispensing-continue";
 import { getUserHandler } from "./auth/ipcMain/getUser";
 import { getAllSlotsHandler } from "./setting/ipcMain/getAllSlots";
-import { deactiveAllHandler } from "./ku16/ipcMain/deactivateAll";
-import { reactivateAdminHandler } from "./ku16/ipcMain/reactivate-admin";
-import { deactivateAdminHandler } from "./ku16/ipcMain/deactivate-admin";
+// NOTE: Admin handlers (deactivate-all, reactivate-admin, deactivate-admin) are now managed by universal adapters
 import { createNewUserHandler } from "./user/createNewUser";
 import { deleteUserHandler } from "./user/deleteUser";
 import {
@@ -79,17 +71,13 @@ if (isProd) {
     autoHideMenuBar: true,
   });
 
-  let dbConnection = false;
-
   // Initialize database connection
   const sql = await sequelize.sync();
 
   // Get application settings
   const settings = await getSetting();
 
-  if (settings && sql) {
-    dbConnection = true;
-  }
+  // Database connection successful if we reach here
 
   // Smart Hardware Selection - Initialize only one hardware type to prevent port conflicts
   const hardwareInfo = await getHardwareType();
@@ -230,18 +218,20 @@ if (isProd) {
 
     updateSettingHandler(mainWindow, ku16);
 
-    // KU16 device operation handlers (excluding universal adapters)
-    unlockHandler(ku16);
-    checkLockedBackHandler(ku16);
-    dispenseHandler(ku16);
-    dispensingResetHanlder(ku16);
-    dispenseContinueHandler(ku16);
-    forceResetHanlder(ku16);
-    deactiveHanlder(ku16);
-    // Note: deactiveAllHandler, reactiveAllHanlder, reactivateAdminHandler, deactivateAdminHandler
-    // are now handled by universal adapters
+    // NOTE: Core operation handlers (unlock, dispense, reset, etc.) are now handled by universal adapters
+    // Only register handlers that are truly KU16-specific and don't have universal equivalents
+    deactiveHanlder(ku16); // This may be KU16-specific legacy handler
+    
+    // The following handlers are now managed by universal adapters:
+    // - unlockHandler → registerUniversalUnlockHandler
+    // - checkLockedBackHandler → registerUniversalCheckLockedBackHandler  
+    // - dispenseHandler → registerUniversalDispenseHandler
+    // - dispensingResetHanlder → registerUniversalResetHandler
+    // - dispenseContinueHandler → registerUniversalDispenseContinueHandler
+    // - forceResetHanlder → registerUniversalForceResetHandler
+    // - deactiveAllHandler, reactiveAllHanlder, reactivateAdminHandler, deactivateAdminHandler → admin adapters
 
-    console.log("[KU16] KU16-specific IPC handlers registered successfully");
+    console.log("[KU16] Universal adapters now handle core operations for backward compatibility");
   } else {
     console.log(
       "[HARDWARE] Using universal adapters only - no hardware-specific handlers"

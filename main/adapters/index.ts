@@ -16,6 +16,16 @@ import {
   registerUniversalGetAllSlotsHandler,
   registerUniversalSlotStatusHandler
 } from './slotsAdapter';
+import { registerUniversalUnlockHandler } from './unlockAdapter';
+import { 
+  registerUniversalDispenseHandler,
+  registerUniversalDispenseContinueHandler
+} from './dispenseAdapter';
+import { 
+  registerUniversalResetHandler,
+  registerUniversalForceResetHandler
+} from './resetAdapter';
+import { registerUniversalCheckLockedBackHandler } from './statusAdapter';
 
 /**
  * Universal IPC Adapter System
@@ -43,6 +53,14 @@ export const registerUniversalAdapters = (
   registerUniversalPortListHandler(ku16Instance);
   registerUniversalLoggingHandlers();
   
+  // Core operation adapters (NEW - Critical for CU12 compatibility)
+  registerUniversalUnlockHandler(ku16Instance, cu12StateManager, mainWindow);
+  registerUniversalDispenseHandler(ku16Instance, cu12StateManager, mainWindow);
+  registerUniversalDispenseContinueHandler(ku16Instance, cu12StateManager, mainWindow);
+  registerUniversalResetHandler(ku16Instance, cu12StateManager, mainWindow);
+  registerUniversalForceResetHandler(ku16Instance, cu12StateManager, mainWindow);
+  registerUniversalCheckLockedBackHandler(ku16Instance, cu12StateManager, mainWindow);
+  
   // Admin management adapters
   registerUniversalDeactivateAdminHandler(ku16Instance, cu12StateManager, mainWindow);
   registerUniversalDeactivateAllHandler(ku16Instance, cu12StateManager, mainWindow);
@@ -55,6 +73,7 @@ export const registerUniversalAdapters = (
   registerUniversalSlotStatusHandler(ku16Instance, cu12StateManager, mainWindow);
   
   console.log('[ADAPTER] All universal IPC adapters registered successfully');
+  console.log('[ADAPTER] Core operations (unlock, dispense, reset) now support both KU16 and CU12');
   console.log('[ADAPTER] Admin dashboard now supports both KU16 and CU12 hardware');
   console.log('[ADAPTER] Frontend can now use standard IPC calls regardless of hardware type');
 };
@@ -64,6 +83,12 @@ export {
   registerUniversalInitHandler,
   registerUniversalPortListHandler,
   registerUniversalLoggingHandlers,
+  registerUniversalUnlockHandler,
+  registerUniversalDispenseHandler,
+  registerUniversalDispenseContinueHandler,
+  registerUniversalResetHandler,
+  registerUniversalForceResetHandler,
+  registerUniversalCheckLockedBackHandler,
   registerUniversalDeactivateAdminHandler,
   registerUniversalDeactivateAllHandler,
   registerUniversalReactivateAdminHandler,

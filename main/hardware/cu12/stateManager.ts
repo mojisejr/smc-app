@@ -601,22 +601,47 @@ export class CU12SmartStateManager {
   /**
    * Manually trigger frontend sync (for use after admin operations)
    * Public method that can be called from adapters
+   * 
+   * This method ensures real-time updates between admin dashboard and home page
+   * by forcing a fresh sync of slot status and broadcasting to frontend.
    */
   async triggerFrontendSync(): Promise<void> {
     try {
-      console.log('[CU12-STATE] Manual frontend sync triggered');
+      console.log('[CU12-STATE] Manual frontend sync triggered - forcing real-time update');
       
-      // Get current slot status from hardware
+      // Clear cache to ensure fresh data
+      this.resourceOptimizer.cache.delete('slot_status');
+      
+      // Get current slot status from hardware (forced refresh)
       const currentStatus = await this.syncSlotStatus('ON_DEMAND');
       
       // Transform and send to frontend
       const ku16CompatibleData = await transformCU12ToKU16Format(currentStatus);
       
       console.log('[CU12-STATE] Manual sync sending', ku16CompatibleData.length, 'slots to frontend');
+      console.log('[CU12-STATE] Slot states:', ku16CompatibleData.map(s => ({ id: s.slotId, active: s.isActive, occupied: s.occupied })));
+      
+      // Send multiple events to ensure frontend receives the update
       this.mainWindow.webContents.send("init-res", ku16CompatibleData);
+      
+      // Also send a dedicated admin-sync event for immediate UI updates
+      this.mainWindow.webContents.send("admin-sync-complete", {
+        message: "Admin operation completed - UI updated",
+        timestamp: Date.now(),
+        slotCount: ku16CompatibleData.length
+      });
+      
+      await this.structuredLogger.info("Manual frontend sync completed", {
+        slotCount: ku16CompatibleData.length,
+        cacheCleared: true,
+        events: ["init-res", "admin-sync-complete"]
+      });
       
     } catch (error) {
       console.error('[CU12-STATE] Manual frontend sync failed:', error.message);
+      await this.structuredLogger.error("Manual frontend sync failed", {
+        error: error.message
+      });
     }
   }
 
