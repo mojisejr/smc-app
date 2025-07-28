@@ -1,6 +1,6 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useUnlock } from "../../hooks/useUnlock";
-import { useKuStates } from "../../hooks/useKuStates";
+import { useCu12States } from "../../hooks/useCu12States";
 import { toast } from "react-toastify";
 
 type Inputs = {
@@ -14,7 +14,7 @@ interface InputSlotProps {
 }
 
 const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
-  const { slots } = useKuStates();
+  const { slots } = useCu12States();
   const { unlock } = useUnlock();
   const {
     register,
@@ -29,6 +29,12 @@ const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     // ipcRenderer.invoke(DB.RegisterSlot, slotNo, data.hn, true);
+
+    // Validate slot number for CU12 (12-slot system)
+    if (slotNo > 12 || slotNo < 1) {
+      toast.error("หมายเลขช่องไม่ถูกต้อง (1-12 เท่านั้น)");
+      return;
+    }
 
     if (data.passkey == "") {
       toast.error("กรุณากรอกรหัสผู้ใช้");

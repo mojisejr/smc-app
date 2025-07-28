@@ -6,7 +6,7 @@ import {
   BsUnlockFill,
 } from "react-icons/bs";
 import Link from "next/link";
-import { useKuStates } from "../../hooks/useKuStates";
+import { useCu12States } from "../../hooks/useCu12States";
 import { useEffect, useState } from "react";
 import { useDispense } from "../../hooks/useDispense";
 import Modal from "../Modals";
@@ -22,7 +22,7 @@ interface NavbarProps {
 }
 const Navbar = ({ active }: NavbarProps) => {
   const { admin, setAdmin } = useApp();
-  const { slots, canDispense } = useKuStates();
+  const { slots, canDispense } = useCu12States();
   const { dispensing } = useDispense();
   const [openDispenseModal, setOpenDispenseModal] = useState<boolean>(false);
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);

@@ -10,7 +10,7 @@ import Modal from "../components/Modals";
 import LockWait from "../components/Dialogs/lockWait";
 import DispensingWait from "../components/Dialogs/dispensingWait";
 
-import { useKuStates } from "../hooks/useKuStates";
+import { useCu12States } from "../hooks/useCu12States";
 import Loading from "../components/Shared/Loading";
 import { useDispense } from "../hooks/useDispense";
 import { useUnlock } from "../hooks/useUnlock";
@@ -25,7 +25,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 2,
@@ -33,7 +33,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 3,
@@ -41,7 +41,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 4,
@@ -49,7 +49,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 5,
@@ -57,7 +57,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 6,
@@ -65,7 +65,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 7,
@@ -73,7 +73,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 8,
@@ -81,7 +81,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 9,
@@ -89,7 +89,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 10,
@@ -97,7 +97,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 11,
@@ -105,7 +105,7 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
+    isActive: true,
   },
   {
     slotId: 12,
@@ -113,36 +113,12 @@ const mockSlots = [
     occupied: false,
     timestamp: new Date().getTime(),
     opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 13,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 14,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 15,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
+    isActive: true,
   },
 ];
 
 function Home() {
-  const { slots } = useKuStates();
+  const { slots } = useCu12States();
   const { unlocking } = useUnlock();
   const { dispensing } = useDispense();
   const { indicator } = useIndicator();
@@ -196,7 +172,7 @@ function Home() {
                       <Loading />
                     </div>
                   ) : (
-                    <ul className="grid grid-cols-5 gap-6 min-h-[70vh] place-content-start px-20 py-6">
+                    <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[70vh] place-content-start px-20 py-6">
                       {mockSlots
                         .map((s, index) => {
                           return {

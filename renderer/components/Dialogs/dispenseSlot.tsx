@@ -1,6 +1,6 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useDispense } from "../../hooks/useDispense";
-import { useKuStates } from "../../hooks/useKuStates";
+import { useCu12States } from "../../hooks/useCu12States";
 import { useEffect } from "react";
 import { toast } from "react-toastify";
 import { useDispensingContext } from "../../contexts/dispensingContext";
@@ -15,7 +15,7 @@ interface ClearSlotProps {
 
 const DispenseSlot = ({ onClose }: ClearSlotProps) => {
   const { dispense } = useDispense();
-  const { slots, get } = useKuStates();
+  const { slots, get } = useCu12States();
   const { setPasskey } = useDispensingContext();
 
   useEffect(() => {
