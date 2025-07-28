@@ -150,6 +150,8 @@ function Home() {
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
 
+  console.log("slots: ", slots);
+
   useEffect(() => {
     if (unlocking.unlocking) {
       setCloseLockWait(false);

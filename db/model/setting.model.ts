@@ -16,6 +16,7 @@ Setting.init(
     ku_baudrate: { type: DataTypes.INTEGER },
     
     // System Configuration
+    hardware_type: { type: DataTypes.STRING, defaultValue: 'AUTO' }, // AUTO, KU16, CU12
     available_slots: { type: DataTypes.INTEGER, defaultValue: 12 },
     max_user: { type: DataTypes.INTEGER },
     service_code: { type: DataTypes.STRING },

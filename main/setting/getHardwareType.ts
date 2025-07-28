@@ -17,7 +17,17 @@ export async function getHardwareType(): Promise<HardwareInfo> {
   try {
     const settings = await getSetting();
     
+    console.log('[getHardwareType] Settings result:', {
+      exists: !!settings,
+      hardware_type: settings?.hardware_type,
+      cu_port: settings?.cu_port,
+      cu_baudrate: settings?.cu_baudrate,
+      ku_port: settings?.ku_port,
+      ku_baudrate: settings?.ku_baudrate
+    });
+    
     if (!settings) {
+      console.warn('[getHardwareType] No settings found, returning UNKNOWN');
       return {
         type: 'UNKNOWN',
         port: null,
@@ -27,7 +37,30 @@ export async function getHardwareType(): Promise<HardwareInfo> {
       };
     }
 
-    // Check for CU12 configuration (preferred)
+    // Check for explicit hardware type setting first
+    if (settings.hardware_type && settings.hardware_type !== 'AUTO') {
+      if (settings.hardware_type === 'CU12' && settings.cu_port && settings.cu_baudrate) {
+        return {
+          type: 'CU12',
+          port: settings.cu_port,
+          baudrate: settings.cu_baudrate,
+          maxSlots: 12,
+          isConfigured: true
+        };
+      }
+      
+      if (settings.hardware_type === 'KU16' && settings.ku_port && settings.ku_baudrate) {
+        return {
+          type: 'KU16',
+          port: settings.ku_port,
+          baudrate: settings.ku_baudrate,
+          maxSlots: settings.available_slots || 15,
+          isConfigured: true
+        };
+      }
+    }
+
+    // AUTO mode: Check for CU12 configuration first (preferred)
     if (settings.cu_port && settings.cu_baudrate) {
       return {
         type: 'CU12',
@@ -44,7 +77,7 @@ export async function getHardwareType(): Promise<HardwareInfo> {
         type: 'KU16',
         port: settings.ku_port,
         baudrate: settings.ku_baudrate,
-        maxSlots: 15,
+        maxSlots: settings.available_slots || 15,
         isConfigured: true
       };
     }

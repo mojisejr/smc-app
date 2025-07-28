@@ -55,16 +55,40 @@ export class CU12Protocol {
    * @returns true if packet is valid
    */
   validatePacket(packet: Buffer): boolean {
+    console.log(`[CU12-PROTOCOL] Validating packet structure`);
+    
     if (packet.length < CU12Protocol.CONSTANTS.MIN_PACKET_LENGTH) {
+      console.log(`[CU12-PROTOCOL] Packet too short: ${packet.length} < ${CU12Protocol.CONSTANTS.MIN_PACKET_LENGTH}`);
       return false;
     }
 
-    // Check STX and ETX
-    if (packet[0] !== CU12Protocol.CONSTANTS.STX || packet[6] !== CU12Protocol.CONSTANTS.ETX) {
+    // Check STX and ETX - but allow some flexibility for actual hardware responses
+    const stx = packet[0];
+    const etx = packet[6];
+    
+    console.log(`[CU12-PROTOCOL] STX: 0x${stx.toString(16)}, ETX: 0x${etx.toString(16)}`);
+    
+    if (stx !== CU12Protocol.CONSTANTS.STX || etx !== CU12Protocol.CONSTANTS.ETX) {
+      console.log(`[CU12-PROTOCOL] STX/ETX validation failed - expected STX=0x02, ETX=0x03`);
+      
+      // Try to find valid packet within the buffer (robustness improvement)
+      for (let i = 0; i < packet.length - 7; i++) {
+        if (packet[i] === CU12Protocol.CONSTANTS.STX && packet[i + 6] === CU12Protocol.CONSTANTS.ETX) {
+          console.log(`[CU12-PROTOCOL] Found valid STX/ETX at offset ${i}, attempting reparse`);
+          const subPacket = packet.subarray(i);
+          if (subPacket.length >= CU12Protocol.CONSTANTS.MIN_PACKET_LENGTH) {
+            return this.validatePacket(subPacket);
+          }
+        }
+      }
+      
       return false;
     }
 
-    return this.validateChecksum(packet);
+    const checksumValid = this.validateChecksum(packet);
+    console.log(`[CU12-PROTOCOL] Basic packet structure valid, checksum: ${checksumValid ? 'VALID' : 'INVALID'}`);
+    
+    return checksumValid;
   }
 
   /**
@@ -89,6 +113,9 @@ export class CU12Protocol {
     const checksumOffset = 7;
     const expectedChecksum = packet[checksumOffset];
     
+    console.log(`[CU12-PROTOCOL] Checksum validation - Data length: ${dataLen}`);
+    console.log(`[CU12-PROTOCOL] Expected checksum: 0x${expectedChecksum?.toString(16)}`);
+    
     // Calculate checksum for: STX to ETX (7 bytes) + DATA portion
     let checksumData: Buffer;
     if (dataLen > 0) {
@@ -109,21 +136,47 @@ export class CU12Protocol {
       checksumData = Buffer.from(headerBytes);
     }
     
+    console.log(`[CU12-PROTOCOL] Checksum data: ${checksumData.toString('hex')}`);
+    
     const calculatedChecksum = this.calculateChecksum(checksumData);
-    return calculatedChecksum === expectedChecksum;
+    console.log(`[CU12-PROTOCOL] Calculated checksum: 0x${calculatedChecksum.toString(16)}`);
+    
+    const isValid = calculatedChecksum === expectedChecksum;
+    console.log(`[CU12-PROTOCOL] Checksum validation result: ${isValid ? 'VALID' : 'INVALID'}`);
+    
+    return isValid;
   }
 
   /**
    * Check if packet contains a valid response code
    */
   isValidResponse(packet: Buffer): boolean {
+    console.log(`[CU12-PROTOCOL] Validating response packet:`, packet.toString('hex'));
+    console.log(`[CU12-PROTOCOL] Packet length: ${packet.length} bytes`);
+    
     if (!this.validatePacket(packet)) {
+      console.log(`[CU12-PROTOCOL] Packet validation failed`);
+      if (packet.length < CU12Protocol.CONSTANTS.MIN_PACKET_LENGTH) {
+        console.log(`[CU12-PROTOCOL] Packet too short: ${packet.length} < ${CU12Protocol.CONSTANTS.MIN_PACKET_LENGTH}`);
+      }
+      if (packet[0] !== CU12Protocol.CONSTANTS.STX) {
+        console.log(`[CU12-PROTOCOL] Invalid STX: 0x${packet[0]?.toString(16)} (expected 0x02)`);
+      }
+      if (packet[6] !== CU12Protocol.CONSTANTS.ETX) {
+        console.log(`[CU12-PROTOCOL] Invalid ETX: 0x${packet[6]?.toString(16)} (expected 0x03)`);
+      }
       return false;
     }
 
     const askField = packet[4];
     const validResponseCodes = Object.values(CU12Protocol.RESPONSE_CODES);
-    return validResponseCodes.includes(askField as CU12ResponseCode);
+    console.log(`[CU12-PROTOCOL] ASK field: 0x${askField.toString(16)}`);
+    console.log(`[CU12-PROTOCOL] Valid response codes:`, validResponseCodes.map(c => `0x${c.toString(16)}`));
+    
+    const isValid = validResponseCodes.includes(askField as CU12ResponseCode);
+    console.log(`[CU12-PROTOCOL] Response validation result: ${isValid ? 'VALID' : 'INVALID'}`);
+    
+    return isValid;
   }
 
   /**
@@ -179,8 +232,24 @@ export class CU12Protocol {
    * @returns Array of slot statuses (12 slots)
    */
   parseSlotStatus(packet: Buffer): SlotStatus[] {
+    console.log(`[CU12-PROTOCOL] Parsing slot status from packet: ${packet.toString('hex')}`);
+    
     const parsed = this.parsePacket(packet);
-    if (!parsed || !parsed.data || parsed.data.length < 2) {
+    if (!parsed) {
+      throw new Error('Failed to parse packet structure');
+    }
+    
+    console.log(`[CU12-PROTOCOL] Parsed packet:`, {
+      stx: `0x${parsed.stx.toString(16)}`,
+      addr: `0x${parsed.addr.toString(16)}`,
+      cmd: `0x${parsed.cmd.toString(16)}`,
+      ask: `0x${parsed.ask.toString(16)}`,
+      dataLen: parsed.dataLen,
+      data: parsed.data?.toString('hex')
+    });
+    
+    if (!parsed.data || parsed.data.length < 2) {
+      console.error(`[CU12-PROTOCOL] Invalid data: expected 2+ bytes, got ${parsed.data?.length || 0}`);
       throw new Error('Invalid status packet: missing or insufficient data');
     }
 
@@ -188,8 +257,12 @@ export class CU12Protocol {
     // Each bit represents one lock (12 locks total)
     const statusBytes = parsed.data.subarray(0, 2);
     const slotStatuses: SlotStatus[] = [];
+    
+    console.log(`[CU12-PROTOCOL] Status bytes: ${statusBytes.toString('hex')}`);
+    console.log(`[CU12-PROTOCOL] Byte 0: 0b${statusBytes[0].toString(2).padStart(8, '0')} (0x${statusBytes[0].toString(16)})`);
+    console.log(`[CU12-PROTOCOL] Byte 1: 0b${statusBytes[1].toString(2).padStart(8, '0')} (0x${statusBytes[1].toString(16)})`);
 
-    // Parse 12 bits from 2 bytes (big-endian format)
+    // Parse 12 bits from 2 bytes (little-endian format as per documentation)
     for (let slotId = 1; slotId <= CU12Protocol.CONSTANTS.MAX_SLOTS; slotId++) {
       const byteIndex = Math.floor((slotId - 1) / 8);
       const bitIndex = (slotId - 1) % 8;
@@ -197,9 +270,11 @@ export class CU12Protocol {
       if (byteIndex < statusBytes.length) {
         const isLocked = (statusBytes[byteIndex] & (1 << bitIndex)) !== 0;
         slotStatuses.push({ slotId, isLocked });
+        console.log(`[CU12-PROTOCOL] Slot ${slotId}: ${isLocked ? 'LOCKED' : 'UNLOCKED'}`);
       }
     }
-
+    
+    console.log(`[CU12-PROTOCOL] Successfully parsed ${slotStatuses.length} slot statuses`);
     return slotStatuses;
   }
 

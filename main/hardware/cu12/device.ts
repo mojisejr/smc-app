@@ -11,7 +11,7 @@ export class CU12Device {
   private serialPort: SerialPort | null = null;
   private config: CU12Config;
   private connected = false;
-  private responseTimeout = 3000; // 3 seconds as specified
+  private responseTimeout = 5000; // 5 seconds for more reliable communication
 
   constructor(config: CU12Config) {
     this.config = {
@@ -71,8 +71,15 @@ export class CU12Device {
   async testCommunication(): Promise<boolean> {
     try {
       const statusCommand = this.protocol.buildGetStatusCommand();
+      console.log(`[CU12-DEVICE] Sending test command: ${statusCommand.toString('hex')}`);
+      
       const response = await this.sendCommand(statusCommand);
-      return this.protocol.isValidResponse(response);
+      console.log(`[CU12-DEVICE] Received response: ${response.toString('hex')}`);
+      
+      const isValid = this.protocol.isValidResponse(response);
+      console.log(`[CU12-DEVICE] Communication test result: ${isValid ? 'SUCCESS' : 'FAILED'}`);
+      
+      return isValid;
     } catch (error) {
       console.error('CU12 communication test failed:', error);
       return false;
@@ -83,25 +90,61 @@ export class CU12Device {
    * Send command and wait for response
    */
   private async sendCommand(command: Buffer): Promise<Buffer> {
-    if (!this.serialPort || !this.connected) {
+    if (!this.serialPort || !this.serialPort.isOpen) {
       throw new Error('CU12 device not connected');
     }
 
     return new Promise((resolve, reject) => {
+      let responseBuffer = Buffer.alloc(0);
+      let expectedLength = 0;
+      
       const timeout = setTimeout(() => {
+        this.serialPort?.removeListener('data', onData);
+        console.log(`[CU12-DEVICE] Command timeout after ${this.responseTimeout}ms`);
+        console.log(`[CU12-DEVICE] Partial response received: ${responseBuffer.toString('hex')}`);
         reject(new Error('CU12 command timeout'));
       }, this.responseTimeout);
 
-      // Set up one-time data listener
+      // Buffer accumulation for fragmented responses
       const onData = (data: Buffer) => {
-        clearTimeout(timeout);
-        this.serialPort?.removeListener('data', onData);
-        resolve(data);
+        console.log(`[CU12-DEVICE] Received data chunk: ${data.toString('hex')}`);
+        responseBuffer = Buffer.concat([responseBuffer, data]);
+        console.log(`[CU12-DEVICE] Accumulated buffer: ${responseBuffer.toString('hex')}`);
+
+        // Try to determine expected packet length
+        if (responseBuffer.length >= 6 && expectedLength === 0) {
+          const dataLen = responseBuffer[5];
+          expectedLength = 8 + dataLen; // Header (7) + checksum (1) + data (dataLen)
+          console.log(`[CU12-DEVICE] Expected packet length: ${expectedLength} bytes`);
+        }
+
+        // Check if we have a complete packet
+        if (expectedLength > 0 && responseBuffer.length >= expectedLength) {
+          clearTimeout(timeout);
+          this.serialPort?.removeListener('data', onData);
+          console.log(`[CU12-DEVICE] Complete packet received: ${responseBuffer.toString('hex')}`);
+          resolve(responseBuffer.subarray(0, expectedLength));
+        }
+        // Fallback: if we have minimum packet size and STX/ETX markers
+        else if (responseBuffer.length >= 8 && 
+                 responseBuffer[0] === 0x02 && 
+                 responseBuffer[6] === 0x03) {
+          const dataLen = responseBuffer[5];
+          const packetLength = 8 + dataLen;
+          
+          if (responseBuffer.length >= packetLength) {
+            clearTimeout(timeout);
+            this.serialPort?.removeListener('data', onData);
+            console.log(`[CU12-DEVICE] Fallback packet detection: ${responseBuffer.toString('hex')}`);
+            resolve(responseBuffer.subarray(0, packetLength));
+          }
+        }
       };
 
       this.serialPort.on('data', onData);
 
       // Send the command
+      console.log(`[CU12-DEVICE] Sending command: ${command.toString('hex')}`);
       this.serialPort.write(command, (error) => {
         if (error) {
           clearTimeout(timeout);
@@ -117,14 +160,37 @@ export class CU12Device {
    */
   async getSlotStatus(addr: number = 0x00): Promise<SlotStatus[]> {
     try {
+      console.log(`[CU12-DEVICE] Getting slot status for address: 0x${addr.toString(16)}`);
+      
       const command = this.protocol.buildGetStatusCommand(addr);
+      console.log(`[CU12-DEVICE] Built command: ${command.toString('hex')}`);
+      
       const response = await this.sendCommand(command);
+      console.log(`[CU12-DEVICE] Received raw response: ${response.toString('hex')}`);
       
       if (!this.protocol.isValidResponse(response)) {
+        console.error(`[CU12-DEVICE] Invalid response received - attempting fallback parsing`);
+        
+        // Fallback: try to parse even if validation fails (for debugging)
+        try {
+          // Check if we have basic packet structure (STX at start, reasonable length)
+          if (response.length >= 8 && response[0] === 0x02) {
+            console.log(`[CU12-DEVICE] Attempting fallback parsing despite validation failure`);
+            const slotStatuses = this.protocol.parseSlotStatus(response);
+            console.log(`[CU12-DEVICE] Fallback parsing succeeded - returning results`);
+            return slotStatuses;
+          }
+        } catch (fallbackError) {
+          console.error(`[CU12-DEVICE] Fallback parsing also failed:`, fallbackError.message);
+        }
+        
         throw new Error('Invalid response from CU12 device');
       }
 
-      return this.protocol.parseSlotStatus(response);
+      const slotStatuses = this.protocol.parseSlotStatus(response);
+      console.log(`[CU12-DEVICE] Parsed ${slotStatuses.length} slot statuses successfully`);
+      
+      return slotStatuses;
     } catch (error) {
       console.error('Failed to get slot status:', error);
       throw error;

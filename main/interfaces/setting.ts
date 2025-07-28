@@ -7,6 +7,7 @@ export interface ISetting {
   ku_port: string;
   ku_baudrate: number;
   // System Configuration
+  hardware_type?: string; // AUTO, KU16, CU12
   available_slots: number;
   max_user: number;
   service_code: string;
@@ -27,6 +28,6 @@ export interface IUpdateSetting {
   cu_port?: string;
   cu_baudrate?: number;
   // System configuration
-  hardware_type?: 'KU16' | 'CU12';
+  hardware_type?: 'AUTO' | 'KU16' | 'CU12';
   available_slots?: number;
 }

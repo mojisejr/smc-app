@@ -1,6 +1,28 @@
 // CU12 IPC Handlers - Adaptive Smart State Management
 // These handlers integrate with CU12SmartStateManager for resource-efficient 24/7 operation
 
+// Import all handlers for registerCU12Handlers function
+import { cu12InitHandler } from './init';
+import { cu12UnlockHandler } from './unlock';
+import { cu12DispenseHandler } from './dispensing';
+import { cu12DispenseContinueHandler } from './dispensing-continue';
+import { cu12ResetHandler } from './reset';
+import { cu12ForceResetHandler } from './forceReset';
+import { 
+  cu12DeactivateHandler, 
+  cu12DeactivateAllHandler 
+} from './deactivate';
+import { 
+  cu12ReactivateAllHandler, 
+  cu12ReactivateAdminHandler 
+} from './reactivate';
+import { 
+  cu12StatusHandler, 
+  cu12CheckLockedBackHandler, 
+  cu12HealthCheckHandler 
+} from './status';
+
+// Export all handlers for external use
 export { cu12InitHandler } from './init';
 export { cu12UnlockHandler } from './unlock';
 export { cu12DispenseHandler } from './dispensing';
