@@ -32,37 +32,61 @@ export const registerUniversalUnlockHandler = (
       });
 
       if (hardwareInfo.type === 'CU12' && cu12StateManager) {
-        // Route to CU12 unlock operation
-        console.log(`[CU12-UNLOCK] Processing unlock for slot ${payload.slotId}`);
+        // Route to CU12 unlock operation with user-controlled modal flow
+        console.log(`[CU12-UNLOCK] Processing unlock for slot ${payload.slotId} with user-controlled modal flow`);
         
         // Enter operation mode for focused monitoring
         await cu12StateManager.enterOperationMode(`unlock_slot_${payload.slotId}`);
         
         try {
-          // Perform unlock operation using CU12 state manager
+          // Step 1: Send hardware unlock command (non-blocking)
           const success = await cu12StateManager.performUnlockOperation(payload.slotId);
           
-          if (success) {
-            await logger({
-              user: 'system',
-              message: `CU12 unlock successful: slot ${payload.slotId}, HN: ${payload.hn}`,
-            });
-
-            // Send success event to frontend (same as KU16)
-            mainWindow.webContents.send("unlocking-success", {
-              slotId: payload.slotId,
-              hn: payload.hn,
-              message: 'ปลดล็อคสำเร็จ'
-            });
-
-            return {
-              success: true,
-              slotId: payload.slotId,
-              message: 'Slot unlocked successfully'
-            };
-          } else {
+          if (!success) {
             throw new Error('CU12 unlock operation failed');
           }
+
+          // Step 2: Update database slot state (opening: true to indicate unlock in progress)
+          const { Slot } = require('../../db/model/slot.model');
+          await Slot.update(
+            { 
+              hn: payload.hn, 
+              occupied: false,  // Not occupied yet, waiting for user to put medication
+              opening: true,    // Slot is currently opening
+              timestamp: payload.timestamp
+            },
+            { where: { slotId: payload.slotId } }
+          );
+
+          // Step 3: Show wait modal and let user control the flow (unlocking: true)
+          // Modal will stay open until user clicks "ตกลง" button
+          mainWindow.webContents.send("unlocking", {
+            slotId: payload.slotId,
+            hn: payload.hn,
+            timestamp: payload.timestamp,
+            unlocking: true  // Keep modal open for user interaction
+          });
+
+          await logger({
+            user: 'system',
+            message: `CU12 unlock initiated: slot ${payload.slotId}, HN: ${payload.hn}, waiting for user confirmation`,
+          });
+
+          return {
+            success: true,
+            slotId: payload.slotId,
+            message: 'Unlock initiated - waiting for user confirmation',
+            userControlled: true
+          };
+        } catch (error) {
+          // On error: Close wait modal immediately
+          mainWindow.webContents.send("unlocking", {
+            slotId: payload.slotId,
+            hn: payload.hn,
+            timestamp: payload.timestamp,
+            unlocking: false
+          });
+          throw error;
         } finally {
           // Always exit operation mode
           await cu12StateManager.exitOperationMode();

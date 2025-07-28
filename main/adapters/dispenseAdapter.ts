@@ -2,7 +2,8 @@ import { ipcMain, BrowserWindow } from 'electron';
 import { KU16 } from '../ku16';
 import { CU12SmartStateManager } from '../hardware/cu12/stateManager';
 import { getHardwareType } from '../setting/getHardwareType';
-import { logger } from '../logger';
+import { logger, logDispensing } from '../logger';
+import { User } from '../../db/model/user.model';
 
 /**
  * Universal Dispense Adapters
@@ -28,38 +29,61 @@ export const registerUniversalDispenseHandler = (
       });
 
       if (hardwareInfo.type === 'CU12' && cu12StateManager) {
-        // Route to CU12 dispense operation
-        console.log(`[CU12-DISPENSE] Processing dispense for slot ${payload.slotId}`);
+        // Route to CU12 dispense operation with user-controlled modal flow
+        console.log(`[CU12-DISPENSE] Processing dispense for slot ${payload.slotId} with user-controlled modal flow`);
         
         await cu12StateManager.enterOperationMode(`dispense_slot_${payload.slotId}`);
         
         try {
-          // First unlock the slot
+          // Step 1: Send hardware unlock command for dispensing (non-blocking)
           const unlockSuccess = await cu12StateManager.performUnlockOperation(payload.slotId);
           
           if (!unlockSuccess) {
             throw new Error('Failed to unlock slot for dispensing');
           }
 
-          await logger({
-            user: 'system',
-            message: `CU12 dispense successful: slot ${payload.slotId}, HN: ${payload.hn}`,
-          });
+          // Step 2: Update database slot state (opening: true to indicate dispense in progress)
+          const { Slot } = require('../../db/model/slot.model');
+          await Slot.update(
+            { 
+              opening: true   // Slot is currently opening for dispensing
+              // Keep existing hn and occupied status during dispensing
+            },
+            { where: { slotId: payload.slotId } }
+          );
 
-          // Send dispensing success event (same as KU16)
-          mainWindow.webContents.send("dispensing-success", {
+          // Step 3: Show wait modal and let user control the flow (dispensing: true)
+          // Modal will stay open until user clicks "ตกลง" button
+          mainWindow.webContents.send("dispensing", {
             slotId: payload.slotId,
             hn: payload.hn,
             timestamp: payload.timestamp,
-            message: 'จ่ายยาสำเร็จ'
+            dispensing: true,  // Keep modal open for user interaction
+            reset: false
+          });
+
+          await logger({
+            user: 'system',
+            message: `CU12 dispense initiated: slot ${payload.slotId}, HN: ${payload.hn}, waiting for user confirmation`,
           });
 
           return {
             success: true,
             slotId: payload.slotId,
             hn: payload.hn,
-            message: 'Medication dispensed successfully'
+            message: 'Dispense initiated - waiting for user confirmation',
+            userControlled: true
           };
+        } catch (error) {
+          // On error: Close wait modal immediately
+          mainWindow.webContents.send("dispensing", {
+            slotId: payload.slotId,
+            hn: payload.hn,
+            timestamp: payload.timestamp,
+            dispensing: false,
+            reset: false
+          });
+          throw error;
         } finally {
           await cu12StateManager.exitOperationMode();
         }
@@ -137,27 +161,65 @@ export const registerUniversalDispenseContinueHandler = (
       console.log(`[UNIVERSAL-ADAPTER] dispense-continue routing to ${hardwareInfo.type} for slot ${payload.slotId}`);
 
       if (hardwareInfo.type === 'CU12' && cu12StateManager) {
-        // Route to CU12 dispense continue operation
-        console.log(`[CU12-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId}`);
+        // Route to CU12 dispense continue operation (partial dispense)
+        console.log(`[CU12-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId} - partial dispense`);
         
-        // CU12 doesn't need explicit continue operation - just log the action
-        await logger({
-          user: 'system',
-          message: `CU12 dispense continue: slot ${payload.slotId}, HN: ${payload.hn}`,
-        });
+        try {
+          // Step 1: Authenticate user with passkey (matching KU16 pattern)
+          const user = await User.findOne({ where: { passkey: payload.passkey } });
+          if (!user) {
+            await logger({
+              user: 'system',
+              message: `CU12 dispense-continue: user not found for slot ${payload.slotId}`,
+            });
+            throw new Error("ไม่พบผู้ใช้งาน");
+          }
+          const userId = user.dataValues.id;
+          
+          // Step 2: Keep slot data (HN and occupied status remain unchanged)
+          // No database update needed - slot stays occupied with current HN
+          
+          // Step 3: Log partial dispense in audit trail
+          await logger({
+            user: 'system',
+            message: `CU12 dispense continue: slot ${payload.slotId}, HN: ${payload.hn} - partial dispense, medication still remaining`,
+          });
 
-        // Send continue success event
-        mainWindow.webContents.send("dispense-continue-success", {
-          slotId: payload.slotId,
-          hn: payload.hn,
-          message: 'ดำเนินการต่อสำเร็จ'
-        });
+          // Log partial dispense with authenticated user ID
+          await logDispensing({
+            userId: userId,
+            hn: payload.hn,
+            slotId: payload.slotId,
+            process: 'dispense-continue',
+            message: 'จ่ายยาสำเร็จยังมียาอยู่ในช่อง - ดำเนินการต่อ',
+          });
 
-        return {
-          success: true,
-          slotId: payload.slotId,
-          message: 'Continue operation completed'
-        };
+          // Step 4: Close Clear/Continue modal - return to normal state
+          mainWindow.webContents.send("dispensing", {
+            slotId: payload.slotId,
+            hn: payload.hn,
+            timestamp: payload.timestamp,
+            dispensing: false, // Close modal
+            reset: false,      // No more modal needed
+            continue: false
+          });
+
+          // Step 5: Update frontend to show slot still occupied
+          await cu12StateManager.triggerFrontendSync();
+
+          console.log(`[CU12-DISPENSE-CONTINUE] Continue completed for slot ${payload.slotId} - slot remains occupied`);
+
+          return {
+            success: true,
+            slotId: payload.slotId,
+            hn: payload.hn,
+            message: 'Continue operation completed - slot remains occupied',
+            action: 'continue'
+          };
+        } catch (error) {
+          console.error(`[CU12-DISPENSE-CONTINUE] Continue operation failed:`, error.message);
+          throw error;
+        }
 
       } else if (hardwareInfo.type === 'KU16' && ku16Instance) {
         // Route to KU16 dispense continue operation

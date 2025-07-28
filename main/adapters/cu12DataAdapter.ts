@@ -4,8 +4,13 @@ import { Slot } from '../../db/model/slot.model';
 /**
  * CU12-to-KU16 Data Adapter
  * 
- * Transforms CU12 SlotStatus data to KU16-compatible format
- * that Frontend expects (IPayload interface)
+ * Transforms CU12 SlotStatus data to KU16-compatible format that Frontend expects.
+ * 
+ * IMPORTANT: This adapter separates Hardware Status from Admin Settings:
+ * - Hardware Status (CU12): Used for connection and physical lock detection only
+ * - Admin Settings (Database): Used for isActive, occupied, hn fields
+ * 
+ * The isActive field ALWAYS comes from Database Admin Settings, not Hardware Status.
  */
 
 export interface KU16SlotData {
@@ -19,8 +24,12 @@ export interface KU16SlotData {
 
 /**
  * Transform CU12 SlotStatus array to KU16-compatible slot data
- * @param cu12SlotStatus - Array of CU12 slot statuses from hardware
+ * 
+ * @param cu12SlotStatus - Array of CU12 slot statuses from hardware (used for connection only)
  * @returns Array of KU16-compatible slot data for frontend
+ * 
+ * Note: isActive field comes from Database Admin Settings, not Hardware Status.
+ * This ensures consistency between Admin Dashboard and Home Page.
  */
 export async function transformCU12ToKU16Format(cu12SlotStatus: SlotStatus[]): Promise<KU16SlotData[]> {
   try {
@@ -50,16 +59,18 @@ export async function transformCU12ToKU16Format(cu12SlotStatus: SlotStatus[]): P
         occupied: dbSlot?.dataValues.occupied || false,
         timestamp: dbSlot?.dataValues.timestamp || null,
         opening: dbSlot?.dataValues.opening || false,
-        isActive: cu12Slot ? cu12Slot.isLocked : (dbSlot?.dataValues.isActive || false)
+        // ✅ FIXED: Always use Database Admin Settings for isActive (not Hardware Status)
+        isActive: dbSlot?.dataValues.isActive || false
       };
 
       transformedSlots.push(transformedSlot);
 
       console.log(`[CU12-DATA-ADAPTER] Slot ${slotId}:`, {
-        isLocked: cu12Slot?.isLocked,
-        dbActive: dbSlot?.dataValues.isActive,
-        finalActive: transformedSlot.isActive,
-        occupied: transformedSlot.occupied
+        hwIsLocked: cu12Slot?.isLocked,
+        dbIsActive: dbSlot?.dataValues.isActive,
+        finalIsActive: transformedSlot.isActive,
+        occupied: transformedSlot.occupied,
+        source: 'database-admin-settings'
       });
     }
 
@@ -108,7 +119,8 @@ export async function transformSingleSlot(slotId: number, cu12Status?: SlotStatu
       occupied: dbSlot.dataValues.occupied || false,
       timestamp: dbSlot.dataValues.timestamp || null,
       opening: dbSlot.dataValues.opening || false,
-      isActive: cu12Status ? cu12Status.isLocked : dbSlot.dataValues.isActive
+      // ✅ FIXED: Always use Database Admin Settings for isActive (consistent with main transform)
+      isActive: dbSlot.dataValues.isActive || false
     };
 
   } catch (error) {

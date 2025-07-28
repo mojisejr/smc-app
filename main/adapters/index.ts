@@ -26,6 +26,7 @@ import {
   registerUniversalForceResetHandler
 } from './resetAdapter';
 import { registerUniversalCheckLockedBackHandler } from './statusAdapter';
+import { registerUniversalClearSlotHandler } from './clearAdapter';
 
 /**
  * Universal IPC Adapter System
@@ -60,6 +61,7 @@ export const registerUniversalAdapters = (
   registerUniversalResetHandler(ku16Instance, cu12StateManager, mainWindow);
   registerUniversalForceResetHandler(ku16Instance, cu12StateManager, mainWindow);
   registerUniversalCheckLockedBackHandler(ku16Instance, cu12StateManager, mainWindow);
+  registerUniversalClearSlotHandler(ku16Instance, cu12StateManager, mainWindow);
   
   // Admin management adapters
   registerUniversalDeactivateAdminHandler(ku16Instance, cu12StateManager, mainWindow);
@@ -89,6 +91,7 @@ export {
   registerUniversalResetHandler,
   registerUniversalForceResetHandler,
   registerUniversalCheckLockedBackHandler,
+  registerUniversalClearSlotHandler,
   registerUniversalDeactivateAdminHandler,
   registerUniversalDeactivateAllHandler,
   registerUniversalReactivateAdminHandler,

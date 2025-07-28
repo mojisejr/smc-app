@@ -23,11 +23,14 @@ const ClearOrContinue = ({ slotNo, hn, onClose }: ClearOrContinueProps) => {
     }
 
     setLoading(true);
-    ipcRenderer.invoke("reset", { slotId: slotNo, hn, passkey }).then(() => {
-      reset(slotNo);
-      setPasskey(null);
-      onClose();
-    });
+    // ipcRenderer.invoke("reset", { slotId: slotNo, hn, passkey }).then(() => {
+    ipcRenderer
+      .invoke("clear-slot", { slotId: slotNo, hn, passkey })
+      .then(() => {
+        reset(slotNo);
+        setPasskey(null);
+        onClose();
+      });
   }
   function handleContinue() {
     if (!passkey) {

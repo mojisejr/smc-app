@@ -31,45 +31,116 @@ export const registerUniversalCheckLockedBackHandler = (
       });
 
       if (hardwareInfo.type === 'CU12' && cu12StateManager) {
-        // Route to CU12 status check
-        console.log(`[CU12-STATUS] Checking lock status for slot ${payload.slotId}`);
+        // Route to CU12 status check with user-controlled modal management
+        console.log(`[CU12-STATUS] User-controlled status check for slot ${payload.slotId}`);
         
         try {
-          // Trigger user interaction for active monitoring
-          await cu12StateManager.onUserInteraction();
+          // Use instant status check method (no auto-wait, no auto-close)
+          const isLocked = await cu12StateManager.checkSlotLockStatus(payload.slotId);
           
-          // Sync slot status to get current lock state
-          const slotStatus = await cu12StateManager.syncSlotStatus('ON_DEMAND');
-          
-          // Find the specific slot status
-          const targetSlot = slotStatus.find(slot => slot.slotId === payload.slotId);
-          
-          if (targetSlot) {
-            const isLocked = targetSlot.isLocked || false;
-            
-            await logger({
-              user: 'system',
-              message: `CU12 check-locked-back result: slot ${payload.slotId}, locked: ${isLocked}`,
-            });
+          await logger({
+            user: 'system',
+            message: `CU12 user-controlled status check: slot ${payload.slotId}, locked: ${isLocked}`,
+          });
 
-            // Send status update to frontend (same format as KU16)
-            mainWindow.webContents.send("slot-status-update", {
-              slotId: payload.slotId,
-              isLocked: isLocked,
-              timestamp: Date.now()
-            });
+          // Get current slot data from database for proper event data
+          const { Slot } = require('../../db/model/slot.model');
+          const slotData = await Slot.findOne({ where: { slotId: payload.slotId } });
+          
+          if (isLocked) {
+            // Slot is closed - update database and close modal
+            if (slotData) {
+              const isUnlockOperation = slotData.dataValues.opening && !slotData.dataValues.occupied;
+              const isDispenseOperation = slotData.dataValues.opening && slotData.dataValues.occupied;
+              
+              if (isUnlockOperation) {
+                // Unlock complete - set occupied: true, opening: false
+                await Slot.update(
+                  { 
+                    occupied: true,    // Medication placed in slot
+                    opening: false     // Slot closed
+                  },
+                  { where: { slotId: payload.slotId } }
+                );
+                
+                // Close unlock modal
+                mainWindow.webContents.send("unlocking", {
+                  slotId: payload.slotId,
+                  hn: slotData.dataValues.hn,
+                  timestamp: slotData.dataValues.timestamp,
+                  unlocking: false  // Close modal
+                });
 
-            return {
-              success: true,
-              slotId: payload.slotId,
-              isLocked: isLocked,
-              message: 'Status check completed'
-            };
+                // ✅ CRITICAL: Update slot status on home page after unlock complete
+                await cu12StateManager.triggerFrontendSync();
+                
+                console.log(`[CU12-STATUS] Unlock completed for slot ${payload.slotId} - frontend sync triggered`);
+              } else if (isDispenseOperation) {
+                // Dispense complete - close dispensing modal and show Clear/Continue modal
+                // DO NOT reset slot data yet - let user choose Clear or Continue
+                await Slot.update(
+                  { 
+                    opening: false     // Slot is now closed, but keep HN and occupied status
+                  },
+                  { where: { slotId: payload.slotId } }
+                );
+                
+                // Close dispense modal and show Clear/Continue modal (not reset)
+                mainWindow.webContents.send("dispensing", {
+                  slotId: payload.slotId,
+                  hn: slotData.dataValues.hn,
+                  timestamp: slotData.dataValues.timestamp,
+                  dispensing: false, // Close dispensing modal
+                  reset: true,       // Show Clear/Continue modal asking if drugs are left
+                  continue: true     // Enable continue option
+                });
+
+                // ✅ CRITICAL: Update slot status on home page after dispense complete
+                await cu12StateManager.triggerFrontendSync();
+                
+                console.log(`[CU12-STATUS] Dispense completed for slot ${payload.slotId} - showing Clear/Continue modal`);
+              }
+            }
           } else {
-            throw new Error(`Slot ${payload.slotId} not found in status response`);
+            // Slot is still open - keep modal open
+            if (slotData) {
+              const isUnlockOperation = slotData.dataValues.opening && !slotData.dataValues.occupied;
+              const isDispenseOperation = slotData.dataValues.opening && slotData.dataValues.occupied;
+              
+              if (isUnlockOperation) {
+                // Keep unlock modal open
+                mainWindow.webContents.send("unlocking", {
+                  slotId: payload.slotId,
+                  hn: slotData.dataValues.hn,
+                  timestamp: slotData.dataValues.timestamp,
+                  unlocking: true   // Keep modal open
+                });
+                
+                console.log(`[CU12-STATUS] Slot ${payload.slotId} still open - keeping unlock modal open`);
+              } else if (isDispenseOperation) {
+                // Keep dispense modal open
+                mainWindow.webContents.send("dispensing", {
+                  slotId: payload.slotId,
+                  hn: slotData.dataValues.hn,
+                  timestamp: slotData.dataValues.timestamp,
+                  dispensing: true,  // Keep modal open
+                  reset: false
+                });
+                
+                console.log(`[CU12-STATUS] Slot ${payload.slotId} still open - keeping dispense modal open`);
+              }
+            }
           }
+
+          return {
+            success: true,
+            slotId: payload.slotId,
+            isLocked: isLocked,
+            message: isLocked ? 'Slot is closed - operation complete' : 'Slot is still open - please close slot',
+            userControlled: true
+          };
         } catch (error) {
-          console.error(`[CU12-STATUS] Check locked back failed:`, error.message);
+          console.error(`[CU12-STATUS] User-controlled status check failed:`, error.message);
           throw error;
         }
 
@@ -93,8 +164,9 @@ export const registerUniversalCheckLockedBackHandler = (
           throw new Error('KU16 connection error');
         }
 
-        // Use existing KU16 check locked back logic
-        const result = await ku16Instance.checkLockedBack(payload);
+        // Use existing KU16 check locked back logic (just trigger state check)
+        ku16Instance.sendCheckState();
+        const result = { success: true, message: 'KU16 status check triggered' };
         
         await logger({
           user: 'system',
