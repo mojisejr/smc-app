@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { getHardwareType } from '../setting/getHardwareType';
 import { DispensingLog } from '../../db/model/dispensing-logs.model';
+import { getLogs } from '../logger';
 
 /**
  * Universal Logging Adapter
@@ -8,6 +9,39 @@ import { DispensingLog } from '../../db/model/dispensing-logs.model';
  * Provides unified logging functionality regardless of hardware type
  */
 export const registerUniversalLoggingHandlers = () => {
+  
+  // Universal get system logs handler (for get_logs)
+  ipcMain.handle('get_logs', async () => {
+    try {
+      console.log('[ADAPTER] Universal get_logs handler called');
+      
+      // Auto-detect current hardware type for logging context
+      const hardwareInfo = await getHardwareType();
+      console.log(`[ADAPTER] Getting system logs for ${hardwareInfo.type} system`);
+      
+      // Get all system logs regardless of hardware type
+      const logs = await getLogs();
+      const logsData = logs.map((log) => log.dataValues);
+      
+      console.log(`[ADAPTER] Retrieved ${logsData.length} system logs`);
+      
+      // Add hardware context to logs for consistency
+      const logsWithContext = logsData.map(log => ({
+        ...log,
+        hardwareType: hardwareInfo.type,
+        systemInfo: `${hardwareInfo.type} (${hardwareInfo.maxSlots} slots)`
+      }));
+      
+      return logsWithContext;
+      
+    } catch (error) {
+      console.error('[ADAPTER] Error getting system logs:', error.message);
+      return {
+        error: error.message,
+        logs: []
+      };
+    }
+  });
   
   // Universal get dispensing logs handler
   ipcMain.handle('get_dispensing_logs', async () => {

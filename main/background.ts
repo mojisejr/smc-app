@@ -222,16 +222,20 @@ if (isProd) {
     // Only register handlers that are truly KU16-specific and don't have universal equivalents
     deactiveHanlder(ku16); // This may be KU16-specific legacy handler
     
+    // NOTE: Logging handlers (get_logs, get_dispensing_logs) are now handled by universal adapters
+
     // The following handlers are now managed by universal adapters:
     // - unlockHandler → registerUniversalUnlockHandler
-    // - checkLockedBackHandler → registerUniversalCheckLockedBackHandler  
+    // - checkLockedBackHandler → registerUniversalCheckLockedBackHandler
     // - dispenseHandler → registerUniversalDispenseHandler
     // - dispensingResetHanlder → registerUniversalResetHandler
     // - dispenseContinueHandler → registerUniversalDispenseContinueHandler
     // - forceResetHanlder → registerUniversalForceResetHandler
     // - deactiveAllHandler, reactiveAllHanlder, reactivateAdminHandler, deactivateAdminHandler → admin adapters
 
-    console.log("[KU16] Universal adapters now handle core operations for backward compatibility");
+    console.log(
+      "[KU16] Universal adapters now handle core operations for backward compatibility"
+    );
   } else {
     console.log(
       "[HARDWARE] Using universal adapters only - no hardware-specific handlers"
@@ -244,7 +248,7 @@ if (isProd) {
   } else {
     const port = process.argv[2];
     await mainWindow.loadURL(`http://localhost:${port}/home`);
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
   }
 })();
 

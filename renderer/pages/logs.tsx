@@ -15,35 +15,20 @@ function Document() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    ipcRenderer.invoke("get_logs");
-    ipcRenderer.on("retrive_logs", (event, payload) => {
-      setLoading(false);
-      setLogs(payload);
-    });
-    
-    return () => {
-      ipcRenderer.removeAllListeners("retrive_logs");
+    const fetchDispensingLogs = async () => {
+      setLoading(true);
+      try {
+        const logs = await ipcRenderer.invoke("get_dispensing_logs");
+        setLogs(logs);
+      } catch (error) {
+        console.error('Error fetching dispensing logs:', error);
+        setLogs([]);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    ipcRenderer.on("retrive_dispensing_logs", (event, payload) => {
-      setLoading(false);
-      setLogs(payload);
-    });
     
-    const fetchLogs = async () => {
-      const logs = await ipcRenderer.invoke("get_dispensing_logs");
-      setLogs(logs);
-      setLoading(false);
-    };
-    fetchLogs();
-    
-    return () => {
-      ipcRenderer.removeAllListeners("retrive_dispensing_logs");
-    };
+    fetchDispensingLogs();
   }, []);
 
   return (
