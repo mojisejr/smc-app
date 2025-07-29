@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ipcRenderer } from "electron";
 import { FaLock } from "react-icons/fa";
 import { BsArrowClockwise } from "react-icons/bs";
 import Modal from "../Modals";
