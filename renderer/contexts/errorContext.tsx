@@ -18,6 +18,10 @@ export const ErrorProvider = ({ children }: { children: React.ReactNode }) => {
       toast.error(payload.message);
     });
 
+    ipcRenderer.on("dispense-continue-error", (event, payload) => {
+      toast.error(payload.message);
+    });
+
     ipcRenderer.on("deactivate-error", (event, payload) => {
       toast.error(payload.message);
     });
@@ -49,6 +53,7 @@ export const ErrorProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       ipcRenderer.removeAllListeners("unlock-error");
       ipcRenderer.removeAllListeners("dispense-error");
+      ipcRenderer.removeAllListeners("dispense-continue-error");
       ipcRenderer.removeAllListeners("deactivate-error");
       ipcRenderer.removeAllListeners("force-reset-error");
       ipcRenderer.removeAllListeners("deactivate-all-error");

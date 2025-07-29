@@ -18,14 +18,43 @@ export const registerUniversalDispenseHandler = (
   mainWindow: BrowserWindow
 ) => {
   ipcMain.handle('dispense', async (event, payload) => {
+    let userId = null;
+    let userName = null;
+    
     try {
+      // Input validation and user authentication (same as KU16 original)
+      if (!payload.passkey) {
+        await logger({
+          user: 'system',
+          message: `dispense: empty passkey provided for slot ${payload.slotId}`,
+        });
+        throw new Error("กรุณากรอกรหัสผ่าน");
+      }
+
+      // Sanitize input
+      const sanitizedPasskey = payload.passkey.toString().trim();
+      
+      // Validate user by passkey (matching KU16 original dispense handler)
+      const user = await User.findOne({ where: { passkey: sanitizedPasskey } });
+      
+      if (!user) {
+        await logger({
+          user: 'system',
+          message: `dispense: user not found for slot ${payload.slotId}`,
+        });
+        throw new Error("ไม่พบผู้ใช้งาน");
+      }
+
+      userId = user.dataValues.id;
+      userName = user.dataValues.name;
+
       const hardwareInfo = await getHardwareType();
       
       console.log(`[UNIVERSAL-ADAPTER] dispense routing to ${hardwareInfo.type} for slot ${payload.slotId}`);
       
       await logger({
         user: 'system',
-        message: `Universal dispense request: slot ${payload.slotId}, HN: ${payload.hn}, hardware: ${hardwareInfo.type}`,
+        message: `Universal dispense request: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}, hardware: ${hardwareInfo.type}`,
       });
 
       if (hardwareInfo.type === 'CU12' && cu12StateManager) {
@@ -64,7 +93,16 @@ export const registerUniversalDispenseHandler = (
 
           await logger({
             user: 'system',
-            message: `CU12 dispense initiated: slot ${payload.slotId}, HN: ${payload.hn}, waiting for user confirmation`,
+            message: `CU12 dispense initiated: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}, waiting for user confirmation`,
+          });
+          
+          // Log the dispense operation with authenticated user
+          await logDispensing({
+            userId: userId,
+            hn: payload.hn,
+            slotId: payload.slotId,
+            process: 'dispense',
+            message: 'จ่ายยาสำเร็จ',
           });
 
           return {
@@ -113,7 +151,7 @@ export const registerUniversalDispenseHandler = (
         
         await logger({
           user: 'system',
-          message: `KU16 dispense completed: slot ${payload.slotId}, HN: ${payload.hn}, success: ${result.success}`,
+          message: `KU16 dispense completed: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}, success: ${result.success}`,
         });
 
         return result;
@@ -133,18 +171,43 @@ export const registerUniversalDispenseHandler = (
     } catch (error) {
       await logger({
         user: 'system',
-        message: `Universal dispense error: slot ${payload.slotId}, error: ${error.message}`,
+        message: `Universal dispense error: slot ${payload.slotId}, user: ${userName || 'unknown'}, error: ${error.message}`,
       });
 
-      // Send error event to frontend
-      mainWindow.webContents.send('dispensing-error', {
+      // Log the dispense error with authenticated user if available
+      if (userId) {
+        await logDispensing({
+          userId: userId,
+          hn: payload.hn,
+          slotId: payload.slotId,
+          process: 'dispense-error',
+          message: 'จ่ายยาล้มเหลว',
+        });
+      }
+
+      // Send error event to frontend with appropriate message
+      let errorMessage = 'เกิดข้อผิดพลาดในการจ่ายยา';
+      
+      if (error.message.includes('กรุณากรอกรหัสผ่าน') || 
+          error.message.includes('ไม่พบผู้ใช้งาน')) {
+        errorMessage = error.message;
+      }
+
+      mainWindow.webContents.send('dispense-error', {
         slotId: payload.slotId,
         hn: payload.hn,
-        message: 'เกิดข้อผิดพลาดในการจ่ายยา',
+        message: errorMessage,
         error: error.message
       });
 
-      throw error;
+      // Don't re-throw the error - let the operation complete so frontend gets the error event
+      return {
+        success: false,
+        slotId: payload.slotId,
+        hn: payload.hn,
+        message: errorMessage,
+        error: error.message
+      };
     }
   });
 };
@@ -185,7 +248,7 @@ export const registerUniversalDispenseContinueHandler = (
             message: `CU12 dispense continue: slot ${payload.slotId}, HN: ${payload.hn} - partial dispense, medication still remaining`,
           });
 
-          // Log partial dispense with authenticated user ID
+          // Log partial dispense with authenticated user ID  
           await logDispensing({
             userId: userId,
             hn: payload.hn,
@@ -251,13 +314,27 @@ export const registerUniversalDispenseContinueHandler = (
         message: `Universal dispense-continue error: slot ${payload.slotId}, error: ${error.message}`,
       });
 
+      // Send error event to frontend with appropriate message
+      let errorMessage = 'เกิดข้อผิดพลาดในการดำเนินการต่อ';
+      
+      if (error.message.includes('กรุณากรอกรหัสผ่าน') || 
+          error.message.includes('ไม่พบผู้ใช้งาน')) {
+        errorMessage = error.message;
+      }
+
       mainWindow.webContents.send('dispense-continue-error', {
         slotId: payload.slotId,
-        message: 'เกิดข้อผิดพลาดในการดำเนินการต่อ',
+        message: errorMessage,
         error: error.message
       });
 
-      throw error;
+      // Don't re-throw the error - let the operation complete so frontend gets the error event
+      return {
+        success: false,
+        slotId: payload.slotId,
+        message: errorMessage,
+        error: error.message
+      };
     }
   });
 };
