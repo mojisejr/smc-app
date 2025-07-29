@@ -14,28 +14,37 @@ function Document() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // useEffect(() => {
-  //   setLoading(true);
-  //   ipcRenderer.invoke("get_logs");
-  //   ipcRenderer.on("retrive_logs", (event, payload) => {
-  //     setLoading(false);
-  //     setLogs(payload);
-  //   });
-  // }, []);
+  useEffect(() => {
+    setLoading(true);
+    ipcRenderer.invoke("get_logs");
+    ipcRenderer.on("retrive_logs", (event, payload) => {
+      setLoading(false);
+      setLogs(payload);
+    });
+    
+    return () => {
+      ipcRenderer.removeAllListeners("retrive_logs");
+    };
+  }, []);
 
   useEffect(() => {
     setLoading(true);
-    // ipcRenderer.invoke("get_dispensing_logs");
-    // ipcRenderer.on("retrive_dispensing_logs", (event, payload) => {
-    //   setLoading(false);
-    //   setLogs(payload);
-    // });
+    ipcRenderer.invoke("get_dispensing_logs");
+    ipcRenderer.on("retrive_dispensing_logs", (event, payload) => {
+      setLoading(false);
+      setLogs(payload);
+    });
+    
     const fetchLogs = async () => {
       const logs = await ipcRenderer.invoke("get_dispensing_logs");
       setLogs(logs);
       setLoading(false);
     };
     fetchLogs();
+    
+    return () => {
+      ipcRenderer.removeAllListeners("retrive_dispensing_logs");
+    };
   }, []);
 
   return (

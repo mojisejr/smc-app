@@ -58,6 +58,9 @@ export const registerUniversalDeactivateAdminHandler = (
 
         // Trigger frontend sync to update UI immediately
         await cu12StateManager.triggerFrontendSync();
+        
+        // Emit deactivated event for frontend listeners
+        mainWindow.webContents.send("deactivated", { slotId: payload.slotId });
 
         await logger({
           user: 'system',
@@ -149,6 +152,11 @@ export const registerUniversalDeactivateAllHandler = (
 
         // Trigger frontend sync to update UI immediately
         await cu12StateManager.triggerFrontendSync();
+        
+        // Emit deactivated event for all slots (1-12 for CU12)
+        for (let slotId = 1; slotId <= 12; slotId++) {
+          mainWindow.webContents.send("deactivated", { slotId });
+        }
 
         await logger({
           user: 'system',

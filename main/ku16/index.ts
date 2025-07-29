@@ -211,6 +211,10 @@ export class KU16 {
         ...this.openingSlot,
         unlocking: false,
       });
+      this.win.webContents.send("unlocking-success", {
+        slotId: this.openingSlot.slotId,
+        timestamp: new Date().toISOString()
+      });
     }
   }
 
@@ -244,6 +248,14 @@ export class KU16 {
         ...this.openingSlot,
         dispensing: false,
         reset: true,
+      });
+      this.win.webContents.send("dispensing-success", {
+        slotId: this.openingSlot.slotId,
+        timestamp: new Date().toISOString()
+      });
+      this.win.webContents.send("dispensing-locked-back", {
+        slotId: this.openingSlot.slotId,
+        timestamp: new Date().toISOString()
       });
     }
   }
@@ -346,6 +358,7 @@ export class KU16 {
       unlocking: false,
       reset: false,
     });
+    this.win.webContents.send("deactivated", { slotId });
   }
 
   async reactive(slotId: number) {
@@ -356,10 +369,21 @@ export class KU16 {
   }
 
   async deactiveAllSlots() {
-    return await Slot.update(
+    const result = await Slot.update(
       { isActive: false },
       { where: { isActive: true } }
     );
+    
+    // Emit deactivated event for all slots (1-15 for KU16)
+    for (let slotId = 1; slotId <= 15; slotId++) {
+      this.win.webContents.send("deactivated", { slotId });
+    }
+    
+    return result;
+  }
+
+  async deactivateAll() {
+    return await this.deactiveAllSlots();
   }
 
   async reactiveAllSlots() {
@@ -367,6 +391,10 @@ export class KU16 {
       { isActive: true },
       { where: { isActive: false } }
     );
+  }
+
+  async reactiveAll() {
+    return await this.reactiveAllSlots();
   }
 
   sleep(ms: number) {

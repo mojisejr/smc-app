@@ -70,6 +70,12 @@ export const registerUniversalCheckLockedBackHandler = (
                   timestamp: slotData.dataValues.timestamp,
                   unlocking: false  // Close modal
                 });
+                
+                // Send unlock success event
+                mainWindow.webContents.send("unlocking-success", {
+                  slotId: payload.slotId,
+                  timestamp: new Date().toISOString()
+                });
 
                 // ✅ CRITICAL: Update slot status on home page after unlock complete
                 await cu12StateManager.triggerFrontendSync();
@@ -93,6 +99,16 @@ export const registerUniversalCheckLockedBackHandler = (
                   dispensing: false, // Close dispensing modal
                   reset: true,       // Show Clear/Continue modal asking if drugs are left
                   continue: true     // Enable continue option
+                });
+                
+                // Send dispensing success events
+                mainWindow.webContents.send("dispensing-success", {
+                  slotId: payload.slotId,
+                  timestamp: new Date().toISOString()
+                });
+                mainWindow.webContents.send("dispensing-locked-back", {
+                  slotId: payload.slotId,
+                  timestamp: new Date().toISOString()
                 });
 
                 // ✅ CRITICAL: Update slot status on home page after dispense complete

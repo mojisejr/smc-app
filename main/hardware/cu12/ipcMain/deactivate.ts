@@ -34,6 +34,9 @@ export const cu12DeactivateHandler = (stateManager: CU12SmartStateManager) => {
 
       // Exit operation mode
       await stateManager.exitOperationMode();
+      
+      // Emit deactivated event for frontend listeners
+      event.sender.send("deactivated", { slotId: payload.slotId });
 
       return { 
         success: true, 
@@ -94,6 +97,11 @@ export const cu12DeactivateAllHandler = (stateManager: CU12SmartStateManager) =>
 
       // Exit operation mode
       await stateManager.exitOperationMode();
+      
+      // Emit deactivated event for all slots (1-12 for CU12)
+      for (let slotId = 1; slotId <= 12; slotId++) {
+        event.sender.send("deactivated", { slotId });
+      }
 
       return { 
         success: true,

@@ -34,14 +34,19 @@ export const LockedSlot = ({
     // }
   }
 
-  // useEffect(() => {
-  //   ipcRenderer.on("dispensing", () => {
-  //     setBg("bg-[#007852]");
-  //   });
-  //   ipcRenderer.on("dispensing-reset", () => {
-  //     setBg("bg-[#F6F6F6]");
-  //   });
-  // }, [bg]);
+  useEffect(() => {
+    ipcRenderer.on("dispensing", () => {
+      setBg("bg-[#007852]");
+    });
+    ipcRenderer.on("dispensing-reset", () => {
+      setBg("bg-[#F6F6F6]");
+    });
+    
+    return () => {
+      ipcRenderer.removeAllListeners("dispensing");
+      ipcRenderer.removeAllListeners("dispensing-reset");
+    };
+  }, [bg]);
 
   return (
     <div
