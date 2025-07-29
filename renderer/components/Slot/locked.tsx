@@ -46,7 +46,7 @@ export const LockedSlot = ({
       ipcRenderer.removeAllListeners("dispensing");
       ipcRenderer.removeAllListeners("dispensing-reset");
     };
-  }, [bg]);
+  }, []);
 
   return (
     <div

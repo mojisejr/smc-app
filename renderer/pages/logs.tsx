@@ -29,7 +29,6 @@ function Document() {
 
   useEffect(() => {
     setLoading(true);
-    ipcRenderer.invoke("get_dispensing_logs");
     ipcRenderer.on("retrive_dispensing_logs", (event, payload) => {
       setLoading(false);
       setLogs(payload);
