@@ -1,17 +1,17 @@
-import { ipcMain, BrowserWindow } from 'electron';
-import { KU16 } from '../ku16';
-import { CU12SmartStateManager } from '../hardware/cu12/stateManager';
-import { getHardwareType } from '../setting/getHardwareType';
-import { User } from '../../db/model/user.model';
-import { Slot } from '../../db/model/slot.model';
-import { logger } from '../logger';
+import { ipcMain, BrowserWindow } from "electron";
+import { KU16 } from "../ku16";
+import { CU12SmartStateManager } from "../hardware/cu12/stateManager";
+import { getHardwareType } from "../setting/getHardwareType";
+import { User } from "../../db/model/user.model";
+import { Slot } from "../../db/model/slot.model";
+import { logger } from "../logger";
 
 /**
  * Universal Admin Management Adapters
- * 
+ *
  * These adapters provide hardware-agnostic admin slot management functionality
  * by routing calls to the appropriate hardware implementation based on system configuration.
- * 
+ *
  * Supported Operations:
  * - deactivate-admin: Single slot deactivation by admin
  * - deactivate-all: Bulk deactivation of all slots
@@ -23,30 +23,32 @@ export const registerUniversalDeactivateAdminHandler = (
   cu12StateManager: CU12SmartStateManager | null,
   mainWindow: BrowserWindow
 ) => {
-  ipcMain.handle('deactivate-admin', async (event, payload) => {
+  ipcMain.handle("deactivate-admin", async (event, payload) => {
     try {
       // Validate admin permissions
       const user = await User.findOne({
-        where: { name: payload.name }
+        where: { name: payload.name },
       });
 
-      if (!user || user.dataValues.role !== 'ADMIN') {
+      if (!user || user.dataValues.role !== "ADMIN") {
         await logger({
-          user: 'system',
+          user: "system",
           message: `deactivate-admin: unauthorized attempt by ${payload.name}`,
         });
-        throw new Error('ไม่สามารถปิดช่องได้ - ไม่มีสิทธิ์');
+        throw new Error("ไม่สามารถปิดช่องได้ - ไม่มีสิทธิ์");
       }
 
       // Get current hardware configuration
       const hardwareInfo = await getHardwareType();
-      
-      console.log(`[UNIVERSAL-ADAPTER] deactivate-admin routing to ${hardwareInfo.type} for slot ${payload.slotId}`);
 
-      if (hardwareInfo.type === 'CU12' && cu12StateManager) {
+      console.log(
+        `[UNIVERSAL-ADAPTER] deactivate-admin routing to ${hardwareInfo.type} for slot ${payload.slotId}`
+      );
+
+      if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 deactivation - Direct database update (same as KU16)
         await logger({
-          user: 'system',
+          user: "system",
           message: `CU12 deactivate-admin: slot #${payload.slotId} by ${payload.name}`,
         });
 
@@ -58,25 +60,24 @@ export const registerUniversalDeactivateAdminHandler = (
 
         // Trigger frontend sync to update UI immediately
         await cu12StateManager.triggerFrontendSync();
-        
+
         // Emit deactivated event for frontend listeners
         mainWindow.webContents.send("deactivated", { slotId: payload.slotId });
 
         await logger({
-          user: 'system',
+          user: "system",
           message: `CU12 deactivate-admin: slot #${payload.slotId} by ${payload.name} completed`,
         });
 
         return {
           success: true,
           slotId: payload.slotId,
-          message: 'ปิดใช้งานช่องเก็บยาสำเร็จ'
+          message: "ปิดใช้งานช่องเก็บยาสำเร็จ",
         };
-
-      } else if (hardwareInfo.type === 'KU16' && ku16Instance) {
+      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 deactivation
         await logger({
-          user: 'system',
+          user: "system",
           message: `KU16 deactivate-admin: slot #${payload.slotId} by ${payload.name}`,
         });
 
@@ -85,26 +86,26 @@ export const registerUniversalDeactivateAdminHandler = (
         ku16Instance.sendCheckState();
 
         await logger({
-          user: 'system',
+          user: "system",
           message: `KU16 deactivate-admin: slot #${payload.slotId} by ${payload.name} completed`,
         });
 
         return result;
-
       } else {
-        throw new Error(`Hardware ${hardwareInfo.type} not initialized or not supported`);
+        throw new Error(
+          `Hardware ${hardwareInfo.type} not initialized or not supported`
+        );
       }
-
     } catch (error) {
       await logger({
-        user: 'system',
+        user: "system",
         message: `deactivate-admin: slot #${payload.slotId} by ${payload.name} error - ${error.message}`,
       });
 
-      mainWindow.webContents.send('deactivate-admin-error', {
-        message: 'ไม่สามารถปิดช่องได้',
+      mainWindow.webContents.send("deactivate-admin-error", {
+        message: "ไม่สามารถปิดช่องได้",
         slotId: payload.slotId,
-        error: error.message
+        error: error.message,
       });
 
       throw error;
@@ -117,61 +118,62 @@ export const registerUniversalDeactivateAllHandler = (
   cu12StateManager: CU12SmartStateManager | null,
   mainWindow: BrowserWindow
 ) => {
-  ipcMain.handle('deactivate-all', async (event, payload) => {
+  ipcMain.handle("deactivate-all", async (event, payload) => {
     try {
       // Validate admin permissions
       const user = await User.findOne({
-        where: { name: payload.name }
+        where: { name: payload.name },
       });
 
-      if (!user || user.dataValues.role !== 'ADMIN') {
+      if (!user || user.dataValues.role !== "ADMIN") {
         await logger({
-          user: 'system',
+          user: "system",
           message: `deactivate-all: unauthorized attempt by ${payload.name}`,
         });
-        throw new Error('ไม่สามารถปิดระบบทั้งหมดได้ - ไม่มีสิทธิ์');
+        throw new Error("ไม่สามารถปิดระบบทั้งหมดได้ - ไม่มีสิทธิ์");
       }
 
       // Get current hardware configuration
       const hardwareInfo = await getHardwareType();
-      
-      console.log(`[UNIVERSAL-ADAPTER] deactivate-all routing to ${hardwareInfo.type}`);
 
-      if (hardwareInfo.type === 'CU12' && cu12StateManager) {
+      console.log(
+        `[UNIVERSAL-ADAPTER] deactivate-all routing to ${hardwareInfo.type}`
+      );
+
+      if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 bulk deactivation - Direct database update
         await logger({
-          user: 'system',
+          user: "system",
           message: `CU12 deactivate-all by ${payload.name}`,
         });
 
         // Direct database update for all slots
         await Slot.update(
           { isActive: false },
-          { where: { slotId: { [require('sequelize').Op.lte]: 12 } } }
+          { where: { slotId: { [require("sequelize").Op.lte]: 12 } } }
         );
 
         // Trigger frontend sync to update UI immediately
         await cu12StateManager.triggerFrontendSync();
-        
+
         // Emit deactivated event for all slots (1-12 for CU12)
         for (let slotId = 1; slotId <= 12; slotId++) {
           mainWindow.webContents.send("deactivated", { slotId });
         }
 
         await logger({
-          user: 'system',
+          user: "system",
           message: `CU12 deactivate-all by ${payload.name} completed`,
         });
 
         return {
           success: true,
-          message: 'ปิดใช้งานช่องเก็บยาทั้งหมดสำเร็จ'
+          message: "ปิดใช้งานช่องเก็บยาทั้งหมดสำเร็จ",
         };
-
-      } else if (hardwareInfo.type === 'KU16' && ku16Instance) {
+      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 bulk deactivation
         await logger({
-          user: 'system',
+          user: "system",
           message: `KU16 deactivate-all by ${payload.name}`,
         });
 
@@ -179,25 +181,25 @@ export const registerUniversalDeactivateAllHandler = (
         ku16Instance.sendCheckState();
 
         await logger({
-          user: 'system',
+          user: "system",
           message: `KU16 deactivate-all by ${payload.name} completed`,
         });
 
         return result;
-
       } else {
-        throw new Error(`Hardware ${hardwareInfo.type} not initialized or not supported`);
+        throw new Error(
+          `Hardware ${hardwareInfo.type} not initialized or not supported`
+        );
       }
-
     } catch (error) {
       await logger({
-        user: 'system',
+        user: "system",
         message: `deactivate-all: by ${payload.name} error - ${error.message}`,
       });
 
-      mainWindow.webContents.send('deactivate-all-error', {
-        message: 'ไม่สามารถปิดระบบทั้งหมดได้',
-        error: error.message
+      mainWindow.webContents.send("deactivate-all-error", {
+        message: "ไม่สามารถปิดระบบทั้งหมดได้",
+        error: error.message,
       });
 
       throw error;
@@ -210,30 +212,32 @@ export const registerUniversalReactivateAdminHandler = (
   cu12StateManager: CU12SmartStateManager | null,
   mainWindow: BrowserWindow
 ) => {
-  ipcMain.handle('reactivate-admin', async (event, payload) => {
+  ipcMain.handle("reactivate-admin", async (event, payload) => {
     try {
       // Validate admin permissions
       const user = await User.findOne({
-        where: { name: payload.name }
+        where: { name: payload.name },
       });
 
-      if (!user || user.dataValues.role !== 'ADMIN') {
+      if (!user || user.dataValues.role !== "ADMIN") {
         await logger({
-          user: 'system',
+          user: "system",
           message: `reactivate-admin: unauthorized attempt by ${payload.name}`,
         });
-        throw new Error('ไม่สามารถเปิดช่องได้ - ไม่มีสิทธิ์');
+        throw new Error("ไม่สามารถเปิดช่องได้ - ไม่มีสิทธิ์");
       }
 
       // Get current hardware configuration
       const hardwareInfo = await getHardwareType();
-      
-      console.log(`[UNIVERSAL-ADAPTER] reactivate-admin routing to ${hardwareInfo.type} for slot ${payload.slotId}`);
 
-      if (hardwareInfo.type === 'CU12' && cu12StateManager) {
+      console.log(
+        `[UNIVERSAL-ADAPTER] reactivate-admin routing to ${hardwareInfo.type} for slot ${payload.slotId}`
+      );
+
+      if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 reactivation - Direct database update (same as KU16)
         await logger({
-          user: 'system',
+          user: "system",
           message: `CU12 reactivate-admin: slot #${payload.slotId} by ${payload.name}`,
         });
 
@@ -247,46 +251,45 @@ export const registerUniversalReactivateAdminHandler = (
         await cu12StateManager.triggerFrontendSync();
 
         await logger({
-          user: 'system',
+          user: "system",
           message: `CU12 reactivate-admin: slot #${payload.slotId} by ${payload.name} completed`,
         });
 
         return {
           success: true,
           slotId: payload.slotId,
-          message: 'เปิดใช้งานช่องเก็บยาสำเร็จ'
+          message: "เปิดใช้งานช่องเก็บยาสำเร็จ",
         };
-
-      } else if (hardwareInfo.type === 'KU16' && ku16Instance) {
+      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 reactivation
         await logger({
-          user: 'system',
+          user: "system",
           message: `KU16 reactivate-admin: slot #${payload.slotId} by ${payload.name}`,
         });
 
         const result = await ku16Instance.reactive(payload.slotId);
 
         await logger({
-          user: 'system',
+          user: "system",
           message: `KU16 reactivate-admin: slot #${payload.slotId} by ${payload.name} completed`,
         });
 
         return result;
-
       } else {
-        throw new Error(`Hardware ${hardwareInfo.type} not initialized or not supported`);
+        throw new Error(
+          `Hardware ${hardwareInfo.type} not initialized or not supported`
+        );
       }
-
     } catch (error) {
       await logger({
-        user: 'system',
+        user: "system",
         message: `reactivate-admin: slot #${payload.slotId} by ${payload.name} error - ${error.message}`,
       });
 
-      mainWindow.webContents.send('reactivate-admin-error', {
-        message: 'ไม่สามารถเปิดช่องได้',
+      mainWindow.webContents.send("reactivate-admin-error", {
+        message: "ไม่สามารถเปิดช่องได้",
         slotId: payload.slotId,
-        error: error.message
+        error: error.message,
       });
 
       throw error;
@@ -299,56 +302,57 @@ export const registerUniversalReactivateAllHandler = (
   cu12StateManager: CU12SmartStateManager | null,
   mainWindow: BrowserWindow
 ) => {
-  ipcMain.handle('reactivate-all', async (event, payload) => {
+  ipcMain.handle("reactivate-all", async (event, payload) => {
     try {
       // Validate admin permissions
       const user = await User.findOne({
-        where: { name: payload.name }
+        where: { name: payload.name },
       });
 
-      if (!user || user.dataValues.role !== 'ADMIN') {
+      if (!user || user.dataValues.role !== "ADMIN") {
         await logger({
-          user: 'system',
+          user: "system",
           message: `reactivate-all: unauthorized attempt by ${payload.name}`,
         });
-        throw new Error('ไม่สามารถเปิดระบบทั้งหมดได้ - ไม่มีสิทธิ์');
+        throw new Error("ไม่สามารถเปิดระบบทั้งหมดได้ - ไม่มีสิทธิ์");
       }
 
       // Get current hardware configuration
       const hardwareInfo = await getHardwareType();
-      
-      console.log(`[UNIVERSAL-ADAPTER] reactivate-all routing to ${hardwareInfo.type}`);
 
-      if (hardwareInfo.type === 'CU12' && cu12StateManager) {
+      console.log(
+        `[UNIVERSAL-ADAPTER] reactivate-all routing to ${hardwareInfo.type}`
+      );
+
+      if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 bulk reactivation - Direct database update
         await logger({
-          user: 'system',
+          user: "system",
           message: `CU12 reactivate-all by ${payload.name}`,
         });
 
         // Direct database update for all slots
         await Slot.update(
           { isActive: true },
-          { where: { slotId: { [require('sequelize').Op.lte]: 12 } } }
+          { where: { slotId: { [require("sequelize").Op.lte]: 12 } } }
         );
 
         // Trigger frontend sync to update UI immediately
         await cu12StateManager.triggerFrontendSync();
 
         await logger({
-          user: 'system',
+          user: "system",
           message: `CU12 reactivate-all by ${payload.name} completed`,
         });
 
         return {
           success: true,
-          message: 'เปิดใช้งานช่องเก็บยาทั้งหมดสำเร็จ'
+          message: "เปิดใช้งานช่องเก็บยาทั้งหมดสำเร็จ",
         };
-
-      } else if (hardwareInfo.type === 'KU16' && ku16Instance) {
+      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 bulk reactivation
         await logger({
-          user: 'system',
+          user: "system",
           message: `KU16 reactivate-all by ${payload.name}`,
         });
 
@@ -356,28 +360,206 @@ export const registerUniversalReactivateAllHandler = (
         ku16Instance.sendCheckState();
 
         await logger({
-          user: 'system',
+          user: "system",
           message: `KU16 reactivate-all by ${payload.name} completed`,
         });
 
         return result;
-
       } else {
-        throw new Error(`Hardware ${hardwareInfo.type} not initialized or not supported`);
+        throw new Error(
+          `Hardware ${hardwareInfo.type} not initialized or not supported`
+        );
       }
-
     } catch (error) {
       await logger({
-        user: 'system',
+        user: "system",
         message: `reactivate-all: by ${payload.name} error - ${error.message}`,
       });
 
-      mainWindow.webContents.send('reactivate-all-error', {
-        message: 'ไม่สามารถเปิดระบบทั้งหมดได้',
-        error: error.message
+      mainWindow.webContents.send("reactivate-all-error", {
+        message: "ไม่สามารถเปิดระบบทั้งหมดได้",
+        error: error.message,
       });
 
       throw error;
+    }
+  });
+};
+
+export const registerUniversalDeactivateHandler = (
+  ku16Instance: KU16 | null,
+  cu12StateManager: CU12SmartStateManager | null,
+  mainWindow: BrowserWindow
+) => {
+  ipcMain.handle("deactivate", async (event, payload) => {
+    let userId = null;
+    let userName = null;
+
+    try {
+      // Input validation
+      if (!payload.passkey) {
+        await logger({
+          user: "system",
+          message: `deactivate: empty passkey provided for slot ${payload.slotId}`,
+        });
+        throw new Error("กรุณากรอกรหัสผ่าน");
+      }
+
+      if (!payload.reason) {
+        await logger({
+          user: "system",
+          message: `deactivate: empty reason provided for slot ${payload.slotId}`,
+        });
+        throw new Error("กรุณากรอกเหตุผลของการปิดช่อง");
+      }
+
+      // Sanitize input
+      const sanitizedPasskey = payload.passkey.toString().trim();
+      
+      // Debug logging (secure - don't log actual passkey)
+      await logger({
+        user: "system",
+        message: `deactivate: attempting user lookup for slot ${payload.slotId}, passkey length: ${sanitizedPasskey.length}`,
+      });
+
+      // Validate user by passkey (same as original KU16 deactivate handler)
+      const user = await User.findOne({
+        where: { passkey: sanitizedPasskey },
+      });
+
+      if (!user) {
+        await logger({
+          user: "system",
+          message: `deactivate: user not found for slot ${payload.slotId}, passkey length: ${sanitizedPasskey.length}`,
+        });
+        throw new Error("รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง");
+      }
+
+      userId = user.dataValues.id;
+      userName = user.dataValues.name;
+
+      // Get current hardware configuration
+      const hardwareInfo = await getHardwareType();
+
+      console.log(
+        `[UNIVERSAL-ADAPTER] deactivate routing to ${hardwareInfo.type} for slot ${payload.slotId}`
+      );
+
+      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+        // Route to CU12 deactivation
+        await logger({
+          user: "system",
+          message: `CU12 deactivate: slot #${payload.slotId} by ${userName}`,
+        });
+
+        // Direct database update for user deactivation
+        await Slot.update(
+          { isActive: false, opening: false, occupied: false, hn: null },
+          { where: { slotId: payload.slotId } }
+        );
+
+        // Log the dispensing action
+        const { logDispensing } = require("../logger");
+        await logDispensing({
+          userId: userId,
+          hn: null,
+          slotId: payload.slotId,
+          process: "deactivate",
+          message: payload.reason,
+        });
+
+        // Trigger frontend sync to update UI immediately
+        await cu12StateManager.triggerFrontendSync();
+
+        // Emit deactivated event for frontend listeners
+        mainWindow.webContents.send("deactivated", { slotId: payload.slotId });
+
+        await logger({
+          user: "system",
+          message: `CU12 deactivate: slot #${payload.slotId} by ${userName} completed`,
+        });
+
+        return {
+          success: true,
+          slotId: payload.slotId,
+          message: "ปิดใช้งานช่องเก็บยาสำเร็จ",
+        };
+      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+        // Route to KU16 deactivation (existing logic)
+        await ku16Instance.deactivate(payload.slotId);
+
+        await logger({
+          user: "system",
+          message: `KU16 deactivate: slot #${payload.slotId} by ${userName}`,
+        });
+
+        // Log the dispensing action
+        const { logDispensing } = require("../logger");
+        await logDispensing({
+          userId: userId,
+          hn: null,
+          slotId: payload.slotId,
+          process: "deactivate",
+          message: payload.reason,
+        });
+
+        await ku16Instance.sleep(1000);
+        ku16Instance.sendCheckState();
+
+        // Emit deactivated event for frontend listeners
+        mainWindow.webContents.send("deactivated", { slotId: payload.slotId });
+
+        return {
+          success: true,
+          slotId: payload.slotId,
+          message: "ปิดใช้งานช่องเก็บยาสำเร็จ",
+        };
+      } else {
+        throw new Error(
+          `Hardware ${hardwareInfo.type} not initialized or not supported`
+        );
+      }
+    } catch (error) {
+      await logger({
+        user: "system",
+        message: `deactivate: slot #${payload.slotId} by ${userName || 'unknown'} error - ${error.message}`,
+      });
+
+      // Log the dispensing error only if we have a valid userId
+      if (userId) {
+        const { logDispensing } = require("../logger");
+        await logDispensing({
+          userId: userId,
+          hn: null,
+          slotId: payload.slotId,
+          process: "deactivate-error",
+          message: "ปิดช่องล้มเหลว",
+        });
+      }
+
+      // Send specific error message based on error type
+      let errorMessage = "ไม่สามารถปิดช่องได้ กรุณาตรวจสอบรหัสผ่านอีกครั้ง";
+      
+      // Use the actual error message for better user feedback
+      if (error.message.includes("กรุณากรอกรหัสผ่าน") || 
+          error.message.includes("กรุณากรอกเหตุผลของการปิดช่อง") ||
+          error.message.includes("รหัสผ่านไม่ถูกต้อง")) {
+        errorMessage = error.message;
+      }
+
+      mainWindow.webContents.send("deactivate-error", {
+        message: errorMessage,
+        slotId: payload.slotId,
+        error: error.message,
+      });
+
+      // Don't re-throw the error - let the operation complete so frontend gets the error event
+      return {
+        success: false,
+        slotId: payload.slotId,
+        message: errorMessage,
+        error: error.message
+      };
     }
   });
 };

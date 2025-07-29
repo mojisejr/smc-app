@@ -10,7 +10,8 @@ import {
   registerUniversalDeactivateAdminHandler,
   registerUniversalDeactivateAllHandler,
   registerUniversalReactivateAdminHandler,
-  registerUniversalReactivateAllHandler
+  registerUniversalReactivateAllHandler,
+  registerUniversalDeactivateHandler
 } from './adminAdapters';
 import { 
   registerUniversalGetAllSlotsHandler,
@@ -69,6 +70,9 @@ export const registerUniversalAdapters = (
   registerUniversalReactivateAdminHandler(ku16Instance, cu12StateManager, mainWindow);
   registerUniversalReactivateAllHandler(ku16Instance, cu12StateManager, mainWindow);
   
+  // User deactivation adapter (for dialog components)
+  registerUniversalDeactivateHandler(ku16Instance, cu12StateManager, mainWindow);
+  
   // Slot management adapters
   // Note: Using existing getAllSlotsHandler instead of universal adapter to avoid conflicts
   // registerUniversalGetAllSlotsHandler(ku16Instance, cu12StateManager, mainWindow);
@@ -96,6 +100,7 @@ export {
   registerUniversalDeactivateAllHandler,
   registerUniversalReactivateAdminHandler,
   registerUniversalReactivateAllHandler,
+  registerUniversalDeactivateHandler,
   registerUniversalGetAllSlotsHandler,
   registerUniversalSlotStatusHandler
 };

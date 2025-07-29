@@ -9,7 +9,7 @@ import { CU12SmartStateManager } from "./hardware/cu12/stateManager";
 
 // Import IPC handlers for various functionalities
 // NOTE: Core operation handlers (unlock, dispense, reset, etc.) are now managed by universal adapters
-import { deactiveHanlder } from "./ku16/ipcMain/deactivate";
+// NOTE: deactivate handler is now managed by universal adapters
 
 // Import authentication related modules
 import { loginRequestHandler } from "./auth/ipcMain/login";
@@ -219,8 +219,7 @@ if (isProd) {
     updateSettingHandler(mainWindow, ku16);
 
     // NOTE: Core operation handlers (unlock, dispense, reset, etc.) are now handled by universal adapters
-    // Only register handlers that are truly KU16-specific and don't have universal equivalents
-    deactiveHanlder(ku16); // This may be KU16-specific legacy handler
+    // NOTE: deactivate handler is now handled by universal adapters (registerUniversalDeactivateHandler)
     
     // NOTE: Logging handlers (get_logs, get_dispensing_logs) are now handled by universal adapters
 
