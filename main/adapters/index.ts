@@ -28,6 +28,7 @@ import {
 } from './resetAdapter';
 import { registerUniversalCheckLockedBackHandler } from './statusAdapter';
 import { registerUniversalClearSlotHandler } from './clearAdapter';
+import { registerUniversalConnectionHandler } from './connectionAdapter';
 
 /**
  * Universal IPC Adapter System
@@ -53,6 +54,7 @@ export const registerUniversalAdapters = (
   // Core system adapters
   registerUniversalInitHandler(ku16Instance, cu12StateManager, mainWindow);
   registerUniversalPortListHandler(ku16Instance);
+  registerUniversalConnectionHandler(ku16Instance, cu12StateManager, mainWindow);
   // NOTE: Logging handlers now managed by Enhanced Logging System in background.ts
   
   // Core operation adapters (NEW - Critical for CU12 compatibility)
@@ -102,5 +104,6 @@ export {
   registerUniversalReactivateAllHandler,
   registerUniversalDeactivateHandler,
   registerUniversalGetAllSlotsHandler,
-  registerUniversalSlotStatusHandler
+  registerUniversalSlotStatusHandler,
+  registerUniversalConnectionHandler
 };

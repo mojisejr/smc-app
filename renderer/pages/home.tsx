@@ -17,6 +17,8 @@ import { useUnlock } from "../hooks/useUnlock";
 import Navbar from "../components/Shared/Navbar";
 import DeActivate from "../components/Dialogs/Deactivate";
 import { useIndicator } from "../hooks/useIndicator";
+import ConnectionStatusBar from "../components/Shared/ConnectionStatusBar";
+import { ConnectionProvider } from "../contexts/connectionContext";
 
 const mockSlots = [
   {
@@ -139,7 +141,7 @@ function Home() {
   }, [dispensing]);
 
   return (
-    <>
+    <ConnectionProvider>
       <Head>
         <title>Smart Medication Cart V1.0</title>
       </Head>
@@ -160,6 +162,8 @@ function Home() {
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
           <div className="w-full h-full p-[2rem] flex flex-col gap-[1.2rem] overflow-y-auto">
+            {/* Connection Status Bar */}
+            <ConnectionStatusBar className="mb-4" showRefreshButton={true} />
             <>
               {mockSlots === undefined ? (
                 <div>Error: undefined</div>
@@ -233,7 +237,7 @@ function Home() {
           }}
         />
       </Modal>
-    </>
+    </ConnectionProvider>
   );
 }
 

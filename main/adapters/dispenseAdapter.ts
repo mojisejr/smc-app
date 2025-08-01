@@ -3,6 +3,7 @@ import { KU16 } from "../ku16";
 import { CU12SmartStateManager } from "../hardware/cu12/stateManager";
 import { getHardwareType } from "../setting/getHardwareType";
 import { unifiedLoggingService } from "../services/unified-logging.service";
+import { connectionStatusService } from "../services/connection-status.service";
 import { User } from "../../db/model/user.model";
 
 // Import missing User for KU16 handler fix
@@ -24,6 +25,24 @@ export const registerUniversalDispenseHandler = (
     let userName = null;
 
     try {
+      // Pre-operation connection validation
+      const connectionValidation = await connectionStatusService.validateBeforeOperation('จ่ายยา');
+      if (!connectionValidation.isValid) {
+        mainWindow.webContents.send("dispense-error", {
+          slotId: payload.slotId,
+          hn: payload.hn,
+          message: connectionValidation.errorMessage,
+          error: connectionValidation.status.error
+        });
+        return {
+          success: false,
+          slotId: payload.slotId,
+          hn: payload.hn,
+          message: connectionValidation.errorMessage,
+          error: connectionValidation.status.error
+        };
+      }
+
       // Input validation and user authentication (same as KU16 original)
       if (!payload.passkey) {
         await unifiedLoggingService.logWarning({
