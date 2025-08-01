@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { sequelize } from '../sequelize';
 import { backupManager } from '../utils/backup-manager';
-import { DispensingLog } from '../model/dispensing-logs.model';
-import { Log } from '../model/logs.model';
+// Legacy models removed - this migration is deprecated
+// DispensingLog and Log models have been replaced by UnifiedLog
 
 /**
  * Safe Migration to Unified Log System

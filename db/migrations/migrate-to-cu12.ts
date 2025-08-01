@@ -2,7 +2,8 @@ import { QueryInterface, DataTypes, Transaction } from 'sequelize';
 import { sequelize } from '../sequelize';
 import { Setting } from '../model/setting.model';
 import { Slot } from '../model/slot.model';
-import { Log } from '../model/logs.model';
+// Legacy model removed - using UnifiedLog instead
+// import { Log } from '../model/logs.model';
 import fs from 'fs/promises';
 import path from 'path';
 
