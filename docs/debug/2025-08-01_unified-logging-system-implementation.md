@@ -1,8 +1,9 @@
 # Unified Logging System Implementation
 
 **Date:** August 1, 2025  
-**Status:** ✅ COMPLETED  
+**Status:** ✅ COMPLETED + DISPENSE LOGGING IMPROVED  
 **Build Status:** ✅ SUCCESS  
+**Last Updated:** August 1, 2025 (Dispense Logging Fix)
 
 ## 📋 **Overview**
 
@@ -14,6 +15,7 @@ Complete refactoring and implementation of unified logging system across the ent
 2. ✅ **Unified Service Implementation** - Implemented `unifiedLoggingService` across all adapters
 3. ✅ **Build Success** - Fixed all compilation errors and achieved successful build
 4. ✅ **Comprehensive Coverage** - Added logging to all critical operations
+5. ✅ **Dispense Logging Optimization** - Implemented clean two-outcome dispense logging system
 
 ## 🔧 **Changes Made**
 
@@ -66,12 +68,19 @@ Complete refactoring and implementation of unified logging system across the ent
 - ✅ `setting/ipcMain/updateSetting.ts` - Converted to `unifiedLoggingService.logInfo()` and `logError()`
 - ✅ `setting/ipcMain/getSetting.ts` - Added system operation logs
 
+### **Phase 4: Dispense Logging Optimization (Latest Update)**
+- ✅ **`dispenseAdapter.ts`** - Removed initial waiting message, added outcome-based logging
+- ✅ **`clearAdapter.ts`** - Added patient data clearing logs with HN information
+- ✅ **`ku16/index.ts`** - Fixed User import and method call issues
+- ✅ **Two-Outcome System** - Medicine remains vs no medicine left logging
+
 ### **Phase 3: Build & Test Results**
 - ✅ **Renderer Build:** SUCCESS (no errors)
 - ✅ **Main Process Build:** SUCCESS (no errors)  
 - ✅ **TypeScript Compilation:** SUCCESS (all type errors resolved)
 - ✅ **Electron Packaging:** SUCCESS (app bundle created)
 - ✅ **Runtime Testing:** Ready for manual testing
+- ✅ **Dispense Logging Fix:** Build successful after optimization
 
 ## 📊 **Logging Standards Implemented**
 
@@ -104,6 +113,32 @@ await unifiedLoggingService.logInfo({
   component: "ComponentName",
   details: { relevant: "context" }
 });
+```
+
+## 🎯 **Dispense Logging Optimization (Latest Update)**
+
+### **Problem Identified:**
+- Initial dispense message "เริ่มต้นการจ่ายยา - รอการยืนยันจากผู้ใช้" was confusing
+- Users wanted only final outcomes: medicine remains vs no medicine left
+
+### **Solution Implemented:**
+1. **Removed Initial Waiting Message** - No more "รอการยืนยันจากผู้ใช้" logs
+2. **Two-Outcome System:**
+   - **Medicine Remains:** `"ยังมียาเหลืออยู่"` (dispense-continue)
+   - **No Medicine Left:** `"ไม่มียาเหลืออยู่แล้ว ล้างข้อมูลคนไข้ HN. xxx"` (clear-slot)
+
+### **Files Updated:**
+- **`dispenseAdapter.ts`** - Lines 105-110 removed initial log, added outcome logging
+- **`clearAdapter.ts`** - Lines 71-77 & 137-143 added patient clearing logs
+- **`ku16/index.ts`** - Line 13 fixed User import
+
+### **Log Message Examples:**
+```typescript
+// Continue scenario (medicine remains)
+"จ่ายยาต่อเนื่อง: slot 1, HN: 12345 - ยังมียาเหลืออยู่"
+
+// Clear scenario (no medicine left)
+"ไม่มียาเหลืออยู่แล้ว ล้างข้อมูลคนไข้ HN. 12345"
 ```
 
 ## 🐛 **Issues Resolved**
@@ -157,11 +192,13 @@ await unifiedLoggingService.logInfo({
 
 ## ✅ **Success Metrics**
 
-- **Files Modified:** 38+ files across main process
+- **Files Modified:** 41+ files across main process (including dispense logging fixes)
 - **Compilation Errors:** 0 (all resolved)
 - **Build Success:** ✅ Full application builds successfully
 - **Legacy Code:** 100% removed
 - **Test Coverage:** All critical user operations logged
+- **Dispense Logging:** ✅ Clean two-outcome system implemented
+- **User Experience:** ✅ Clear, actionable log messages
 - **Documentation:** Complete implementation guide provided
 
 ---
