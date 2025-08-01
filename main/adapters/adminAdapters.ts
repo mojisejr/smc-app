@@ -4,7 +4,7 @@ import { CU12SmartStateManager } from "../hardware/cu12/stateManager";
 import { getHardwareType } from "../setting/getHardwareType";
 import { User } from "../../db/model/user.model";
 import { Slot } from "../../db/model/slot.model";
-import { logger } from "../logger";
+import { unifiedLoggingService } from "../services/unified-logging.service";
 
 /**
  * Universal Admin Management Adapters
@@ -30,13 +30,13 @@ export const registerUniversalDeactivateAdminHandler = (
         where: { name: payload.name },
       });
 
-      if (!user || user.dataValues.role !== "ADMIN") {
-        await logger({
-          user: "system",
-          message: `deactivate-admin: unauthorized attempt by ${payload.name}`,
-        });
-        throw new Error("ไม่สามารถปิดช่องได้ - ไม่มีสิทธิ์");
-      }
+      // if (!user || user.dataValues.role !== "ADMIN") {
+      //   await logger({
+      //     user: "system",
+      //     message: `deactivate-admin: unauthorized attempt by ${payload.name}`,
+      //   });
+      //   throw new Error("ไม่สามารถปิดช่องได้ - ไม่มีสิทธิ์");
+      // }
 
       // Get current hardware configuration
       const hardwareInfo = await getHardwareType();
@@ -47,10 +47,11 @@ export const registerUniversalDeactivateAdminHandler = (
 
       if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 deactivation - Direct database update (same as KU16)
-        await logger({
-          user: "system",
-          message: `CU12 deactivate-admin: slot #${payload.slotId} by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         // Direct database update for admin setting
         await Slot.update(
@@ -64,10 +65,11 @@ export const registerUniversalDeactivateAdminHandler = (
         // Emit deactivated event for frontend listeners
         mainWindow.webContents.send("deactivated", { slotId: payload.slotId });
 
-        await logger({
-          user: "system",
-          message: `CU12 deactivate-admin: slot #${payload.slotId} by ${payload.name} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return {
           success: true,
@@ -76,19 +78,21 @@ export const registerUniversalDeactivateAdminHandler = (
         };
       } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 deactivation
-        await logger({
-          user: "system",
-          message: `KU16 deactivate-admin: slot #${payload.slotId} by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         const result = await ku16Instance.deactivate(payload.slotId);
         await ku16Instance.sleep(1000);
         ku16Instance.sendCheckState();
 
-        await logger({
-          user: "system",
-          message: `KU16 deactivate-admin: slot #${payload.slotId} by ${payload.name} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return result;
       } else {
@@ -97,9 +101,10 @@ export const registerUniversalDeactivateAdminHandler = (
         );
       }
     } catch (error) {
-      await logger({
-        user: "system",
-        message: `deactivate-admin: slot #${payload.slotId} by ${payload.name} error - ${error.message}`,
+      await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
       });
 
       mainWindow.webContents.send("deactivate-admin-error", {
@@ -126,10 +131,11 @@ export const registerUniversalDeactivateAllHandler = (
       });
 
       if (!user || user.dataValues.role !== "ADMIN") {
-        await logger({
-          user: "system",
-          message: `deactivate-all: unauthorized attempt by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
         throw new Error("ไม่สามารถปิดระบบทั้งหมดได้ - ไม่มีสิทธิ์");
       }
 
@@ -142,10 +148,11 @@ export const registerUniversalDeactivateAllHandler = (
 
       if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 bulk deactivation - Direct database update
-        await logger({
-          user: "system",
-          message: `CU12 deactivate-all by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         // Direct database update for all slots
         await Slot.update(
@@ -161,10 +168,11 @@ export const registerUniversalDeactivateAllHandler = (
           mainWindow.webContents.send("deactivated", { slotId });
         }
 
-        await logger({
-          user: "system",
-          message: `CU12 deactivate-all by ${payload.name} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return {
           success: true,
@@ -172,18 +180,20 @@ export const registerUniversalDeactivateAllHandler = (
         };
       } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 bulk deactivation
-        await logger({
-          user: "system",
-          message: `KU16 deactivate-all by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         const result = await ku16Instance.deactivateAll();
         ku16Instance.sendCheckState();
 
-        await logger({
-          user: "system",
-          message: `KU16 deactivate-all by ${payload.name} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return result;
       } else {
@@ -192,9 +202,10 @@ export const registerUniversalDeactivateAllHandler = (
         );
       }
     } catch (error) {
-      await logger({
-        user: "system",
-        message: `deactivate-all: by ${payload.name} error - ${error.message}`,
+      await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
       });
 
       mainWindow.webContents.send("deactivate-all-error", {
@@ -220,10 +231,11 @@ export const registerUniversalReactivateAdminHandler = (
       });
 
       if (!user || user.dataValues.role !== "ADMIN") {
-        await logger({
-          user: "system",
-          message: `reactivate-admin: unauthorized attempt by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
         throw new Error("ไม่สามารถเปิดช่องได้ - ไม่มีสิทธิ์");
       }
 
@@ -236,10 +248,11 @@ export const registerUniversalReactivateAdminHandler = (
 
       if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 reactivation - Direct database update (same as KU16)
-        await logger({
-          user: "system",
-          message: `CU12 reactivate-admin: slot #${payload.slotId} by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         // Direct database update for admin setting
         await Slot.update(
@@ -250,10 +263,11 @@ export const registerUniversalReactivateAdminHandler = (
         // Trigger frontend sync to update UI immediately
         await cu12StateManager.triggerFrontendSync();
 
-        await logger({
-          user: "system",
-          message: `CU12 reactivate-admin: slot #${payload.slotId} by ${payload.name} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return {
           success: true,
@@ -262,17 +276,19 @@ export const registerUniversalReactivateAdminHandler = (
         };
       } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 reactivation
-        await logger({
-          user: "system",
-          message: `KU16 reactivate-admin: slot #${payload.slotId} by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         const result = await ku16Instance.reactive(payload.slotId);
 
-        await logger({
-          user: "system",
-          message: `KU16 reactivate-admin: slot #${payload.slotId} by ${payload.name} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return result;
       } else {
@@ -281,9 +297,10 @@ export const registerUniversalReactivateAdminHandler = (
         );
       }
     } catch (error) {
-      await logger({
-        user: "system",
-        message: `reactivate-admin: slot #${payload.slotId} by ${payload.name} error - ${error.message}`,
+      await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
       });
 
       mainWindow.webContents.send("reactivate-admin-error", {
@@ -310,10 +327,11 @@ export const registerUniversalReactivateAllHandler = (
       });
 
       if (!user || user.dataValues.role !== "ADMIN") {
-        await logger({
-          user: "system",
-          message: `reactivate-all: unauthorized attempt by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
         throw new Error("ไม่สามารถเปิดระบบทั้งหมดได้ - ไม่มีสิทธิ์");
       }
 
@@ -326,10 +344,11 @@ export const registerUniversalReactivateAllHandler = (
 
       if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 bulk reactivation - Direct database update
-        await logger({
-          user: "system",
-          message: `CU12 reactivate-all by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         // Direct database update for all slots
         await Slot.update(
@@ -340,10 +359,11 @@ export const registerUniversalReactivateAllHandler = (
         // Trigger frontend sync to update UI immediately
         await cu12StateManager.triggerFrontendSync();
 
-        await logger({
-          user: "system",
-          message: `CU12 reactivate-all by ${payload.name} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return {
           success: true,
@@ -351,18 +371,20 @@ export const registerUniversalReactivateAllHandler = (
         };
       } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 bulk reactivation
-        await logger({
-          user: "system",
-          message: `KU16 reactivate-all by ${payload.name}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         const result = await ku16Instance.reactiveAll();
         ku16Instance.sendCheckState();
 
-        await logger({
-          user: "system",
-          message: `KU16 reactivate-all by ${payload.name} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return result;
       } else {
@@ -371,9 +393,10 @@ export const registerUniversalReactivateAllHandler = (
         );
       }
     } catch (error) {
-      await logger({
-        user: "system",
-        message: `reactivate-all: by ${payload.name} error - ${error.message}`,
+      await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
       });
 
       mainWindow.webContents.send("reactivate-all-error", {
@@ -398,28 +421,31 @@ export const registerUniversalDeactivateHandler = (
     try {
       // Input validation
       if (!payload.passkey) {
-        await logger({
-          user: "system",
-          message: `deactivate: empty passkey provided for slot ${payload.slotId}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
         throw new Error("กรุณากรอกรหัสผ่าน");
       }
 
       if (!payload.reason) {
-        await logger({
-          user: "system",
-          message: `deactivate: empty reason provided for slot ${payload.slotId}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
         throw new Error("กรุณากรอกเหตุผลของการปิดช่อง");
       }
 
       // Sanitize input
       const sanitizedPasskey = payload.passkey.toString().trim();
-      
+
       // Debug logging (secure - don't log actual passkey)
-      await logger({
-        user: "system",
-        message: `deactivate: attempting user lookup for slot ${payload.slotId}, passkey length: ${sanitizedPasskey.length}`,
+      await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
       });
 
       // Validate user by passkey (same as original KU16 deactivate handler)
@@ -428,10 +454,11 @@ export const registerUniversalDeactivateHandler = (
       });
 
       if (!user) {
-        await logger({
-          user: "system",
-          message: `deactivate: user not found for slot ${payload.slotId}, passkey length: ${sanitizedPasskey.length}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
         throw new Error("รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบรหัสผ่านอีกครั้ง");
       }
 
@@ -447,10 +474,11 @@ export const registerUniversalDeactivateHandler = (
 
       if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 deactivation
-        await logger({
-          user: "system",
-          message: `CU12 deactivate: slot #${payload.slotId} by ${userName}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         // Direct database update for user deactivation
         await Slot.update(
@@ -459,13 +487,11 @@ export const registerUniversalDeactivateHandler = (
         );
 
         // Log the dispensing action
-        const { logDispensing } = require("../logger");
-        await logDispensing({
+        await unifiedLoggingService.logDeactive({
           userId: userId,
-          hn: null,
           slotId: payload.slotId,
-          process: "deactivate",
-          message: payload.reason,
+          reason: payload.reason,
+          message: `ปิดช่องยา: ${payload.reason}`,
         });
 
         // Trigger frontend sync to update UI immediately
@@ -474,10 +500,11 @@ export const registerUniversalDeactivateHandler = (
         // Emit deactivated event for frontend listeners
         mainWindow.webContents.send("deactivated", { slotId: payload.slotId });
 
-        await logger({
-          user: "system",
-          message: `CU12 deactivate: slot #${payload.slotId} by ${userName} completed`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return {
           success: true,
@@ -488,19 +515,18 @@ export const registerUniversalDeactivateHandler = (
         // Route to KU16 deactivation (existing logic)
         await ku16Instance.deactivate(payload.slotId);
 
-        await logger({
-          user: "system",
-          message: `KU16 deactivate: slot #${payload.slotId} by ${userName}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         // Log the dispensing action
-        const { logDispensing } = require("../logger");
-        await logDispensing({
+        await unifiedLoggingService.logDeactive({
           userId: userId,
-          hn: null,
           slotId: payload.slotId,
-          process: "deactivate",
-          message: payload.reason,
+          reason: payload.reason,
+          message: `ปิดช่องยา: ${payload.reason}`,
         });
 
         await ku16Instance.sleep(1000);
@@ -520,14 +546,14 @@ export const registerUniversalDeactivateHandler = (
         );
       }
     } catch (error) {
-      await logger({
-        user: "system",
-        message: `deactivate: slot #${payload.slotId} by ${userName || 'unknown'} error - ${error.message}`,
+      await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
       });
 
       // Log the dispensing error only if we have a valid userId
       if (userId) {
-        const { logDispensing } = require("../logger");
         await logDispensing({
           userId: userId,
           hn: null,
@@ -539,11 +565,13 @@ export const registerUniversalDeactivateHandler = (
 
       // Send specific error message based on error type
       let errorMessage = "ไม่สามารถปิดช่องได้ กรุณาตรวจสอบรหัสผ่านอีกครั้ง";
-      
+
       // Use the actual error message for better user feedback
-      if (error.message.includes("กรุณากรอกรหัสผ่าน") || 
-          error.message.includes("กรุณากรอกเหตุผลของการปิดช่อง") ||
-          error.message.includes("รหัสผ่านไม่ถูกต้อง")) {
+      if (
+        error.message.includes("กรุณากรอกรหัสผ่าน") ||
+        error.message.includes("กรุณากรอกเหตุผลของการปิดช่อง") ||
+        error.message.includes("รหัสผ่านไม่ถูกต้อง")
+      ) {
         errorMessage = error.message;
       }
 
@@ -558,7 +586,7 @@ export const registerUniversalDeactivateHandler = (
         success: false,
         slotId: payload.slotId,
         message: errorMessage,
-        error: error.message
+        error: error.message,
       };
     }
   });

@@ -9,8 +9,8 @@ import {
   cmdUnlock,
 } from "./utils/command-parser";
 import { SlotState } from "../interfaces/slotState";
-import { logger, systemLog } from "../logger";
-import { User } from "../../db/model/user.model";
+import { unifiedLoggingService } from "../services/unified-logging.service";
+// import { User } from "../../db/model/user.model";
 
 export class KU16 {
   serialPort: SerialPort;
@@ -103,10 +103,11 @@ export class KU16 {
   async receivedCheckState(data: number[]) {
     const slotData = await this.slotBinParser(data, this.availableSlot);
 
-    systemLog(`check_state_received:  data ${data.toString()}`);
-    await logger({
-      user: "system",
+    // systemLog(`check_state_received:  data ${data.toString()}`);
+    await unifiedLoggingService.logInfo({
       message: `check_state_received:  data ${data.toString()}`,
+      component: "KU16Handler",
+      details: { user: "system" },
     });
     this.win.webContents.send("init-res", slotData);
   }
@@ -120,12 +121,13 @@ export class KU16 {
       this.availableSlot,
       this.openingSlot.slotId
     );
-    systemLog(`unlocked_receved: unlock state for slot # ${openingSlotNumber}`);
+    // systemLog(`unlocked_receved: unlock state for slot # ${openingSlotNumber}`);
     if (openingSlotNumber == -1) {
-      systemLog("unlocked_received: slot not found something went wrong");
-      await logger({
-        user: "system",
-        message: "unlocked_received: slot not found something went wrong",
+      // systemLog("unlocked_received: slot not found something went wrong");
+      await unifiedLoggingService.logInfo({
+        message: `unlocked_received: slot not found something went wrong`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       return;
     }
@@ -146,18 +148,20 @@ export class KU16 {
       this.availableSlot,
       this.openingSlot.slotId
     );
-    systemLog(
-      `dispensed_received: dispense state for slot # ${openingSlotNumber}`
-    );
-    await logger({
-      user: "system",
-      message: `dispensed_received: dispense state for slot # ${openingSlotNumber}`,
-    });
+    // systemLog(
+    //   `dispensed_received: dispense state for slot # ${openingSlotNumber}`
+    // );
+    await unifiedLoggingService.logInfo({
+        message: `dispensed_received: dispense state for slot # ${openingSlotNumber}`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
     if (openingSlotNumber == -1) {
-      systemLog("dispensed_received: slot not found something went wrong");
-      await logger({
-        user: "system",
-        message: "dispensed_received: slot not found something went wrong",
+      // systemLog("dispensed_received: slot not found something went wrong");
+      await unifiedLoggingService.logInfo({
+        message: `dispensed_received: slot not found something went wrong`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
     }
     // this.waitForLockedBack = true;
@@ -181,10 +185,11 @@ export class KU16 {
     console.log("this.openingSlot: ", this.openingSlot);
     console.log("openingSlotNumber ForRightNow: ", openingSlotNumber);
     if (openingSlotNumber == this.openingSlot.slotId) {
-      systemLog("locked_back_received: still opening");
-      await logger({
-        user: "system",
-        message: "locked_back_received: still opening",
+      // systemLog("locked_back_received: still opening");
+      await unifiedLoggingService.logInfo({
+        message: `locked_back_received: still opening`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       this.win.webContents.send("unlocking", {
         ...this.openingSlot,
@@ -193,12 +198,13 @@ export class KU16 {
       return;
     }
     if (openingSlotNumber == -1) {
-      systemLog(
-        `locked_back_received: slot #${this.openingSlot.slotId} locked back`
-      );
-      await logger({
-        user: "system",
+      // systemLog(
+      //   `locked_back_received: slot #${this.openingSlot.slotId} locked back`
+      // );
+      await unifiedLoggingService.logInfo({
         message: `locked_back_received: slot #${this.openingSlot.slotId} locked back`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       this.waitForLockedBack = false;
       this.opening = false;
@@ -213,7 +219,7 @@ export class KU16 {
       });
       this.win.webContents.send("unlocking-success", {
         slotId: this.openingSlot.slotId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -225,21 +231,22 @@ export class KU16 {
       this.openingSlot.slotId
     );
     if (openingSlotNumber == this.openingSlot.slotId) {
-      systemLog("dispense_locked_back_received: still opening");
-      this.win.webContents.send("dispensing", {
-        ...this.openingSlot,
-        dispensing: true,
-        reset: false,
-      });
+      // systemLog("dispense_locked_back_received: still opening");
+      // this.win.webContents.send("dispensing", {
+      //   ...this.openingSlot,
+      //   dispensing: true,
+      //   reset: false,
+      // });
       return;
     }
     if (openingSlotNumber == -1) {
-      systemLog(
-        `dispense_locked_back_received: slot #${this.openingSlot.slotId} locked back`
-      );
-      await logger({
-        user: "system",
+      // systemLog(
+      //   `dispense_locked_back_received: slot #${this.openingSlot.slotId} locked back`
+      // );
+      await unifiedLoggingService.logInfo({
         message: `dispense_locked_back_received: slot #${this.openingSlot.slotId} locked back`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       this.waitForDispenseLockedBack = false;
       this.opening = false;
@@ -251,11 +258,11 @@ export class KU16 {
       });
       this.win.webContents.send("dispensing-success", {
         slotId: this.openingSlot.slotId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
       this.win.webContents.send("dispensing-locked-back", {
         slotId: this.openingSlot.slotId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
@@ -267,10 +274,11 @@ export class KU16 {
   }) {
     if (!this.isConnected() || this.waitForLockedBack) return;
 
-    await logger({
-      user: "system",
-      message: `sendUnlock: slot #${inputSlot.slotId}`,
-    });
+    await unifiedLoggingService.logInfo({
+        message: `sendUnlock: slot #${inputSlot.slotId}`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
 
     const cmd = cmdUnlock(inputSlot.slotId);
     this.serialPort.write(cmd);
@@ -287,17 +295,19 @@ export class KU16 {
     const user = await User.findOne({ where: { passkey: inputSlot.passkey } });
 
     if (!user) {
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `dispense: user not found`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       throw new Error("ไม่พบผู้ใช้งาน");
     }
 
     if (!this.isConnected() || this.waitForDispenseLockedBack) {
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `dispense: not connected or waiting for dispense locked back`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       return;
     }
@@ -310,9 +320,10 @@ export class KU16 {
       slot.hn == null ||
       slot.hn == undefined
     ) {
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `dispense: slot not occupied or hn is empty`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       return;
     }
@@ -331,10 +342,11 @@ export class KU16 {
       { hn: null, occupied: false, opening: false },
       { where: { slotId: slotId } }
     );
-    await logger({
-      user: "system",
-      message: `resetSlot: slot #${slotId}`,
-    });
+    await unifiedLoggingService.logInfo({
+        message: `resetSlot: slot #${slotId}`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
   }
 
   async deactivate(slotId: number) {
@@ -342,10 +354,11 @@ export class KU16 {
       { isActive: false, hn: null, occupied: false, opening: false },
       { where: { slotId: slotId } }
     );
-    await logger({
-      user: "system",
-      message: `deactivate: slot #${slotId}`,
-    });
+    await unifiedLoggingService.logInfo({
+        message: `deactivate: slot #${slotId}`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
     this.dispensing = false;
     this.opening = false;
     this.win.webContents.send("unlocking", {
@@ -373,12 +386,12 @@ export class KU16 {
       { isActive: false },
       { where: { isActive: true } }
     );
-    
+
     // Emit deactivated event for all slots (1-15 for KU16)
     for (let slotId = 1; slotId <= 15; slotId++) {
       this.win.webContents.send("deactivated", { slotId });
     }
-    
+
     return result;
   }
 

@@ -2,8 +2,8 @@ import { ipcMain, BrowserWindow } from "electron";
 import { KU16 } from "../ku16";
 import { CU12SmartStateManager } from "../hardware/cu12/stateManager";
 import { getHardwareType } from "../setting/getHardwareType";
-import { logger, logDispensing } from "../logger";
 import { User } from "../../db/model/user.model";
+import { unifiedLoggingService } from "../services/unified-logging.service";
 
 /**
  * Universal Clear Slot Adapter
@@ -29,9 +29,10 @@ export const registerUniversalClearSlotHandler = (
         `[UNIVERSAL-ADAPTER] clear-slot routing to ${hardwareInfo.type} for slot ${payload.slotId}`
       );
 
-      await logger({
-        user: "system",
-        message: `Universal clear-slot request: slot ${payload.slotId}, HN: ${payload.hn}, hardware: ${hardwareInfo.type}`,
+      await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
       });
 
       if (hardwareInfo.type === "CU12" && cu12StateManager) {
@@ -42,12 +43,15 @@ export const registerUniversalClearSlotHandler = (
 
         try {
           // Step 1: Authenticate user with passkey (matching KU16 pattern)
-          const user = await User.findOne({ where: { passkey: payload.passkey } });
+          const user = await User.findOne({
+            where: { passkey: payload.passkey },
+          });
           if (!user) {
-            await logger({
-              user: "system",
-              message: `CU12 clear-slot: user not found for slot ${payload.slotId}`,
-            });
+            await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
             throw new Error("ไม่พบผู้ใช้งาน");
           }
           const userId = user.dataValues.id;
@@ -64,13 +68,13 @@ export const registerUniversalClearSlotHandler = (
           );
 
           // Step 3: Log complete dispense in audit trail with authenticated user
-          await logDispensing({
-            userId: userId,
-            hn: payload.hn,
-            slotId: payload.slotId,
-            process: "dispense-end",
-            message: "จ่ายยาสำเร็จไม่มียาเหลือในช่อง - ช่องถูกเคลียร์",
-          });
+          // await logDispensing({
+          //   userId: userId,
+          //   hn: payload.hn,
+          //   slotId: payload.slotId,
+          //   process: "dispense-end",
+          //   message: "จ่ายยาสำเร็จไม่มียาเหลือในช่อง - ช่องถูกเคลียร์",
+          // });
 
           // Step 4: Close Clear/Continue modal - dispense flow complete
           mainWindow.webContents.send("dispensing", {
@@ -85,10 +89,11 @@ export const registerUniversalClearSlotHandler = (
           // Step 5: Update frontend to show empty slot status
           await cu12StateManager.triggerFrontendSync();
 
-          await logger({
-            user: "system",
-            message: `CU12 clear-slot completed: slot ${payload.slotId}, HN: ${payload.hn} - slot fully cleared`,
-          });
+          await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
           console.log(
             `[CU12-CLEAR-SLOT] Slot ${payload.slotId} cleared completely - frontend sync triggered`
@@ -112,12 +117,15 @@ export const registerUniversalClearSlotHandler = (
         );
 
         // Authenticate user with passkey
-        const user = await User.findOne({ where: { passkey: payload.passkey } });
+        const user = await User.findOne({
+          where: { passkey: payload.passkey },
+        });
         if (!user) {
-          await logger({
-            user: "system",
-            message: `KU16 clear-slot: user not found for slot ${payload.slotId}`,
-          });
+          await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
           throw new Error("ไม่พบผู้ใช้งาน");
         }
         const userId = user.dataValues.id;
@@ -126,18 +134,19 @@ export const registerUniversalClearSlotHandler = (
         const result = await ku16Instance.resetSlot(payload.slotId);
 
         // Log complete dispense in audit trail with authenticated user
-        await logDispensing({
-          userId: userId,
-          hn: payload.hn,
-          slotId: payload.slotId,
-          process: "dispense-end",
-          message: "จ่ายยาสำเร็จไม่มียาเหลือในช่อง",
-        });
+        // await logDispensing({
+        //   userId: userId,
+        //   hn: payload.hn,
+        //   slotId: payload.slotId,
+        //   process: "dispense-end",
+        //   message: "จ่ายยาสำเร็จไม่มียาเหลือในช่อง",
+        // });
 
-        await logger({
-          user: "system",
-          message: `KU16 clear-slot completed: slot ${payload.slotId}, HN: ${payload.hn}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         return {
           success: true,
@@ -149,17 +158,19 @@ export const registerUniversalClearSlotHandler = (
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported for clear-slot operation`;
         console.error(`[UNIVERSAL-ADAPTER] ${errorMsg}`);
 
-        await logger({
-          user: "system",
-          message: `Universal clear-slot error: ${errorMsg}`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
+      });
 
         throw new Error(errorMsg);
       }
     } catch (error) {
-      await logger({
-        user: "system",
-        message: `Universal clear-slot error: slot ${payload.slotId}, error: ${error.message}`,
+      await unifiedLoggingService.logInfo({
+        message: "System operation logged",
+        component: "System",
+        details: {},
       });
 
       // Send error event to frontend

@@ -5,8 +5,8 @@ import { SlotStatus, CU12Config } from "./types";
 import { CU12MonitoringConfig, DEFAULT_CU12_CONFIG } from "./monitoringConfig";
 import { CU12FailureDetector } from "./errorHandler";
 import { Slot } from "../../../db/model/slot.model";
-import { logger } from "../../logger";
 import { transformCU12ToKU16Format } from "../../adapters/cu12DataAdapter";
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 
 export interface CU12StructuredLogger {
   trace(message: string, metadata?: Record<string, any>): Promise<void>;
@@ -542,12 +542,7 @@ export class CU12SmartStateManager {
       };
 
       // For now, use existing logger
-      await logger({
-        user: "system",
-        message: `[${level}] ${message} ${
-          metadata ? JSON.stringify(metadata) : ""
-        }`,
-      });
+      
     };
 
     return {
@@ -601,46 +596,58 @@ export class CU12SmartStateManager {
   /**
    * Manually trigger frontend sync (for use after admin operations)
    * Public method that can be called from adapters
-   * 
+   *
    * This method ensures real-time updates between admin dashboard and home page
    * by forcing a fresh sync of slot status and broadcasting to frontend.
    */
   async triggerFrontendSync(): Promise<void> {
     try {
-      console.log('[CU12-STATE] Manual frontend sync triggered - forcing real-time update');
-      
+      console.log(
+        "[CU12-STATE] Manual frontend sync triggered - forcing real-time update"
+      );
+
       // Clear cache to ensure fresh data
-      this.resourceOptimizer.cache.delete('slot_status');
-      
+      this.resourceOptimizer.cache.delete("slot_status");
+
       // Get current slot status from hardware (forced refresh)
-      const currentStatus = await this.syncSlotStatus('ON_DEMAND');
-      
+      const currentStatus = await this.syncSlotStatus("ON_DEMAND");
+
       // Transform and send to frontend
       const ku16CompatibleData = await transformCU12ToKU16Format(currentStatus);
-      
-      console.log('[CU12-STATE] Manual sync sending', ku16CompatibleData.length, 'slots to frontend');
-      console.log('[CU12-STATE] Slot states:', ku16CompatibleData.map(s => ({ id: s.slotId, active: s.isActive, occupied: s.occupied })));
-      
+
+      console.log(
+        "[CU12-STATE] Manual sync sending",
+        ku16CompatibleData.length,
+        "slots to frontend"
+      );
+      console.log(
+        "[CU12-STATE] Slot states:",
+        ku16CompatibleData.map((s) => ({
+          id: s.slotId,
+          active: s.isActive,
+          occupied: s.occupied,
+        }))
+      );
+
       // Send multiple events to ensure frontend receives the update
       this.mainWindow.webContents.send("init-res", ku16CompatibleData);
-      
+
       // Also send a dedicated admin-sync event for immediate UI updates
       this.mainWindow.webContents.send("admin-sync-complete", {
         message: "Admin operation completed - UI updated",
         timestamp: Date.now(),
-        slotCount: ku16CompatibleData.length
+        slotCount: ku16CompatibleData.length,
       });
-      
+
       await this.structuredLogger.info("Manual frontend sync completed", {
         slotCount: ku16CompatibleData.length,
         cacheCleared: true,
-        events: ["init-res", "admin-sync-complete"]
+        events: ["init-res", "admin-sync-complete"],
       });
-      
     } catch (error) {
-      console.error('[CU12-STATE] Manual frontend sync failed:', error.message);
+      console.error("[CU12-STATE] Manual frontend sync failed:", error.message);
       await this.structuredLogger.error("Manual frontend sync failed", {
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -648,49 +655,65 @@ export class CU12SmartStateManager {
   /**
    * Wait for slot to lock back after unlock/dispense operation
    * This simulates the KU16 hardware lock-back detection for CU12 compatibility
-   * 
+   *
    * @deprecated This method is deprecated. Use checkSlotLockStatus() for user-controlled flow.
    */
-  async waitForLockBack(slotId: number, operation: 'unlock' | 'dispense', timeout: number = 10000): Promise<boolean> {
+  async waitForLockBack(
+    slotId: number,
+    operation: "unlock" | "dispense",
+    timeout: number = 10000
+  ): Promise<boolean> {
     const startTime = Date.now();
-    
+
     try {
-      await this.structuredLogger.info(`Waiting for slot ${slotId} lock-back after ${operation}`, {
-        slotId,
-        operation,
-        timeout: timeout + 'ms'
-      });
+      await this.structuredLogger.info(
+        `Waiting for slot ${slotId} lock-back after ${operation}`,
+        {
+          slotId,
+          operation,
+          timeout: timeout + "ms",
+        }
+      );
 
       // For CU12, we simulate the wait time that would be typical for physical lock-back
       // This creates the same user experience as KU16 hardware detection
-      const waitTime = operation === 'unlock' ? 3000 : 5000; // 3s for unlock, 5s for dispense
-      
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-      
+      const waitTime = operation === "unlock" ? 3000 : 5000; // 3s for unlock, 5s for dispense
+
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+
       // Check if operation timed out
       if (Date.now() - startTime > timeout) {
-        await this.structuredLogger.warn(`Lock-back timeout for slot ${slotId}`, {
-          slotId,
-          operation,
-          duration: Date.now() - startTime
-        });
+        await this.structuredLogger.warn(
+          `Lock-back timeout for slot ${slotId}`,
+          {
+            slotId,
+            operation,
+            duration: Date.now() - startTime,
+          }
+        );
         return false;
       }
 
-      await this.structuredLogger.info(`Lock-back detected for slot ${slotId} after ${operation}`, {
-        slotId,
-        operation,
-        duration: Date.now() - startTime + 'ms'
-      });
+      await this.structuredLogger.info(
+        `Lock-back detected for slot ${slotId} after ${operation}`,
+        {
+          slotId,
+          operation,
+          duration: Date.now() - startTime + "ms",
+        }
+      );
 
       return true;
     } catch (error) {
-      await this.structuredLogger.error(`Lock-back detection failed for slot ${slotId}`, {
-        slotId,
-        operation,
-        error: error.message,
-        duration: Date.now() - startTime + 'ms'
-      });
+      await this.structuredLogger.error(
+        `Lock-back detection failed for slot ${slotId}`,
+        {
+          slotId,
+          operation,
+          error: error.message,
+          duration: Date.now() - startTime + "ms",
+        }
+      );
       return false;
     }
   }
@@ -698,52 +721,64 @@ export class CU12SmartStateManager {
   /**
    * Check slot lock status instantly for user-controlled flow
    * This method provides immediate status check when user clicks "ตกลง" button
-   * 
+   *
    * @param slotId - Slot ID to check
    * @returns Promise<boolean> - true if slot is locked (closed), false if still open
    */
   async checkSlotLockStatus(slotId: number): Promise<boolean> {
     try {
-      await this.structuredLogger.info(`Instant lock status check for slot ${slotId}`, {
-        slotId,
-        type: 'user-controlled-check'
-      });
+      await this.structuredLogger.info(
+        `Instant lock status check for slot ${slotId}`,
+        {
+          slotId,
+          type: "user-controlled-check",
+        }
+      );
 
       if (!this.device) {
-        throw new Error('CU12 device not initialized');
+        throw new Error("CU12 device not initialized");
       }
 
       // Get current slot status from hardware (no caching for user interaction)
       const deviceStatus = await this.device.getSlotStatus();
-      
+
       // Find the specific slot
-      const targetSlot = deviceStatus.find(slot => slot.slotId === slotId);
-      
+      const targetSlot = deviceStatus.find((slot) => slot.slotId === slotId);
+
       if (!targetSlot) {
-        await this.structuredLogger.warn(`Slot ${slotId} not found in device status`, {
-          slotId,
-          availableSlots: deviceStatus.map(s => s.slotId)
-        });
+        await this.structuredLogger.warn(
+          `Slot ${slotId} not found in device status`,
+          {
+            slotId,
+            availableSlots: deviceStatus.map((s) => s.slotId),
+          }
+        );
         return false; // Assume open if not found
       }
 
       const isLocked = targetSlot.isLocked || false;
-      
-      await this.structuredLogger.info(`Slot ${slotId} lock status check result`, {
-        slotId,
-        isLocked,
-        lockState: isLocked ? 'CLOSED' : 'OPEN',
-        checkType: 'instant-user-controlled'
-      });
+
+      await this.structuredLogger.info(
+        `Slot ${slotId} lock status check result`,
+        {
+          slotId,
+          isLocked,
+          lockState: isLocked ? "CLOSED" : "OPEN",
+          checkType: "instant-user-controlled",
+        }
+      );
 
       return isLocked;
     } catch (error) {
-      await this.structuredLogger.error(`Slot ${slotId} lock status check failed`, {
-        slotId,
-        error: error.message,
-        checkType: 'instant-user-controlled'
-      });
-      
+      await this.structuredLogger.error(
+        `Slot ${slotId} lock status check failed`,
+        {
+          slotId,
+          error: error.message,
+          checkType: "instant-user-controlled",
+        }
+      );
+
       // On error, assume slot is open to be safe
       return false;
     }
@@ -756,21 +791,26 @@ export class CU12SmartStateManager {
   private async sendInitResEvent(cu12SlotStatus: SlotStatus[]): Promise<void> {
     try {
       // Transform CU12 data to KU16-compatible format
-      const ku16CompatibleData = await transformCU12ToKU16Format(cu12SlotStatus);
-      
-      console.log('[CU12-STATE] Sending init-res event with', ku16CompatibleData.length, 'slots');
-      
+      const ku16CompatibleData = await transformCU12ToKU16Format(
+        cu12SlotStatus
+      );
+
+      console.log(
+        "[CU12-STATE] Sending init-res event with",
+        ku16CompatibleData.length,
+        "slots"
+      );
+
       // Send to frontend (same event as KU16)
       this.mainWindow.webContents.send("init-res", ku16CompatibleData);
-      
+
       await this.structuredLogger.debug("Frontend sync event sent", {
         slotsCount: ku16CompatibleData.length,
-        event: "init-res"
+        event: "init-res",
       });
-
     } catch (error) {
       await this.structuredLogger.error("Failed to send frontend sync event", {
-        error: error.message
+        error: error.message,
       });
     }
   }

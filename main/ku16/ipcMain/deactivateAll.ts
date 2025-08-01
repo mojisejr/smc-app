@@ -1,18 +1,18 @@
 import { ipcMain } from "electron";
 import { KU16 } from "..";
 import { User } from "../../../db/model/user.model";
-import { logger } from "../../logger";
-
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 export const deactiveAllHandler = (ku16: KU16) => {
   ipcMain.handle("deactivate-all", async (event, payload) => {
     try {
       const user = await User.findOne({ where: { name: payload.name } });
 
       if (user.dataValues.role !== "ADMIN") {
-        await logger({
-          user: "system",
-          message: `deactivate-all: user is not admin`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: `deactivate-all: user is not admin`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
         throw new Error("ไม่สามารถยกเลิกการใช้งานระบบได้");
       }
 
@@ -20,9 +20,10 @@ export const deactiveAllHandler = (ku16: KU16) => {
       await ku16.sleep(1000);
       ku16.sendCheckState();
 
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `deactivate-all: all slots deactivated by ${payload.name}`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
 
       return result;
@@ -32,9 +33,10 @@ export const deactiveAllHandler = (ku16: KU16) => {
         message: "ไม่สามารถยกเลิกการใช้งานระบบได้",
       });
 
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `deactivate-all: all slots deactivated by ${payload.name} error`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
     }
   });

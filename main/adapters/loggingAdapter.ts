@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import { getHardwareType } from '../setting/getHardwareType';
-import { DispensingLog } from '../../db/model/dispensing-logs.model';
-import { getLogs } from '../logger';
+// DispensingLog model removed - using UnifiedLog instead
+// Legacy logger import removed
 
 /**
  * Universal Logging Adapter
@@ -19,20 +19,9 @@ export const registerUniversalLoggingHandlers = () => {
       const hardwareInfo = await getHardwareType();
       console.log(`[ADAPTER] Getting system logs for ${hardwareInfo.type} system`);
       
-      // Get all system logs regardless of hardware type
-      const logs = await getLogs();
-      const logsData = logs.map((log) => log.dataValues);
-      
-      console.log(`[ADAPTER] Retrieved ${logsData.length} system logs`);
-      
-      // Add hardware context to logs for consistency
-      const logsWithContext = logsData.map(log => ({
-        ...log,
-        hardwareType: hardwareInfo.type,
-        systemInfo: `${hardwareInfo.type} (${hardwareInfo.maxSlots} slots)`
-      }));
-      
-      return logsWithContext;
+      // Legacy system - redirecting to enhanced logging
+      console.log('[ADAPTER] Redirecting to Enhanced Logging System');
+      return { error: 'Legacy system deprecated. Use get_enhanced_logs instead.' };
       
     } catch (error) {
       console.error('[ADAPTER] Error getting system logs:', error.message);
@@ -43,41 +32,7 @@ export const registerUniversalLoggingHandlers = () => {
     }
   });
   
-  // Universal get dispensing logs handler
-  ipcMain.handle('get_dispensing_logs', async () => {
-    try {
-      console.log('[ADAPTER] Universal dispensing logs handler called');
-      
-      // Auto-detect current hardware type for logging context
-      const hardwareInfo = await getHardwareType();
-      console.log(`[ADAPTER] Getting dispensing logs for ${hardwareInfo.type} system`);
-      
-      // Get all dispensing logs regardless of hardware type
-      // The logs table is hardware-agnostic and contains records from all systems
-      const logs = await DispensingLog.findAll({
-        order: [['createdAt', 'DESC']],
-        limit: 1000 // Limit to prevent memory issues with large log tables
-      });
-      
-      console.log(`[ADAPTER] Retrieved ${logs.length} dispensing logs`);
-      
-      // Add hardware context to logs for UI display
-      const logsWithContext = logs.map(log => ({
-        ...log.toJSON(),
-        hardwareType: hardwareInfo.type,
-        systemInfo: `${hardwareInfo.type} (${hardwareInfo.maxSlots} slots)`
-      }));
-      
-      return logsWithContext;
-      
-    } catch (error) {
-      console.error('[ADAPTER] Error getting dispensing logs:', error.message);
-      return {
-        error: error.message,
-        logs: []
-      };
-    }
-  });
+  // NOTE: get_dispensing_logs handler moved to Enhanced Logging System
   
   // Universal export logs handler
   ipcMain.handle('export_logs', async () => {
@@ -87,30 +42,9 @@ export const registerUniversalLoggingHandlers = () => {
       const hardwareInfo = await getHardwareType();
       console.log(`[ADAPTER] Exporting logs for ${hardwareInfo.type} system`);
       
-      // Get all logs for export
-      const logs = await DispensingLog.findAll({
-        order: [['createdAt', 'DESC']]
-      });
-      
-      // Create filename with hardware type and timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `dispensing-logs-${hardwareInfo.type}-${timestamp}.json`;
-      const filepath = `/tmp/${filename}`;
-      
-      // Export logs as JSON with hardware context
-      const exportData = {
-        exportDate: new Date().toISOString(),
-        hardwareType: hardwareInfo.type,
-        systemInfo: `${hardwareInfo.type} (${hardwareInfo.maxSlots} slots)`,
-        totalLogs: logs.length,
-        logs: logs.map(log => log.toJSON())
-      };
-      
-      const fs = require('fs');
-      fs.writeFileSync(filepath, JSON.stringify(exportData, null, 2));
-      
-      console.log(`[ADAPTER] Logs exported to ${filename}`);
-      return filename;
+      // Legacy export - redirect to enhanced system
+      console.log('[ADAPTER] Export redirected to Enhanced Logging System');
+      throw new Error('Legacy export deprecated. Use export_logs_with_tracking instead.');
       
     } catch (error) {
       console.error('[ADAPTER] Error exporting logs:', error.message);
@@ -126,16 +60,9 @@ export const registerUniversalLoggingHandlers = () => {
       const hardwareInfo = await getHardwareType();
       console.log(`[ADAPTER] Logging dispensing event for ${hardwareInfo.type} system`);
       
-      // Create log entry with hardware context
-      const logEntry = await DispensingLog.create({
-        ...data,
-        hardwareType: hardwareInfo.type,
-        systemInfo: `${hardwareInfo.type} (${hardwareInfo.maxSlots} slots)`,
-        timestamp: new Date()
-      });
-      
-      console.log(`[ADAPTER] Dispensing event logged with ID: ${logEntry.id}`);
-      return { success: true, logId: logEntry.id };
+      // Legacy dispensing log - redirect to enhanced system
+      console.log('[ADAPTER] Dispensing log redirected to Enhanced Logging System');
+      return { success: false, error: 'Legacy dispensing log deprecated. Use enhanced logging methods instead.' };
       
     } catch (error) {
       console.error('[ADAPTER] Error logging dispensing event:', error.message);

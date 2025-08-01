@@ -1,8 +1,7 @@
 import { ipcMain } from "electron";
 import { KU16 } from "..";
 import { User } from "../../../db/model/user.model";
-import { logger } from "../../logger";
-
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 export const deactivateAdminHandler = (ku16: KU16) => {
   ipcMain.handle("deactivate-admin", async (event, payload) => {
     try {
@@ -13,10 +12,11 @@ export const deactivateAdminHandler = (ku16: KU16) => {
       });
 
       if (user.dataValues.role !== "ADMIN") {
-        await logger({
-          user: "system",
-          message: `deactivate-admin: user is not admin`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: `deactivate-admin: user is not admin`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
         throw new Error("ไม่สามารถปิดช่องได้");
       }
 
@@ -24,9 +24,10 @@ export const deactivateAdminHandler = (ku16: KU16) => {
       await ku16.sleep(1000);
       ku16.sendCheckState();
 
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `deactivate-admin: slot #${payload.slotId} by ${payload.name}`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
 
       return result;
@@ -35,9 +36,10 @@ export const deactivateAdminHandler = (ku16: KU16) => {
         message: "ไม่สามารถปิดช่องได้",
       });
 
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `deactivate-admin: slot #${payload.slotId} by ${payload.name} error`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
     }
   });

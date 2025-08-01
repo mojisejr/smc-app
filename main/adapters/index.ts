@@ -53,7 +53,7 @@ export const registerUniversalAdapters = (
   // Core system adapters
   registerUniversalInitHandler(ku16Instance, cu12StateManager, mainWindow);
   registerUniversalPortListHandler(ku16Instance);
-  registerUniversalLoggingHandlers();
+  // NOTE: Logging handlers now managed by Enhanced Logging System in background.ts
   
   // Core operation adapters (NEW - Critical for CU12 compatibility)
   registerUniversalUnlockHandler(ku16Instance, cu12StateManager, mainWindow);

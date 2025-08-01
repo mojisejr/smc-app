@@ -1,18 +1,18 @@
 import { ipcMain } from "electron";
 import { KU16 } from "..";
 import { User } from "../../../db/model/user.model";
-import { logger } from "../../logger";
-
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 export const reactiveAllHanlder = (ku16: KU16) => {
   ipcMain.handle("reactivate-all", async (event, payload) => {
     try {
       const user = await User.findOne({ where: { name: payload.name } });
 
       if (user.dataValues.role !== "ADMIN") {
-        await logger({
-          user: "system",
-          message: `reactivate-all: user is not admin`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: `reactivate-all: user is not admin`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
         throw new Error("ไม่สามารถเปิดใช้งานระบบได้");
       }
 
@@ -22,9 +22,10 @@ export const reactiveAllHanlder = (ku16: KU16) => {
 
       return result;
     } catch (error) {
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `reactivate-all: all slots reactivated by ${payload.name} error`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       ku16.win.webContents.send("reactivate-all-error", {
         message: "ไม่สามารถเปิดใช้งานระบบได้",

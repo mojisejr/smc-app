@@ -1,7 +1,7 @@
 import { BrowserWindow, ipcMain } from "electron";
 import { Authentication } from "..";
-import { logger } from "../../logger";
 import { AuthRequest, AuthResponse } from "../../interfaces/auth";
+import { unifiedLoggingService } from "../services/unified-logging.service";
 
 export const loginRequestHandler = (
   win: BrowserWindow,
@@ -13,7 +13,7 @@ export const loginRequestHandler = (
       win.webContents.send("login-res", null);
       return;
     }
-    await logger({ user: result.name, message: "เข้าสู่ระบบตั้งค่าสำเร็จ" });
+    // await logger({ user: result.name, message: "เข้าสู่ระบบตั้งค่าสำเร็จ" });
     win.webContents.send("login-res", result);
   });
 };

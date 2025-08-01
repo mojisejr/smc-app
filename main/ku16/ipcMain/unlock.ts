@@ -1,7 +1,7 @@
 import { ipcMain } from "electron";
 import { KU16 } from "..";
-import { logDispensing, logger } from "../../logger";
 import { User } from "../../../db/model/user.model";
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 
 export const unlockHandler = (ku16: KU16) => {
   ipcMain.handle("unlock", async (event, payload) => {
@@ -12,10 +12,11 @@ export const unlockHandler = (ku16: KU16) => {
       userId = user.dataValues.id;
 
       if (!user) {
-        await logger({
-          user: "system",
-          message: `unlock: user not found`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: `unlock: user not found`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
 
         throw new Error("ไม่พบผู้ใช้งาน");
       }
@@ -23,16 +24,16 @@ export const unlockHandler = (ku16: KU16) => {
       userName = user.dataValues.name;
 
       await ku16.sendUnlock(payload);
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `unlock: slot #${payload.slotId} by ${user.dataValues.name}`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
-      await logDispensing({
+      await unifiedLoggingService.logUnlock({
         userId: userId,
-        hn: payload.hn,
         slotId: payload.slotId,
-        process: "unlock",
-        message: "ปลดล็อคสำเร็จ",
+        hn: payload.hn,
+        message: `ปลดล็อคสำเร็จ`,
       });
       await ku16.sleep(1000);
       ku16.sendCheckState();
@@ -40,16 +41,16 @@ export const unlockHandler = (ku16: KU16) => {
       ku16.win.webContents.send("unlock-error", {
         message: "ปลดล็อกไม่สำเร็จกรุณาตรวจสอบรหัสผู้ใช้งานอีกครั้ง",
       });
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `unlock: slot #${payload.slotId} by ${userName} error`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
-      await logDispensing({
+      await unifiedLoggingService.logUnlock({
         userId: userId,
-        hn: payload.hn,
         slotId: payload.slotId,
-        process: "unlock-error",
-        message: "ปลดล็อคล้มเหลว",
+        hn: payload.hn,
+        message: `ปลดล็อคล้มเหลว`,
       });
     }
   });

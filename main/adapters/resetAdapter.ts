@@ -2,7 +2,8 @@ import { ipcMain, BrowserWindow } from "electron";
 import { KU16 } from "../ku16";
 import { CU12SmartStateManager } from "../hardware/cu12/stateManager";
 import { getHardwareType } from "../setting/getHardwareType";
-import { logger } from "../logger";
+import { unifiedLoggingService } from "../services/unified-logging.service";
+import { User } from "../../db/model/user.model";
 
 /**
  * Universal Reset Adapters
@@ -24,9 +25,10 @@ export const registerUniversalResetHandler = (
         `[UNIVERSAL-ADAPTER] reset routing to ${hardwareInfo.type} for slot ${payload.slotId}`
       );
 
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `Universal reset request: slot ${payload.slotId}, HN: ${payload.hn}, hardware: ${hardwareInfo.type}`,
+        component: "ResetAdapter",
+        details: { slotId: payload.slotId, hn: payload.hn, hardwareType: hardwareInfo.type },
       });
 
       if (hardwareInfo.type === "CU12" && cu12StateManager) {
@@ -44,9 +46,10 @@ export const registerUniversalResetHandler = (
           );
 
           if (unlockSuccess) {
-            await logger({
-              user: "system",
+            await unifiedLoggingService.logInfo({
               message: `CU12 reset successful: slot ${payload.slotId}, HN: ${payload.hn}`,
+              component: "ResetAdapter",
+              details: { slotId: payload.slotId, hn: payload.hn, hardwareType: "CU12", operation: "reset" },
             });
 
             // Send reset success event (same as KU16)
@@ -75,9 +78,10 @@ export const registerUniversalResetHandler = (
         console.log(`[KU16-RESET] Processing reset for slot ${payload.slotId}`);
 
         if (!ku16Instance.connected) {
-          await logger({
-            user: "system",
+          await unifiedLoggingService.logError({
             message: `KU16 reset failed: connection error for slot ${payload.slotId}`,
+            component: "ResetAdapter",
+            details: { slotId: payload.slotId, hardwareType: "KU16", reason: "connection_error" },
           });
 
           mainWindow.webContents.send("init-failed-on-connection-error", {
@@ -94,9 +98,10 @@ export const registerUniversalResetHandler = (
         // Use existing KU16 reset logic
         const result = await ku16Instance.reset(payload);
 
-        await logger({
-          user: "system",
+        await unifiedLoggingService.logInfo({
           message: `KU16 reset completed: slot ${payload.slotId}, HN: ${payload.hn}, success: ${result.success}`,
+          component: "ResetAdapter",
+          details: { slotId: payload.slotId, hn: payload.hn, hardwareType: "KU16", success: result.success },
         });
 
         return result;
@@ -104,17 +109,19 @@ export const registerUniversalResetHandler = (
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported for reset operation`;
         console.error(`[UNIVERSAL-ADAPTER] ${errorMsg}`);
 
-        await logger({
-          user: "system",
+        await unifiedLoggingService.logError({
           message: `Universal reset error: ${errorMsg}`,
+          component: "ResetAdapter",
+          details: { hardwareType: hardwareInfo.type, reason: "hardware_not_supported" },
         });
 
         throw new Error(errorMsg);
       }
     } catch (error) {
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logError({
         message: `Universal reset error: slot ${payload.slotId}, error: ${error.message}`,
+        component: "ResetAdapter",
+        details: { slotId: payload.slotId, error: error.message },
       });
 
       // Send error event to frontend
@@ -131,7 +138,7 @@ export const registerUniversalResetHandler = (
         slotId: payload.slotId,
         hn: payload.hn,
         message: "เกิดข้อผิดพลาดในการรีเซ็ต",
-        error: error.message
+        error: error.message,
       };
     }
   });
@@ -145,20 +152,21 @@ export const registerUniversalForceResetHandler = (
   ipcMain.handle("force-reset", async (event, payload) => {
     let userId = null;
     let userName = null;
-    
+
     try {
       // Validate user by passkey (same as original KU16 force-reset handler)
-      const { User } = require('../../db/model/user.model');
+      const { User } = require("../../db/model/user.model");
       const user = await User.findOne({
-        where: { passkey: payload.passkey }
+        where: { passkey: payload.passkey },
       });
 
       if (!user) {
-        await logger({
-          user: "system",
-          message: `force-reset: user not found for slot ${payload.slotId}`,
+        await unifiedLoggingService.logWarning({
+          message: `Force-reset failed: user not found for slot ${payload.slotId}`,
+          component: "ResetAdapter",
+          details: { slotId: payload.slotId, operation: "force-reset", reason: "user_not_found" },
         });
-        throw new Error('รหัสผ่านไม่ถูกต้อง');
+        throw new Error("รหัสผ่านไม่ถูกต้อง");
       }
 
       userId = user.dataValues.id;
@@ -170,9 +178,10 @@ export const registerUniversalForceResetHandler = (
         `[UNIVERSAL-ADAPTER] force-reset routing to ${hardwareInfo.type} for slot ${payload.slotId} by ${userName}`
       );
 
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `Universal force-reset request: slot ${payload.slotId}, HN: ${payload.hn}, hardware: ${hardwareInfo.type}, user: ${userName}`,
+        component: "ResetAdapter",
+        details: { slotId: payload.slotId, hn: payload.hn, hardwareType: hardwareInfo.type, userId, userName, operation: "force-reset" },
       });
 
       if (hardwareInfo.type === "CU12" && cu12StateManager) {
@@ -182,33 +191,33 @@ export const registerUniversalForceResetHandler = (
         );
 
         // Database reset operation (same as KU16 resetSlot)
-        const { Slot } = require('../../db/model/slot.model');
+        const { Slot } = require("../../db/model/slot.model");
         await Slot.update(
           { hn: null, occupied: false, opening: false },
           { where: { slotId: payload.slotId } }
         );
 
-        await logger({
-          user: "system",
+        await unifiedLoggingService.logInfo({
           message: `CU12 force-reset: slot #${payload.slotId} by ${userName}`,
+          component: "ResetAdapter",
+          details: { slotId: payload.slotId, userName, hardwareType: "CU12", operation: "force-reset" },
         });
 
-        // Log the dispensing action (same as original)
-        const { logDispensing } = require('../logger');
-        await logDispensing({
+        // Log the force reset action
+        await unifiedLoggingService.logForceReset({
           userId: userId,
-          hn: payload.hn,
           slotId: payload.slotId,
-          process: 'force-reset',
-          message: payload.reason,
+          reason: payload.reason,
+          message: `รีเซ็ตช่องยาแบบบังคับ: slot ${payload.slotId}, HN: ${payload.hn}`,
         });
 
         // Trigger frontend sync to update slot status
         await cu12StateManager.triggerFrontendSync();
 
-        await logger({
-          user: "system",
+        await unifiedLoggingService.logInfo({
           message: `CU12 force-reset completed: slot ${payload.slotId}, HN: ${payload.hn}`,
+          component: "ResetAdapter",
+          details: { slotId: payload.slotId, hn: payload.hn, hardwareType: "CU12", operation: "force-reset-completed" },
         });
 
         return {
@@ -216,7 +225,6 @@ export const registerUniversalForceResetHandler = (
           slotId: payload.slotId,
           message: "Slot force reset successfully",
         };
-
       } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 force reset operation - replicate original handler flow
         console.log(
@@ -225,29 +233,29 @@ export const registerUniversalForceResetHandler = (
 
         // Use KU16 resetSlot method (database operation only)
         await ku16Instance.resetSlot(payload.slotId);
-        
-        await logger({
-          user: "system",
+
+        await unifiedLoggingService.logInfo({
           message: `KU16 force-reset: slot #${payload.slotId} by ${userName}`,
+          component: "ResetAdapter",
+          details: { slotId: payload.slotId, userName, hardwareType: "KU16", operation: "force-reset" },
         });
 
-        // Log the dispensing action (same as original)
-        const { logDispensing } = require('../logger');
-        await logDispensing({
+        // Log the force reset action
+        await unifiedLoggingService.logForceReset({
           userId: userId,
-          hn: payload.hn,
           slotId: payload.slotId,
-          process: 'force-reset',
-          message: payload.reason,
+          reason: payload.reason,
+          message: `รีเซ็ตช่องยาแบบบังคับ: slot ${payload.slotId}, HN: ${payload.hn}`,
         });
 
         // Sleep and sendCheckState (same as original)
         await ku16Instance.sleep(1000);
         ku16Instance.sendCheckState();
 
-        await logger({
-          user: "system",
+        await unifiedLoggingService.logInfo({
           message: `KU16 force-reset completed: slot ${payload.slotId}, HN: ${payload.hn}`,
+          component: "ResetAdapter",
+          details: { slotId: payload.slotId, hn: payload.hn, hardwareType: "KU16", operation: "force-reset-completed" },
         });
 
         return {
@@ -255,40 +263,41 @@ export const registerUniversalForceResetHandler = (
           slotId: payload.slotId,
           message: "Slot force reset successfully",
         };
-
       } else {
-        throw new Error(`Hardware ${hardwareInfo.type} not initialized or not supported`);
+        throw new Error(
+          `Hardware ${hardwareInfo.type} not initialized or not supported`
+        );
       }
-
     } catch (error) {
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logError({
         message: `force-reset: slot #${payload.slotId} by ${userName} error - ${error.message}`,
+        component: "ResetAdapter",
+        details: { slotId: payload.slotId, userName, error: error.message, operation: "force-reset-error" },
       });
 
       // Log the dispensing error (same as original)
-      const { logDispensing } = require('../logger');
-      await logDispensing({
-        userId: userId,
-        hn: payload.hn,
-        slotId: payload.slotId,
-        process: 'force-reset-error',
-        message: 'ล้างช่องไม่สำเร็จ',
-      });
+      // const { logDispensing } = require("../logger");
+      // await logDispensing({
+      //   userId: userId,
+      //   hn: payload.hn,
+      //   slotId: payload.slotId,
+      //   process: "force-reset-error",
+      //   message: "ล้างช่องไม่สำเร็จ",
+      // });
 
       // Send error event to frontend (same as original)
-      mainWindow.webContents.send('force-reset-error', {
-        message: 'ล้างช่องไม่สำเร็จกรุณาลองใหม่อีกครั้ง',
+      mainWindow.webContents.send("force-reset-error", {
+        message: "ล้างช่องไม่สำเร็จกรุณาลองใหม่อีกครั้ง",
         slotId: payload.slotId,
-        error: error.message
+        error: error.message,
       });
 
       // Don't re-throw the error - let the operation complete so frontend gets the error event
       return {
         success: false,
         slotId: payload.slotId,
-        message: 'ล้างช่องไม่สำเร็จกรุณาลองใหม่อีกครั้ง',
-        error: error.message
+        message: "ล้างช่องไม่สำเร็จกรุณาลองใหม่อีกครั้ง",
+        error: error.message,
       };
     }
   });

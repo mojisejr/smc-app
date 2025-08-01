@@ -43,7 +43,7 @@ export default function LogsSetting({
               >
                 export logs
               </button>
-              <Tooltip text={"ส่ง logs ทั้งหมดไปยังไฟล์ .csv"} />
+              <Tooltip text={"ส่ง logs ทั้งหมดไปยังไฟล์ CSV พร้อมข้อมูลครบถ้วน"} />
             </td>
           </tr>
         </tbody>

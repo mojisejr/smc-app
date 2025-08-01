@@ -1,7 +1,7 @@
 import { ipcMain } from "electron";
 import { KU16 } from "..";
-import { logDispensing, logger } from "../../logger";
 import { User } from "../../../db/model/user.model";
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 
 export const dispenseHandler = (ku16: KU16) => {
   ipcMain.handle("dispense", async (event, payload) => {
@@ -12,10 +12,11 @@ export const dispenseHandler = (ku16: KU16) => {
       userId = user.dataValues.id;
 
       if (!user) {
-        await logger({
-          user: "system",
-          message: `dispense: user not found`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: `dispense: user not found`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
         throw new Error("ไม่พบผู้ใช้งาน");
       }
 
@@ -27,17 +28,18 @@ export const dispenseHandler = (ku16: KU16) => {
     } catch (error) {
       ku16.win.webContents.send("dispense-error", { message: error.message });
 
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `dispense: slot #${payload.slotId} by ${userName} error`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
 
-      await logDispensing({
+      await unifiedLoggingService.logDispensing({
         userId: userId,
-        hn: payload.hn,
         slotId: payload.slotId,
-        process: "dispense-error",
-        message: "จ่ายยาล้มเหลว",
+        hn: payload.hn,
+        operation: "dispense-error",
+        message: `จ่ายยาล้มเหลว`,
       });
     }
   });

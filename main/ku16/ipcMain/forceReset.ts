@@ -1,8 +1,7 @@
 import { ipcMain } from "electron";
 import { KU16 } from "..";
 import { User } from "../../../db/model/user.model";
-import { logDispensing, logger } from "../../logger";
-
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 export const forceResetHanlder = (ku16: KU16) => {
   ipcMain.handle("force-reset", async (event, payload) => {
     let userId = null;
@@ -15,10 +14,11 @@ export const forceResetHanlder = (ku16: KU16) => {
       });
 
       if (!user) {
-        await logger({
-          user: "system",
-          message: `force-reset: user not found`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: `force-reset: user not found`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
         throw new Error("รหัสผ่านไม่ถูกต้อง");
       }
 
@@ -26,16 +26,16 @@ export const forceResetHanlder = (ku16: KU16) => {
       userId = user.dataValues.id;
 
       await ku16.resetSlot(payload.slotId);
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `force-reset: slot #${payload.slotId} by ${userName}`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
-      await logDispensing({
+      await unifiedLoggingService.logForceReset({
         userId: userId,
-        hn: payload.hn,
         slotId: payload.slotId,
-        process: "force-reset",
-        message: payload.reason,
+        reason: `การดำเนินการ`,
+        message: `การดำเนินการ`,
       });
       await ku16.sleep(1000);
       ku16.sendCheckState();
@@ -43,16 +43,16 @@ export const forceResetHanlder = (ku16: KU16) => {
       ku16.win.webContents.send("force-reset-error", {
         message: "ล้างช่องไม่สำเร็จกรุณาลองใหม่อีกครั้ง",
       });
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `force-reset: slot #${payload.slotId} by ${userName} error`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
-      await logDispensing({
+      await unifiedLoggingService.logForceReset({
         userId: userId,
-        hn: payload.hn,
         slotId: payload.slotId,
-        process: "force-reset-error",
-        message: "ล้างช่องไม่สำเร็จ",
+        reason: `ล้างช่องไม่สำเร็จ`,
+        message: `ล้างช่องไม่สำเร็จ`,
       });
     }
   });

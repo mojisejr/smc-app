@@ -37,6 +37,7 @@ import { activateKeyHandler } from "./license/ipcMain/activate-key";
 import { IndicatorDevice } from "./indicator";
 import { registerCU12Handlers } from "./hardware/cu12/ipcMain";
 import { registerUniversalAdapters } from "./adapters";
+import { registerEnhancedLoggingHandlers } from "./adapters/enhanced-logging-adapter";
 /**
  * Indicates whether the application is running in production mode.
  *
@@ -202,6 +203,11 @@ if (isProd) {
   console.log("[HARDWARE] Registering universal IPC adapters...");
   registerUniversalAdapters(ku16, cu12StateManager, mainWindow);
 
+  // Enhanced Logging System - Replaces legacy logging
+  console.log("[LOGGING] Registering enhanced logging handlers...");
+  registerEnhancedLoggingHandlers();
+  console.log("[LOGGING] Enhanced logging system activated");
+
   // Hardware-specific handlers registration
   if (hardwareInfo.type === "CU12" && cu12Initialized) {
     // CU12 Mode - Register CU12-specific handlers (excluding universal ones)
@@ -220,7 +226,7 @@ if (isProd) {
 
     // NOTE: Core operation handlers (unlock, dispense, reset, etc.) are now handled by universal adapters
     // NOTE: deactivate handler is now handled by universal adapters (registerUniversalDeactivateHandler)
-    
+
     // NOTE: Logging handlers (get_logs, get_dispensing_logs) are now handled by universal adapters
 
     // The following handlers are now managed by universal adapters:

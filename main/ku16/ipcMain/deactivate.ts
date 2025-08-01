@@ -1,8 +1,7 @@
 import { ipcMain } from "electron";
 import { KU16 } from "..";
 import { User } from "../../../db/model/user.model";
-import { logDispensing, logger } from "../../logger";
-
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 export const deactiveHanlder = (ku16: KU16) => {
   ipcMain.handle("deactivate", async (event, payload) => {
     let userId = null;
@@ -15,10 +14,11 @@ export const deactiveHanlder = (ku16: KU16) => {
       });
 
       if (!user) {
-        await logger({
-          user: "system",
-          message: `deactivate: user not found`,
-        });
+        await unifiedLoggingService.logInfo({
+        message: `deactivate: user not found`,
+        component: "KU16Handler",
+        details: { user: "system" },
+      });
         throw new Error("ไม่พบผู้ใช้งาน");
       }
 
@@ -26,16 +26,17 @@ export const deactiveHanlder = (ku16: KU16) => {
       userName = user.dataValues.name;
 
       await ku16.deactivate(payload.slotId);
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `deactivate: slot #${payload.slotId} by ${user.dataValues.name}`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
-      await logDispensing({
+      await unifiedLoggingService.logUsing({
+        category: "deactivate",
         userId: userId,
-        hn: null,
         slotId: payload.slotId,
-        process: "deactivate",
-        message: payload.reason,
+        hn: null,
+        message: `การดำเนินการ`,
       });
       await ku16.sleep(1000);
       ku16.sendCheckState();
@@ -43,16 +44,17 @@ export const deactiveHanlder = (ku16: KU16) => {
       ku16.win.webContents.send("deactivate-error", {
         message: "ไม่สามารถปิดช่องได้ กรุณาตรวจสอบรหัสผ่านอีกครั้ง",
       });
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `deactivate: slot #${payload.slotId} by ${userName} error`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
-      await logDispensing({
+      await unifiedLoggingService.logUsing({
+        category: "deactivate-error",
         userId: userId,
-        hn: null,
         slotId: payload.slotId,
-        process: "deactivate-error",
-        message: "ปิดช่องล้มเหลว",
+        hn: null,
+        message: `ปิดช่องล้มเหลว`,
       });
     }
   });

@@ -1,7 +1,6 @@
 import { BrowserWindow, ipcMain, dialog } from "electron";
 import { KU16 } from "..";
-import { logger } from "../../logger";
-
+import { unifiedLoggingService } from "../../../services/unified-logging.service";
 export const initHandler = (ku16: KU16, win: BrowserWindow) => {
   ipcMain.handle("init", async (event, payload) => {
     console.log(
@@ -9,9 +8,10 @@ export const initHandler = (ku16: KU16, win: BrowserWindow) => {
     );
 
     if (!ku16.connected) {
-      await logger({
-        user: "system",
+      await unifiedLoggingService.logInfo({
         message: `init: failed on connection error`,
+        component: "KU16Handler",
+        details: { user: "system" },
       });
       win.webContents.send("init-failed-on-connection-error", {
         title: "ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้",

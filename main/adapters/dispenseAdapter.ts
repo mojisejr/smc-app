@@ -1,13 +1,13 @@
-import { ipcMain, BrowserWindow } from 'electron';
-import { KU16 } from '../ku16';
-import { CU12SmartStateManager } from '../hardware/cu12/stateManager';
-import { getHardwareType } from '../setting/getHardwareType';
-import { logger, logDispensing } from '../logger';
-import { User } from '../../db/model/user.model';
+import { ipcMain, BrowserWindow } from "electron";
+import { KU16 } from "../ku16";
+import { CU12SmartStateManager } from "../hardware/cu12/stateManager";
+import { getHardwareType } from "../setting/getHardwareType";
+import { unifiedLoggingService } from "../services/unified-logging.service";
+import { User } from "../../db/model/user.model";
 
 /**
  * Universal Dispense Adapters
- * 
+ *
  * Routes 'dispense' and 'dispense-continue' IPC calls to appropriate hardware
  * implementation based on current system configuration (KU16 or CU12).
  */
@@ -17,30 +17,32 @@ export const registerUniversalDispenseHandler = (
   cu12StateManager: CU12SmartStateManager | null,
   mainWindow: BrowserWindow
 ) => {
-  ipcMain.handle('dispense', async (event, payload) => {
+  ipcMain.handle("dispense", async (event, payload) => {
     let userId = null;
     let userName = null;
-    
+
     try {
       // Input validation and user authentication (same as KU16 original)
       if (!payload.passkey) {
-        await logger({
-          user: 'system',
-          message: `dispense: empty passkey provided for slot ${payload.slotId}`,
+        await unifiedLoggingService.logWarning({
+          message: `Dispense failed: empty passkey provided for slot ${payload.slotId}`,
+          component: "DispenseAdapter",
+          details: { slotId: payload.slotId, reason: "empty_passkey" },
         });
         throw new Error("กรุณากรอกรหัสผ่าน");
       }
 
       // Sanitize input
       const sanitizedPasskey = payload.passkey.toString().trim();
-      
+
       // Validate user by passkey (matching KU16 original dispense handler)
       const user = await User.findOne({ where: { passkey: sanitizedPasskey } });
-      
+
       if (!user) {
-        await logger({
-          user: 'system',
-          message: `dispense: user not found for slot ${payload.slotId}`,
+        await unifiedLoggingService.logWarning({
+          message: `Dispense failed: user not found for slot ${payload.slotId}`,
+          component: "DispenseAdapter",
+          details: { slotId: payload.slotId, reason: "user_not_found" },
         });
         throw new Error("ไม่พบผู้ใช้งาน");
       }
@@ -49,33 +51,42 @@ export const registerUniversalDispenseHandler = (
       userName = user.dataValues.name;
 
       const hardwareInfo = await getHardwareType();
-      
-      console.log(`[UNIVERSAL-ADAPTER] dispense routing to ${hardwareInfo.type} for slot ${payload.slotId}`);
-      
-      await logger({
-        user: 'system',
+
+      console.log(
+        `[UNIVERSAL-ADAPTER] dispense routing to ${hardwareInfo.type} for slot ${payload.slotId}`
+      );
+
+      await unifiedLoggingService.logInfo({
         message: `Universal dispense request: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}, hardware: ${hardwareInfo.type}`,
+        component: "DispenseAdapter",
+        details: { slotId: payload.slotId, hn: payload.hn, userId, hardwareType: hardwareInfo.type },
       });
 
-      if (hardwareInfo.type === 'CU12' && cu12StateManager) {
+      if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 dispense operation with user-controlled modal flow
-        console.log(`[CU12-DISPENSE] Processing dispense for slot ${payload.slotId} with user-controlled modal flow`);
-        
-        await cu12StateManager.enterOperationMode(`dispense_slot_${payload.slotId}`);
-        
+        console.log(
+          `[CU12-DISPENSE] Processing dispense for slot ${payload.slotId} with user-controlled modal flow`
+        );
+
+        await cu12StateManager.enterOperationMode(
+          `dispense_slot_${payload.slotId}`
+        );
+
         try {
           // Step 1: Send hardware unlock command for dispensing (non-blocking)
-          const unlockSuccess = await cu12StateManager.performUnlockOperation(payload.slotId);
-          
+          const unlockSuccess = await cu12StateManager.performUnlockOperation(
+            payload.slotId
+          );
+
           if (!unlockSuccess) {
-            throw new Error('Failed to unlock slot for dispensing');
+            throw new Error("Failed to unlock slot for dispensing");
           }
 
           // Step 2: Update database slot state (opening: true to indicate dispense in progress)
-          const { Slot } = require('../../db/model/slot.model');
+          const { Slot } = require("../../db/model/slot.model");
           await Slot.update(
-            { 
-              opening: true   // Slot is currently opening for dispensing
+            {
+              opening: true, // Slot is currently opening for dispensing
               // Keep existing hn and occupied status during dispensing
             },
             { where: { slotId: payload.slotId } }
@@ -87,30 +98,24 @@ export const registerUniversalDispenseHandler = (
             slotId: payload.slotId,
             hn: payload.hn,
             timestamp: payload.timestamp,
-            dispensing: true,  // Keep modal open for user interaction
-            reset: false
+            dispensing: true, // Keep modal open for user interaction
+            reset: false,
           });
 
-          await logger({
-            user: 'system',
-            message: `CU12 dispense initiated: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}, waiting for user confirmation`,
-          });
-          
-          // Log the dispense operation with authenticated user
-          await logDispensing({
+          await unifiedLoggingService.logDispensing({
             userId: userId,
-            hn: payload.hn,
             slotId: payload.slotId,
-            process: 'dispense',
-            message: 'จ่ายยาสำเร็จ',
+            hn: payload.hn,
+            operation: "dispense",
+            message: "เริ่มต้นการจ่ายยา - รอการยืนยันจากผู้ใช้",
           });
 
           return {
             success: true,
             slotId: payload.slotId,
             hn: payload.hn,
-            message: 'Dispense initiated - waiting for user confirmation',
-            userControlled: true
+            message: "Dispense initiated - waiting for user confirmation",
+            userControlled: true,
           };
         } catch (error) {
           // On error: Close wait modal immediately
@@ -119,85 +124,95 @@ export const registerUniversalDispenseHandler = (
             hn: payload.hn,
             timestamp: payload.timestamp,
             dispensing: false,
-            reset: false
+            reset: false,
           });
           throw error;
         } finally {
           await cu12StateManager.exitOperationMode();
         }
-
-      } else if (hardwareInfo.type === 'KU16' && ku16Instance) {
+      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 dispense operation
-        console.log(`[KU16-DISPENSE] Processing dispense for slot ${payload.slotId}`);
-        
+        console.log(
+          `[KU16-DISPENSE] Processing dispense for slot ${payload.slotId}`
+        );
+
         if (!ku16Instance.connected) {
-          await logger({
-            user: 'system',
+          await unifiedLoggingService.logError({
             message: `KU16 dispense failed: connection error for slot ${payload.slotId}`,
+            component: "DispenseAdapter",
+            details: { slotId: payload.slotId, hardwareType: "KU16", reason: "connection_error" },
           });
-          
+
           mainWindow.webContents.send("init-failed-on-connection-error", {
             title: "ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้",
             message: "ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้ ตรวจสอบที่หน้า admin",
-            suggestion: "กรุณาตรวจสอบการเชื่อมต่อกับตู้เก็บยา และลองใหม่อีกครั้ง",
+            suggestion:
+              "กรุณาตรวจสอบการเชื่อมต่อกับตู้เก็บยา และลองใหม่อีกครั้ง",
             path: "/error/connection-error",
           });
-          
-          throw new Error('KU16 connection error');
+
+          throw new Error("KU16 connection error");
         }
 
         // Use existing KU16 dispense logic
         const result = await ku16Instance.dispense(payload);
-        
-        await logger({
-          user: 'system',
-          message: `KU16 dispense completed: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}, success: ${result.success}`,
+
+        await unifiedLoggingService.logDispensing({
+          userId: userId,
+          slotId: payload.slotId,
+          hn: payload.hn,
+          operation: "dispense",
+          message: `จ่ายยาสำเร็จ: slot ${payload.slotId}, ผลลัพธ์: ${result.success}`,
         });
 
         return result;
-
       } else {
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported for dispense operation`;
         console.error(`[UNIVERSAL-ADAPTER] ${errorMsg}`);
-        
-        await logger({
-          user: 'system',
+
+        await unifiedLoggingService.logError({
           message: `Universal dispense error: ${errorMsg}`,
+          component: "DispenseAdapter",
+          details: { hardwareType: hardwareInfo.type, reason: "hardware_not_supported" },
         });
-        
+
         throw new Error(errorMsg);
       }
-
     } catch (error) {
-      await logger({
-        user: 'system',
-        message: `Universal dispense error: slot ${payload.slotId}, user: ${userName || 'unknown'}, error: ${error.message}`,
+      await unifiedLoggingService.logError({
+        message: `Universal dispense error: slot ${payload.slotId}, user: ${
+          userName || "unknown"
+        }, error: ${error.message}`,
+        component: "DispenseAdapter",
+        details: { slotId: payload.slotId, userId, userName, error: error.message },
       });
 
       // Log the dispense error with authenticated user if available
       if (userId) {
-        await logDispensing({
+        await unifiedLoggingService.logDispensing({
           userId: userId,
-          hn: payload.hn,
           slotId: payload.slotId,
-          process: 'dispense-error',
-          message: 'จ่ายยาล้มเหลว',
+          hn: payload.hn,
+          operation: "dispense",
+          message: "จ่ายยาล้มเหลว: " + error.message,
         });
       }
 
       // Send error event to frontend with appropriate message
-      let errorMessage = 'เกิดข้อผิดพลาดในการจ่ายยา';
-      
-      if (error.message.includes('กรุณากรอกรหัสผ่าน') || 
-          error.message.includes('ไม่พบผู้ใช้งาน')) {
+      let errorMessage = "เกิดข้อผิดพลาดในการจ่ายยา";
+
+      if (
+        error.message.includes("กรุณากรอกรหัสผ่าน") ||
+        error.message.includes("ไม่พบผู้ใช้งาน")
+      ) {
         errorMessage = error.message;
       }
 
-      mainWindow.webContents.send('dispense-error', {
+      mainWindow.webContents.send("dispense-error", {
         slotId: payload.slotId,
         hn: payload.hn,
         message: errorMessage,
-        error: error.message
+        error: error.message,
       });
 
       // Don't re-throw the error - let the operation complete so frontend gets the error event
@@ -206,7 +221,7 @@ export const registerUniversalDispenseHandler = (
         slotId: payload.slotId,
         hn: payload.hn,
         message: errorMessage,
-        error: error.message
+        error: error.message,
       };
     }
   });
@@ -217,44 +232,45 @@ export const registerUniversalDispenseContinueHandler = (
   cu12StateManager: CU12SmartStateManager | null,
   mainWindow: BrowserWindow
 ) => {
-  ipcMain.handle('dispense-continue', async (event, payload) => {
+  ipcMain.handle("dispense-continue", async (event, payload) => {
     try {
       const hardwareInfo = await getHardwareType();
-      
-      console.log(`[UNIVERSAL-ADAPTER] dispense-continue routing to ${hardwareInfo.type} for slot ${payload.slotId}`);
 
-      if (hardwareInfo.type === 'CU12' && cu12StateManager) {
+      console.log(
+        `[UNIVERSAL-ADAPTER] dispense-continue routing to ${hardwareInfo.type} for slot ${payload.slotId}`
+      );
+
+      if (hardwareInfo.type === "CU12" && cu12StateManager) {
         // Route to CU12 dispense continue operation (partial dispense)
-        console.log(`[CU12-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId} - partial dispense`);
-        
+        console.log(
+          `[CU12-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId} - partial dispense`
+        );
+
         try {
           // Step 1: Authenticate user with passkey (matching KU16 pattern)
-          const user = await User.findOne({ where: { passkey: payload.passkey } });
+          const user = await User.findOne({
+            where: { passkey: payload.passkey },
+          });
           if (!user) {
-            await logger({
-              user: 'system',
+            await unifiedLoggingService.logWarning({
               message: `CU12 dispense-continue: user not found for slot ${payload.slotId}`,
+              component: "DispenseAdapter",
+              details: { slotId: payload.slotId, operation: "dispense-continue", reason: "user_not_found" },
             });
             throw new Error("ไม่พบผู้ใช้งาน");
           }
           const userId = user.dataValues.id;
-          
+
           // Step 2: Keep slot data (HN and occupied status remain unchanged)
           // No database update needed - slot stays occupied with current HN
-          
-          // Step 3: Log partial dispense in audit trail
-          await logger({
-            user: 'system',
-            message: `CU12 dispense continue: slot ${payload.slotId}, HN: ${payload.hn} - partial dispense, medication still remaining`,
-          });
 
-          // Log partial dispense with authenticated user ID  
-          await logDispensing({
+          // Step 3: Log partial dispense in audit trail
+          await unifiedLoggingService.logDispensing({
             userId: userId,
-            hn: payload.hn,
             slotId: payload.slotId,
-            process: 'dispense-continue',
-            message: 'จ่ายยาสำเร็จยังมียาอยู่ในช่อง - ดำเนินการต่อ',
+            hn: payload.hn,
+            operation: "dispense-continue",
+            message: `จ่ายยาต่อเนื่อง: slot ${payload.slotId}, HN: ${payload.hn} - ยังมียาเหลืออยู่`,
           });
 
           // Step 4: Close Clear/Continue modal - return to normal state
@@ -263,69 +279,77 @@ export const registerUniversalDispenseContinueHandler = (
             hn: payload.hn,
             timestamp: payload.timestamp,
             dispensing: false, // Close modal
-            reset: false,      // No more modal needed
-            continue: false
+            reset: false, // No more modal needed
+            continue: false,
           });
 
           // Step 5: Update frontend to show slot still occupied
           await cu12StateManager.triggerFrontendSync();
 
-          console.log(`[CU12-DISPENSE-CONTINUE] Continue completed for slot ${payload.slotId} - slot remains occupied`);
+          console.log(
+            `[CU12-DISPENSE-CONTINUE] Continue completed for slot ${payload.slotId} - slot remains occupied`
+          );
 
           return {
             success: true,
             slotId: payload.slotId,
             hn: payload.hn,
-            message: 'Continue operation completed - slot remains occupied',
-            action: 'continue'
+            message: "Continue operation completed - slot remains occupied",
+            action: "continue",
           };
         } catch (error) {
-          console.error(`[CU12-DISPENSE-CONTINUE] Continue operation failed:`, error.message);
+          console.error(
+            `[CU12-DISPENSE-CONTINUE] Continue operation failed:`,
+            error.message
+          );
           throw error;
         }
-
-      } else if (hardwareInfo.type === 'KU16' && ku16Instance) {
+      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
         // Route to KU16 dispense continue operation
-        console.log(`[KU16-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId}`);
-        
+        console.log(
+          `[KU16-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId}`
+        );
+
         if (!ku16Instance.connected) {
-          throw new Error('KU16 connection error');
+          throw new Error("KU16 connection error");
         }
 
         // Use existing KU16 dispense continue logic
         const result = await ku16Instance.dispenseContinue(payload);
-        
-        await logger({
-          user: 'system',
+
+        await unifiedLoggingService.logInfo({
           message: `KU16 dispense continue completed: slot ${payload.slotId}, success: ${result.success}`,
+          component: "DispenseAdapter",
+          details: { slotId: payload.slotId, hardwareType: "KU16", success: result.success },
         });
 
         return result;
-
       } else {
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported`;
         console.error(`[UNIVERSAL-ADAPTER] ${errorMsg}`);
         throw new Error(errorMsg);
       }
-
     } catch (error) {
-      await logger({
-        user: 'system',
+      await unifiedLoggingService.logError({
         message: `Universal dispense-continue error: slot ${payload.slotId}, error: ${error.message}`,
+        component: "DispenseAdapter",
+        details: { slotId: payload.slotId, operation: "dispense-continue", error: error.message },
       });
 
       // Send error event to frontend with appropriate message
-      let errorMessage = 'เกิดข้อผิดพลาดในการดำเนินการต่อ';
-      
-      if (error.message.includes('กรุณากรอกรหัสผ่าน') || 
-          error.message.includes('ไม่พบผู้ใช้งาน')) {
+      let errorMessage = "เกิดข้อผิดพลาดในการดำเนินการต่อ";
+
+      if (
+        error.message.includes("กรุณากรอกรหัสผ่าน") ||
+        error.message.includes("ไม่พบผู้ใช้งาน")
+      ) {
         errorMessage = error.message;
       }
 
-      mainWindow.webContents.send('dispense-continue-error', {
+      mainWindow.webContents.send("dispense-continue-error", {
         slotId: payload.slotId,
         message: errorMessage,
-        error: error.message
+        error: error.message,
       });
 
       // Don't re-throw the error - let the operation complete so frontend gets the error event
@@ -333,7 +357,7 @@ export const registerUniversalDispenseContinueHandler = (
         success: false,
         slotId: payload.slotId,
         message: errorMessage,
-        error: error.message
+        error: error.message,
       };
     }
   });

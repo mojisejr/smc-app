@@ -64,8 +64,23 @@ export default function Document() {
   };
 
   const fetchLogs = async () => {
-    const logs = await ipcRenderer.invoke("get_dispensing_logs");
-    setLogs(logs);
+    try {
+      // ใช้ Enhanced Logging System
+      const result = await ipcRenderer.invoke("get_enhanced_logs", {
+        limit: 500,
+        includeDebug: false,
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      setLogs(result.logs || []);
+    } catch (error) {
+      console.error("Error fetching enhanced logs:", error);
+      toast.error("ไม่สามารถโหลดข้อมูล logs ได้ กรุณาลองใหม่");
+      setLogs([]);
+    }
   };
 
   const tabs = [
@@ -90,40 +105,117 @@ export default function Document() {
   }, [admin, replace]);
 
   const exportLogHandler = async () => {
-    const filename = await ipcRenderer.invoke("export_logs");
-    toast.success(`ส่ง logs ทั้งหมดไปยังไฟล์ ${filename}`);
+    try {
+      const result = await ipcRenderer.invoke("export_logs_with_tracking", {
+        adminId: null, // admin is string, not object with id
+        adminName: admin || "Unknown",
+      });
+
+      if (result.success) {
+        toast.success(
+          `ส่ง logs ทั้งหมดไปยังไฟล์ ${result.filename} (${result.recordCount} รายการ)`
+        );
+      } else {
+        toast.error(result.error || "เกิดข้อผิดพลาดในการส่งออกข้อมูล");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("เกิดข้อผิดพลาดในการส่งออกข้อมูล");
+    }
   };
 
   const handleDeactivateAll = async () => {
-    await ipcRenderer.invoke("deactivate-all", { name: admin });
-    await getAllSlots();
-    toast.success("ยกเลิกการใช้งานระบบทั้งหมด");
+    try {
+      await ipcRenderer.invoke("deactivate-all", { name: admin });
+      await getAllSlots();
+
+      // Track admin operation
+      await ipcRenderer.invoke("track_admin_operation", {
+        adminName: admin,
+        operation: "slot_management",
+        details: {
+          action: "deactivate_all",
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      toast.success("ยกเลิกการใช้งานระบบทั้งหมด");
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาดในการยกเลิกการใช้งาน");
+    }
   };
 
   const handleReactivateAll = async () => {
-    await ipcRenderer.invoke("reactivate-all", {
-      name: admin,
-    });
-    await getAllSlots();
-    toast.success("เปิดใช้งานระบบทั้งหมด");
+    try {
+      await ipcRenderer.invoke("reactivate-all", {
+        name: admin,
+      });
+      await getAllSlots();
+
+      // Track admin operation
+      await ipcRenderer.invoke("track_admin_operation", {
+        adminName: admin,
+        operation: "slot_management",
+        details: {
+          action: "reactivate_all",
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      toast.success("เปิดใช้งานระบบทั้งหมด");
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาดในการเปิดใช้งาน");
+    }
   };
 
   const handleDeactivateAdmin = async (slotId: number) => {
-    await ipcRenderer.invoke("deactivate-admin", {
-      name: admin,
-      slotId: slotId,
-    });
-    await getAllSlots();
-    toast.success(`ยกเลิกการใช้งานช่องยาช่องที่ ${slotId}`);
+    try {
+      await ipcRenderer.invoke("deactivate-admin", {
+        name: admin,
+        slotId: slotId,
+      });
+      await getAllSlots();
+
+      // Track admin operation
+      await ipcRenderer.invoke("track_admin_operation", {
+        adminName: admin,
+        operation: "slot_management",
+        details: {
+          action: "deactivate_slot",
+          slotId: slotId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      toast.success(`ยกเลิกการใช้งานช่องยาช่องที่ ${slotId}`);
+    } catch (error) {
+      toast.error(`เกิดข้อผิดพลาดในการยกเลิกช่องที่ ${slotId}`);
+    }
   };
 
   const handleReactivateAdmin = async (slotId: number) => {
-    await ipcRenderer.invoke("reactivate-admin", {
-      name: admin,
-      slotId: slotId,
-    });
-    await getAllSlots();
-    toast.success(`เปิดใช้งานช่องยาช่องที่ ${slotId}`);
+    try {
+      await ipcRenderer.invoke("reactivate-admin", {
+        name: admin,
+        slotId: slotId,
+      });
+      await getAllSlots();
+
+      // Track admin operation
+      await ipcRenderer.invoke("track_admin_operation", {
+        adminName: admin,
+        operation: "slot_management",
+        details: {
+          action: "reactivate_slot",
+          slotId: slotId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      toast.success(`เปิดใช้งานช่องยาช่องที่ ${slotId}`);
+    } catch (error) {
+      toast.error(`เกิดข้อผิดพลาดในการเปิดช่องที่ ${slotId}`);
+    }
   };
 
   const handleNewUser = () => {

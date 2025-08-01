@@ -1,21 +1,19 @@
-import { ipcMain } from 'electron';
-import { CU12SmartStateManager } from '../stateManager';
-import { logger } from '../../../logger';
+import { ipcMain } from "electron";
+import { CU12SmartStateManager } from "../stateManager";
 
 export const cu12ForceResetHandler = (stateManager: CU12SmartStateManager) => {
-  ipcMain.handle('cu12-force-reset', async (event, payload) => {
+  ipcMain.handle("cu12-force-reset", async (event, payload) => {
     try {
-      await logger({
-        user: 'system',
-        message: `CU12 force reset: slot #${payload.slotId}`,
-      });
+      
 
       // Enter operation mode for force reset
-      await stateManager.enterOperationMode(`force_reset_slot_${payload.slotId}`);
+      await stateManager.enterOperationMode(
+        `force_reset_slot_${payload.slotId}`
+      );
 
       // Force reset bypasses normal state checks
       // This is an emergency operation that should always work
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate force reset time
+      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate force reset time
 
       // Clear any failure tracking for this slot
       const failureDetector = (stateManager as any).failureDetector;
@@ -24,43 +22,40 @@ export const cu12ForceResetHandler = (stateManager: CU12SmartStateManager) => {
       }
 
       // Post-operation sync to verify force reset
-      const postResetStatus = await stateManager.syncSlotStatus('POST_OPERATION');
+      const postResetStatus = await stateManager.syncSlotStatus(
+        "POST_OPERATION"
+      );
+
       
-      await logger({
-        user: 'system',
-        message: `CU12 force reset: slot #${payload.slotId} completed successfully`,
-      });
 
       // Exit operation mode
       await stateManager.exitOperationMode();
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         slotId: payload.slotId,
-        message: 'บังคับรีเซ็ตช่องเก็บยาสำเร็จ',
-        slotStatus: postResetStatus.find(slot => slot.slotId === payload.slotId),
-        monitoringMode: stateManager.getMonitoringMode()
+        message: "บังคับรีเซ็ตช่องเก็บยาสำเร็จ",
+        slotStatus: postResetStatus.find(
+          (slot) => slot.slotId === payload.slotId
+        ),
+        monitoringMode: stateManager.getMonitoringMode(),
       };
-
     } catch (error) {
       // Ensure we exit operation mode even on error
       await stateManager.exitOperationMode();
 
-      await logger({
-        user: 'system',
-        message: `CU12 force reset: slot #${payload.slotId} error - ${error.message}`,
-      });
+      
 
-      event.sender.send('cu12-force-reset-error', {
-        message: 'การบังคับรีเซ็ต CU12 ล้มเหลว กรุณาติดต่อผู้ดูแลระบบ',
+      event.sender.send("cu12-force-reset-error", {
+        message: "การบังคับรีเซ็ต CU12 ล้มเหลว กรุณาติดต่อผู้ดูแลระบบ",
         slotId: payload.slotId,
-        error: error.message
+        error: error.message,
       });
 
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: error.message,
-        slotId: payload.slotId
+        slotId: payload.slotId,
       };
     }
   });
