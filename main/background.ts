@@ -38,6 +38,7 @@ import { IndicatorDevice } from "./indicator";
 import { registerCU12Handlers } from "./hardware/cu12/ipcMain";
 import { registerUniversalAdapters } from "./adapters";
 import { registerEnhancedLoggingHandlers } from "./adapters/enhanced-logging-adapter";
+import { registerHardwareConfigHandlers } from "./setting/ipcMain/hardwareConfigHandlers";
 /**
  * Indicates whether the application is running in production mode.
  *
@@ -194,6 +195,9 @@ if (isProd) {
   setSelectedIndicatorPortHandler();
   setHardwareTypeHandler();
   getHardwareTypeHandler();
+  
+  // Hardware Configuration Wizard handlers
+  registerHardwareConfigHandlers();
 
   // Authentication related handlers (always available)
   loginRequestHandler(mainWindow, auth);
