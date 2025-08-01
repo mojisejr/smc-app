@@ -68,13 +68,13 @@ export const registerUniversalClearSlotHandler = (
           );
 
           // Step 3: Log complete dispense in audit trail with authenticated user
-          // await logDispensing({
-          //   userId: userId,
-          //   hn: payload.hn,
-          //   slotId: payload.slotId,
-          //   process: "dispense-end",
-          //   message: "จ่ายยาสำเร็จไม่มียาเหลือในช่อง - ช่องถูกเคลียร์",
-          // });
+          await unifiedLoggingService.logDispensing({
+            userId: userId,
+            slotId: payload.slotId,
+            hn: payload.hn,
+            operation: "dispense-end",
+            message: `ไม่มียาเหลืออยู่แล้ว ล้างข้อมูลคนไข้ HN. ${payload.hn}`,
+          });
 
           // Step 4: Close Clear/Continue modal - dispense flow complete
           mainWindow.webContents.send("dispensing", {
@@ -134,13 +134,13 @@ export const registerUniversalClearSlotHandler = (
         const result = await ku16Instance.resetSlot(payload.slotId);
 
         // Log complete dispense in audit trail with authenticated user
-        // await logDispensing({
-        //   userId: userId,
-        //   hn: payload.hn,
-        //   slotId: payload.slotId,
-        //   process: "dispense-end",
-        //   message: "จ่ายยาสำเร็จไม่มียาเหลือในช่อง",
-        // });
+        await unifiedLoggingService.logDispensing({
+          userId: userId,
+          slotId: payload.slotId,
+          hn: payload.hn,
+          operation: "dispense-end",
+          message: `ไม่มียาเหลืออยู่แล้ว ล้างข้อมูลคนไข้ HN. ${payload.hn}`,
+        });
 
         await unifiedLoggingService.logInfo({
         message: "System operation logged",

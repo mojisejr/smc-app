@@ -10,7 +10,7 @@ import {
 } from "./utils/command-parser";
 import { SlotState } from "../interfaces/slotState";
 import { unifiedLoggingService } from "../services/unified-logging.service";
-// import { User } from "../../db/model/user.model";
+import { User } from "../../db/model/user.model";
 
 export class KU16 {
   serialPort: SerialPort;

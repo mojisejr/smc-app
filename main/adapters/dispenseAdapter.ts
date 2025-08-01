@@ -5,6 +5,8 @@ import { getHardwareType } from "../setting/getHardwareType";
 import { unifiedLoggingService } from "../services/unified-logging.service";
 import { User } from "../../db/model/user.model";
 
+// Import missing User for KU16 handler fix
+
 /**
  * Universal Dispense Adapters
  *
@@ -102,13 +104,7 @@ export const registerUniversalDispenseHandler = (
             reset: false,
           });
 
-          await unifiedLoggingService.logDispensing({
-            userId: userId,
-            slotId: payload.slotId,
-            hn: payload.hn,
-            operation: "dispense",
-            message: "เริ่มต้นการจ่ายยา - รอการยืนยันจากผู้ใช้",
-          });
+          // Remove initial waiting message - will log actual outcome after dispense completion
 
           return {
             success: true,
@@ -154,18 +150,24 @@ export const registerUniversalDispenseHandler = (
           throw new Error("KU16 connection error");
         }
 
-        // Use existing KU16 dispense logic
-        const result = await ku16Instance.dispense(payload);
+        // Use existing KU16 dispense logic (void method - no return value)
+        await ku16Instance.dispense(payload);
 
+        // KU16 dispense success - log the successful outcome
         await unifiedLoggingService.logDispensing({
           userId: userId,
           slotId: payload.slotId,
           hn: payload.hn,
           operation: "dispense",
-          message: `จ่ายยาสำเร็จ: slot ${payload.slotId}, ผลลัพธ์: ${result.success}`,
+          message: `จ่ายยาสำเร็จ: slot ${payload.slotId} - ยังมียาเหลืออยู่`,
         });
 
-        return result;
+        return {
+          success: true,
+          slotId: payload.slotId,
+          hn: payload.hn,
+          message: "KU16 dispense operation initiated successfully",
+        };
       } else {
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported for dispense operation`;
         console.error(`[UNIVERSAL-ADAPTER] ${errorMsg}`);
@@ -314,16 +316,35 @@ export const registerUniversalDispenseContinueHandler = (
           throw new Error("KU16 connection error");
         }
 
-        // Use existing KU16 dispense continue logic
-        const result = await ku16Instance.dispenseContinue(payload);
+        // KU16 dispense-continue: Keep slot occupied with medicine remaining
+        const user = await User.findOne({
+          where: { passkey: payload.passkey },
+        });
+        if (!user) {
+          throw new Error("ไม่พบผู้ใช้งาน");
+        }
+        const userId = user.dataValues.id;
 
-        await unifiedLoggingService.logInfo({
-          message: `KU16 dispense continue completed: slot ${payload.slotId}, success: ${result.success}`,
-          component: "DispenseAdapter",
-          details: { slotId: payload.slotId, hardwareType: "KU16", success: result.success },
+        // Log that medicine remains in slot
+        await unifiedLoggingService.logDispensing({
+          userId: userId,
+          slotId: payload.slotId,
+          hn: payload.hn,
+          operation: "dispense-continue",
+          message: `จ่ายยาต่อเนื่อง: slot ${payload.slotId}, HN: ${payload.hn} - ยังมียาเหลืออยู่`,
         });
 
-        return result;
+        // Update hardware state
+        await ku16Instance.sleep(1000);
+        ku16Instance.sendCheckState();
+
+        return {
+          success: true,
+          slotId: payload.slotId,
+          hn: payload.hn,
+          message: "Continue operation completed - slot remains occupied",
+          action: "continue",
+        };
       } else {
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported`;
         console.error(`[UNIVERSAL-ADAPTER] ${errorMsg}`);
