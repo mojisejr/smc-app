@@ -326,7 +326,7 @@ export default function Document() {
           <LogsSetting
             logs={logs}
             setting={setting}
-            exportLogHandler={exportLogHandler}
+            adminName={admin}
           />
         );
       default:

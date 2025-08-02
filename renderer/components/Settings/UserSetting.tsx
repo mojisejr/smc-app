@@ -51,7 +51,7 @@ export default function UserSetting({
                   <td>{user.name}</td>
                   <td>{user.role}</td>
                   <td>
-                    {user.role === "ADMIN" ? null : (
+                    {user.role === "ADMIN" || user.role == "SYSTEM" ? null : (
                       <button
                         onClick={() => handleDeleteUser(user.id)}
                         className="btn btn-error btn-sm"

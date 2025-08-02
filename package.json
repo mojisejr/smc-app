@@ -39,6 +39,7 @@
     "@headlessui/react": "^1.7.15",
     "@serialport/parser-byte-length": "^12.0.0",
     "@serialport/parser-packet-length": "^12.0.0",
+    "@types/xlsx": "^0.0.35",
     "axios": "^1.4.0",
     "daisyui": "^3.7.4",
     "dotenv": "^16.3.1",
@@ -53,7 +54,8 @@
     "serialport": "^12.0.0",
     "sqlite3": "^5.1.6",
     "ts-node": "^10.9.1",
-    "typescript": "^5.1.6"
+    "typescript": "^5.1.6",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",

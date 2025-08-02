@@ -39,6 +39,7 @@ import { registerCU12Handlers } from "./hardware/cu12/ipcMain";
 import { registerUniversalAdapters } from "./adapters";
 import { registerEnhancedLoggingHandlers } from "./adapters/enhanced-logging-adapter";
 import { registerHardwareConfigHandlers } from "./setting/ipcMain/hardwareConfigHandlers";
+import "./adapters/enhanced-export-adapter";
 /**
  * Indicates whether the application is running in production mode.
  *
@@ -195,7 +196,7 @@ if (isProd) {
   setSelectedIndicatorPortHandler();
   setHardwareTypeHandler();
   getHardwareTypeHandler();
-  
+
   // Hardware Configuration Wizard handlers
   registerHardwareConfigHandlers();
 
@@ -211,6 +212,11 @@ if (isProd) {
   console.log("[LOGGING] Registering enhanced logging handlers...");
   registerEnhancedLoggingHandlers();
   console.log("[LOGGING] Enhanced logging system activated");
+
+  // Enhanced Export System - Provides CSV/XLSX export with Thai encoding
+  console.log(
+    "[EXPORT] Enhanced export system with CSV/XLSX support activated"
+  );
 
   // Hardware-specific handlers registration
   if (hardwareInfo.type === "CU12" && cu12Initialized) {
@@ -257,7 +263,7 @@ if (isProd) {
   } else {
     const port = process.argv[2];
     await mainWindow.loadURL(`http://localhost:${port}/home`);
-    // mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
   }
 })();
 
