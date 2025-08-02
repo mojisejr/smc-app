@@ -9,8 +9,12 @@ module.exports = {
     colors: {
       // use colors only specified
       white: colors.white,
+      black: colors.black,
       gray: colors.gray,
       blue: colors.blue,
+      red: colors.red,
+      green: colors.green,
+      yellow: colors.yellow,
       bg_1: "#F9FFFF",
       bg_2: "#F3F3F3",
       text_1: "#615858",
