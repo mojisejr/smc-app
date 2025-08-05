@@ -15,7 +15,8 @@ import { User } from "../../db/model/user.model";
 export const registerUniversalResetHandler = (
   ku16Instance: KU16 | null,
   cu12StateManager: CU12SmartStateManager | null,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  ku16StateManager?: any // Added for compatibility with new architecture
 ) => {
   ipcMain.handle("reset", async (event, payload) => {
     try {
@@ -147,7 +148,8 @@ export const registerUniversalResetHandler = (
 export const registerUniversalForceResetHandler = (
   ku16Instance: KU16 | null,
   cu12StateManager: CU12SmartStateManager | null,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  ku16StateManager?: any // Added for compatibility with new architecture
 ) => {
   ipcMain.handle("force-reset", async (event, payload) => {
     let userId = null;

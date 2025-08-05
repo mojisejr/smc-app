@@ -1,5 +1,6 @@
 import { ipcMain, BrowserWindow } from "electron";
-import { KU16 } from "../ku16";
+import { KU16 } from "../ku16"; // Legacy - to be removed
+import { KU16SmartStateManager } from "../hardware/ku16/stateManager"; // New modern KU16
 import { CU12SmartStateManager } from "../hardware/cu12/stateManager";
 import { getHardwareType } from "../setting/getHardwareType";
 import { unifiedLoggingService } from "../services/unified-logging.service";
@@ -17,9 +18,10 @@ import { User } from "../../db/model/user.model";
  */
 
 export const registerUniversalUnlockHandler = (
-  ku16Instance: KU16 | null,
+  ku16Instance: KU16 | null, // Legacy - to be removed
   cu12StateManager: CU12SmartStateManager | null,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  ku16StateManager?: KU16SmartStateManager | null // New modern KU16 - optional for transition
 ) => {
   ipcMain.handle("unlock", async (event, payload) => {
     let userId = null;
@@ -164,73 +166,150 @@ export const registerUniversalUnlockHandler = (
           // Always exit operation mode
           await cu12StateManager.exitOperationMode();
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
-        // Route to KU16 unlock operation
+      } else if (hardwareInfo.type === "KU16") {
+        // Route to KU16 unlock operation - Modern or Legacy
         console.log(
           `[KU16-UNLOCK] Processing unlock for slot ${payload.slotId}`
         );
 
-        if (!ku16Instance.connected) {
-          await unifiedLoggingService.logError({
-            message: `KU16 unlock failed: connection error for slot ${payload.slotId}`,
-            component: "KU16-UnlockAdapter",
-            details: {
+        // Use new KU16SmartStateManager if available, otherwise fall back to legacy
+        if (ku16StateManager) {
+          // NEW: Modern KU16 using state manager (same pattern as CU12)
+          console.log(
+            `[KU16-MODERN-UNLOCK] Using KU16SmartStateManager for slot ${payload.slotId}`
+          );
+
+          try {
+            // Prepare unlock payload with user authentication
+            const unlockPayload = {
               slotId: payload.slotId,
-              reason: "connection_error",
-              hardware: "KU16",
-            },
+              hn: payload.hn,
+              timestamp: payload.timestamp,
+              passkey: sanitizedPasskey
+            };
+
+            // Execute unlock operation with modern state management
+            const result = await ku16StateManager.performUnlockOperation(unlockPayload);
+
+            if (result.success) {
+              // Log successful unlock with Enhanced Logging
+              await unifiedLoggingService.logUnlock({
+                userId: userId,
+                slotId: payload.slotId,
+                hn: payload.hn,
+                message: `ปลดล็อกช่องยาช่องที่ ${payload.slotId} สำเร็จ โดย ${userName}`,
+              });
+
+              await unifiedLoggingService.logInfo({
+                message: `KU16 modern unlock completed successfully: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
+                component: "KU16-ModernUnlockAdapter",
+                details: {
+                  slotId: payload.slotId,
+                  hn: payload.hn,
+                  userId,
+                  userName,
+                  hardware: "KU16-Modern",
+                },
+              });
+
+              return {
+                success: true,
+                slotId: payload.slotId,
+                message: "KU16 unlock operation completed successfully",
+                modernArchitecture: true
+              };
+            } else {
+              await unifiedLoggingService.logError({
+                message: `KU16 modern unlock failed: slot ${payload.slotId}, error: ${result.error}`,
+                component: "KU16-ModernUnlockAdapter",
+                details: {
+                  slotId: payload.slotId,
+                  hn: payload.hn,
+                  userId,
+                  userName,
+                  hardware: "KU16-Modern",
+                  error: result.error,
+                },
+              });
+              throw new Error(result.error || "KU16 unlock operation failed");
+            }
+          } catch (error) {
+            await unifiedLoggingService.logError({
+              message: `KU16 modern unlock operation failed: ${error.message}`,
+              component: "KU16-ModernUnlockAdapter",
+              details: {
+                slotId: payload.slotId,
+                error: error.message,
+                hardware: "KU16-Modern",
+              },
+            });
+            throw error;
+          }
+
+        } else if (ku16Instance) {
+          // LEGACY: Old monolithic KU16 class (for backward compatibility during transition)
+          console.log(
+            `[KU16-LEGACY-UNLOCK] Using legacy KU16 class for slot ${payload.slotId}`
+          );
+
+          if (!ku16Instance.connected) {
+            await unifiedLoggingService.logError({
+              message: `KU16 legacy unlock failed: connection error for slot ${payload.slotId}`,
+              component: "KU16-LegacyUnlockAdapter",
+              details: {
+                slotId: payload.slotId,
+                reason: "connection_error",
+                hardware: "KU16-Legacy",
+              },
+            });
+
+            mainWindow.webContents.send("init-failed-on-connection-error", {
+              title: "ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้",
+              message: "ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้ ตรวจสอบที่หน้า admin",
+              suggestion:
+                "กรุณาตรวจสอบการเชื่อมต่อกับตู้เก็บยา และลองใหม่อีกครั้ง",
+              path: "/error/connection-error",
+            });
+
+            throw new Error("KU16 connection error");
+          }
+
+          // Use existing KU16 unlock logic
+          const result = await ku16Instance.sendUnlock({
+            slotId: payload.slotId,
+            hn: payload.hn,
+            timestamp: payload.timestamp
           });
 
-          mainWindow.webContents.send("init-failed-on-connection-error", {
-            title: "ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้",
-            message: "ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้ ตรวจสอบที่หน้า admin",
-            suggestion:
-              "กรุณาตรวจสอบการเชื่อมต่อกับตู้เก็บยา และลองใหม่อีกครั้ง",
-            path: "/error/connection-error",
-          });
-
-          throw new Error("KU16 connection error");
-        }
-
-        // Use existing KU16 unlock logic
-        const result = await ku16Instance.unlock(payload);
-
-        // Log successful unlock with Enhanced Logging
-        if (result.success) {
+          // Log successful unlock with Enhanced Logging
           await unifiedLoggingService.logUnlock({
             userId: userId,
             slotId: payload.slotId,
             hn: payload.hn,
-            message: `ปลดล็อกช่องยาช่องที่ ${payload.slotId} สำเร็จ โดย ${userName}`,
+            message: `ปลดล็อกช่องยาช่องที่ ${payload.slotId} สำเร็จ โดย ${userName} (Legacy)`,
           });
 
           await unifiedLoggingService.logInfo({
-            message: `KU16 unlock completed successfully: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
-            component: "KU16-UnlockAdapter",
+            message: `KU16 legacy unlock initiated: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
+            component: "KU16-LegacyUnlockAdapter",
             details: {
               slotId: payload.slotId,
               hn: payload.hn,
               userId,
               userName,
-              hardware: "KU16",
+              hardware: "KU16-Legacy",
             },
           });
-        } else {
-          await unifiedLoggingService.logError({
-            message: `KU16 unlock failed: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
-            component: "KU16-UnlockAdapter",
-            details: {
-              slotId: payload.slotId,
-              hn: payload.hn,
-              userId,
-              userName,
-              hardware: "KU16",
-              reason: "unlock_failed",
-            },
-          });
-        }
 
-        return result;
+          return {
+            success: true,
+            slotId: payload.slotId,
+            message: "KU16 legacy unlock initiated",
+            legacyMode: true
+          };
+        } else {
+          throw new Error("No KU16 instance available (neither modern nor legacy)");
+        }
       } else {
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported for unlock operation`;
         console.error(`[UNIVERSAL-ADAPTER] ${errorMsg}`);

@@ -4,7 +4,8 @@ import { createWindow } from "./helpers";
 
 // Import database and hardware related modules
 import { sequelize } from "../db/sequelize";
-import { KU16 } from "./ku16";
+import { KU16 } from "./ku16"; // Legacy - to be removed
+import { KU16SmartStateManager } from "./hardware/ku16/stateManager"; // New modern KU16
 import { CU12SmartStateManager } from "./hardware/cu12/stateManager";
 
 // Import IPC handlers for various functionalities
@@ -50,6 +51,8 @@ const isProd: boolean = process.env.NODE_ENV === "production";
 let mainWindow: BrowserWindow;
 let cu12StateManager: CU12SmartStateManager | null = null;
 let cu12Initialized = false;
+let ku16StateManager: KU16SmartStateManager | null = null; // New modern KU16
+let ku16Initialized = false;
 
 // Configure electron-serve for production mode
 if (isProd) {
@@ -145,26 +148,81 @@ if (isProd) {
       console.error("[CU12] Initialization failed:", error.message);
     }
   } else if (hardwareInfo.type === "KU16" && hardwareInfo.isConfigured) {
-    // KU16 Mode - Initialize KU16 only
+    // KU16 Mode - Initialize both modern and legacy KU16 for transition
     console.log("[HARDWARE] Initializing KU16 (15-slot system)...");
 
-    ku16 = new KU16(
-      hardwareInfo.port!,
-      hardwareInfo.baudrate!,
-      hardwareInfo.maxSlots,
-      mainWindow
-    );
+    // Initialize NEW modern KU16SmartStateManager
+    ku16StateManager = new KU16SmartStateManager(mainWindow, {
+      healthCheckInterval: 5 * 60 * 1000, // 5 minutes for 24/7 stability
+      userInactiveTimeout: 2 * 60 * 1000, // 2 minutes user timeout
+      failureThreshold: 3,
+      performanceMonitoring: true,
+      detailedLogging: false, // Set to true for debugging
+    });
+
+    try {
+      ku16Initialized = await ku16StateManager.initialize({
+        port: hardwareInfo.port!,
+        baudRate: hardwareInfo.baudrate!,
+        timeout: 5000,
+        maxSlots: 15, // KU16 specific
+      });
+      console.log(
+        `[KU16-MODERN] Initialization: ${ku16Initialized ? "SUCCESS" : "FAILED"}`
+      );
+    } catch (error) {
+      console.error("[KU16-MODERN] Initialization failed:", error.message);
+    }
+
+    // Initialize LEGACY KU16 for backward compatibility during transition
+    try {
+      ku16 = new KU16(
+        hardwareInfo.port!,
+        hardwareInfo.baudrate!,
+        hardwareInfo.maxSlots,
+        mainWindow
+      );
+      console.log("[KU16-LEGACY] Legacy instance created for backward compatibility");
+    } catch (error) {
+      console.error("[KU16-LEGACY] Legacy initialization failed:", error.message);
+    }
   } else {
-    // No hardware configured or unknown type
+    // No hardware configured or unknown type - create KU16 fallback
     console.warn(
-      "[HARDWARE] No valid hardware configuration found - creating KU16 fallback"
+      "[HARDWARE] No valid hardware configuration found - creating KU16 modern + legacy fallback"
     );
+
+    // Modern KU16 fallback
+    ku16StateManager = new KU16SmartStateManager(mainWindow, {
+      healthCheckInterval: 5 * 60 * 1000,
+      userInactiveTimeout: 2 * 60 * 1000,
+      failureThreshold: 3,
+      performanceMonitoring: false, // Reduced for fallback mode
+      detailedLogging: false,
+    });
+
+    try {
+      ku16Initialized = await ku16StateManager.initialize({
+        port: settings.ku_port || "/dev/tty.usbserial-default",
+        baudRate: settings.ku_baudrate || 19200,
+        timeout: 5000,
+        maxSlots: 15,
+      });
+      console.log(
+        `[KU16-MODERN-FALLBACK] Initialization: ${ku16Initialized ? "SUCCESS" : "FAILED"}`
+      );
+    } catch (error) {
+      console.error("[KU16-MODERN-FALLBACK] Initialization failed:", error.message);
+    }
+
+    // Legacy KU16 fallback
     ku16 = new KU16(
       settings.ku_port || "/dev/tty.usbserial-default",
       settings.ku_baudrate || 19200,
       settings.available_slots || 15,
       mainWindow
     );
+    console.log("[KU16-LEGACY-FALLBACK] Legacy fallback instance created");
   }
 
   // Initialize authentication system
@@ -206,7 +264,7 @@ if (isProd) {
 
   // Universal IPC Adapters - Works with both KU16 and CU12
   console.log("[HARDWARE] Registering universal IPC adapters...");
-  registerUniversalAdapters(ku16, cu12StateManager, mainWindow);
+  registerUniversalAdapters(ku16, cu12StateManager, mainWindow, ku16StateManager);
 
   // Enhanced Logging System - Replaces legacy logging
   console.log("[LOGGING] Registering enhanced logging handlers...");
@@ -278,5 +336,26 @@ app.on("window-all-closed", async () => {
       console.error("[CU12] Cleanup error:", error.message);
     }
   }
+
+  // Cleanup KU16 Modern resources before quitting
+  if (ku16Initialized && ku16StateManager) {
+    try {
+      await ku16StateManager.cleanup();
+      console.log("[KU16-MODERN] Cleanup completed successfully");
+    } catch (error) {
+      console.error("[KU16-MODERN] Cleanup error:", error.message);
+    }
+  }
+
+  // Legacy KU16 cleanup
+  if (ku16) {
+    try {
+      ku16.close();
+      console.log("[KU16-LEGACY] Cleanup completed successfully");
+    } catch (error) {
+      console.error("[KU16-LEGACY] Cleanup error:", error.message);
+    }
+  }
+
   app.quit();
 });

@@ -18,7 +18,8 @@ import { unifiedLoggingService } from "../services/unified-logging.service";
 export const registerUniversalClearSlotHandler = (
   ku16Instance: KU16 | null,
   cu12StateManager: CU12SmartStateManager | null,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  ku16StateManager?: any // Added for compatibility with new architecture
 ) => {
   // ipcMain.handle('clear-slot', async (event, payload) => {
   ipcMain.handle("clear-slot", async (event, payload) => {

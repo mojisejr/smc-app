@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron';
-import { KU16 } from '../ku16';
+import { KU16 } from '../ku16'; // Legacy - to be removed
+import { KU16SmartStateManager } from '../hardware/ku16/stateManager'; // New modern KU16
 import { CU12SmartStateManager } from '../hardware/cu12/stateManager';
 
 // Import all universal adapters
@@ -45,9 +46,10 @@ import { registerUniversalConnectionHandler } from './connectionAdapter';
  */
 
 export const registerUniversalAdapters = (
-  ku16Instance: KU16 | null,
+  ku16Instance: KU16 | null, // Legacy - to be removed
   cu12StateManager: CU12SmartStateManager | null,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  ku16StateManager?: KU16SmartStateManager | null // New modern KU16 - optional for transition
 ) => {
   console.log('[ADAPTER] Registering universal IPC adapters...');
   
@@ -57,14 +59,14 @@ export const registerUniversalAdapters = (
   registerUniversalConnectionHandler(ku16Instance, cu12StateManager, mainWindow);
   // NOTE: Logging handlers now managed by Enhanced Logging System in background.ts
   
-  // Core operation adapters (NEW - Critical for CU12 compatibility)
-  registerUniversalUnlockHandler(ku16Instance, cu12StateManager, mainWindow);
-  registerUniversalDispenseHandler(ku16Instance, cu12StateManager, mainWindow);
-  registerUniversalDispenseContinueHandler(ku16Instance, cu12StateManager, mainWindow);
-  registerUniversalResetHandler(ku16Instance, cu12StateManager, mainWindow);
-  registerUniversalForceResetHandler(ku16Instance, cu12StateManager, mainWindow);
-  registerUniversalCheckLockedBackHandler(ku16Instance, cu12StateManager, mainWindow);
-  registerUniversalClearSlotHandler(ku16Instance, cu12StateManager, mainWindow);
+  // Core operation adapters (Critical for both KU16 and CU12 compatibility)
+  registerUniversalUnlockHandler(ku16Instance, cu12StateManager, mainWindow, ku16StateManager);
+  registerUniversalDispenseHandler(ku16Instance, cu12StateManager, mainWindow, ku16StateManager);
+  registerUniversalDispenseContinueHandler(ku16Instance, cu12StateManager, mainWindow, ku16StateManager);
+  registerUniversalResetHandler(ku16Instance, cu12StateManager, mainWindow, ku16StateManager);
+  registerUniversalForceResetHandler(ku16Instance, cu12StateManager, mainWindow, ku16StateManager);
+  registerUniversalCheckLockedBackHandler(ku16Instance, cu12StateManager, mainWindow, ku16StateManager);
+  registerUniversalClearSlotHandler(ku16Instance, cu12StateManager, mainWindow, ku16StateManager);
   
   // Admin management adapters
   registerUniversalDeactivateAdminHandler(ku16Instance, cu12StateManager, mainWindow);

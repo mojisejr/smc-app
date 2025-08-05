@@ -18,7 +18,8 @@ import { User } from "../../db/model/user.model";
 export const registerUniversalDispenseHandler = (
   ku16Instance: KU16 | null,
   cu12StateManager: CU12SmartStateManager | null,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  ku16StateManager?: any // Added for compatibility - to be typed properly later
 ) => {
   ipcMain.handle("dispense", async (event, payload) => {
     let userId = null;
@@ -251,7 +252,8 @@ export const registerUniversalDispenseHandler = (
 export const registerUniversalDispenseContinueHandler = (
   ku16Instance: KU16 | null,
   cu12StateManager: CU12SmartStateManager | null,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  ku16StateManager?: any // Added for compatibility with new architecture
 ) => {
   ipcMain.handle("dispense-continue", async (event, payload) => {
     try {

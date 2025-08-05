@@ -17,7 +17,8 @@ import { unifiedLoggingService } from "../services/unified-logging.service";
 export const registerUniversalCheckLockedBackHandler = (
   ku16Instance: KU16 | null,
   cu12StateManager: CU12SmartStateManager | null,
-  mainWindow: BrowserWindow
+  mainWindow: BrowserWindow,
+  ku16StateManager?: any // Added for compatibility with new architecture
 ) => {
   ipcMain.handle("check-locked-back", async (event, payload) => {
     try {
