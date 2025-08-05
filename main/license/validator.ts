@@ -1,12 +1,9 @@
 import { createHash } from "crypto";
-import * as fs from "fs";
 import * as os from "os";
-import * as path from "path";
+import * as jwt from "jsonwebtoken";
 import { Setting } from "../../db/model/setting.model";
-
-//ByPassConfig
-//⭕️ Need To REMOVE when release
-const bypass = true;
+import { LICENSE_CONFIG, APP_SERIAL } from "../config/constants";
+import { ESP32Client } from "../utils/esp32Client";
 
 // 🔹 ฟังก์ชันสร้าง HWID (อิงจาก MAC Address และ Hostname)
 export function getHardwareId(): string {
@@ -18,88 +15,174 @@ export function getHardwareId(): string {
     .digest("hex");
 }
 
-// 🔹 ฟังก์ชันถอดรหัส License Key
-export function decryptLicense(licenseKey: string) {
+interface LicensePayload {
+  app_serial: string;
+  mac_address: string;
+  ssid: string;
+  password: string;
+  ip_address: string;
+  exp: number;
+  iat: number;
+}
+
+/**
+ * Helper function to delete license from database when validation fails
+ */
+async function deleteLicenseFromDatabase(): Promise<void> {
+  console.log("🗑️ [DEBUG] Deleting invalid license from database...");
   try {
-    const decoded = Buffer.from(licenseKey, "base64").toString();
-    return JSON.parse(decoded);
+    await Setting.update({ activated_key: null }, { where: { id: 1 } });
+    console.log("✅ [DEBUG] License deleted from database successfully");
   } catch (error) {
-    return null;
+    console.error("❌ [DEBUG] Failed to delete license from database:", error);
   }
 }
 
-// 🔹 ฟังก์ชันโหลด License Key จากไฟล์
-export async function loadLicense(): Promise<string | null> {
-  //   const licensePath = path.join(os.homedir(), ".myapp_license");
-  const response = await Setting.findOne({ where: { id: 1 } });
-  const licensePath = response.dataValues.activated_key;
-  return licensePath;
-}
-
-// 🔹 ฟังก์ชันตรวจสอบ License Key
+// 🔹 ฟังก์ชันตรวจสอบว่าระบบมีการ activate แล้วหรือไม่และตรวจสอบ ESP32
 export async function validateLicense(): Promise<boolean> {
-  //⭕️ Need to remove when release
-  if (bypass) {
-    return true;
-  }
-  const licenseKey = await loadLicense();
-  if (!licenseKey) return false;
+  console.log(
+    "🔍 [DEBUG] validateLicense: Starting comprehensive license validation..."
+  );
 
-  const licenseData = decryptLicense(licenseKey);
-  if (!licenseData) return false;
-
-  const currentHWID = getHardwareId();
-  if (licenseData.hwid !== currentHWID) return false; // HWID ไม่ตรง
-
-  // console.log(licenseData.expiry);
-
-  if (new Date(licenseData.expiry) < new Date()) return false; // License หมดอายุ
-
-  const response = await Setting.findOne({ where: { id: 1 } });
-  const organization = response.dataValues.organization;
-  const customerName = response.dataValues.customer_name;
-
-  if (licenseData.customerName !== organization) return false;
-  if (licenseData.organization !== customerName) return false;
-
-  return true;
-}
-
-// 🔹 ฟังก์ชันติดตั้ง License Key (สำหรับผู้ใช้)
-export async function activateLicense(licenseKey: string): Promise<boolean> {
-  const licenseData = decryptLicense(licenseKey);
-
-  if (!licenseData) return false;
-
-  const setting = await Setting.findOne({ where: { id: 1 } });
-
-  const organization = setting.dataValues.organization;
-  const customer_name = setting.dataValues.customer_name;
-
-  if (licenseData.hwid !== getHardwareId()) return false; // ป้องกันการใช้ Key กับเครื่องอื่น
-
-  if (customer_name !== licenseData.organization) return false;
-  if (organization !== licenseData.customerName) return false;
-
-  //save license key to database
-
-  const result = await saveLicense(licenseKey);
-  return result;
-}
-
-async function saveLicense(licenseKey: string) {
   try {
-    const result = await Setting.update(
-      {
-        activated_key: licenseKey,
-      },
-      { where: { id: 1 } }
+    // Step 1: Get license from database
+    console.log(
+      "📂 [DEBUG] validateLicense: Fetching license from database..."
+    );
+    const setting = await Setting.findOne({ where: { id: 1 } });
+    if (!setting || !setting.dataValues.activated_key) {
+      console.warn("⚠️ [DEBUG] validateLicense: No license found in database");
+      return false;
+    }
+
+    const token = setting.dataValues.activated_key;
+    console.log(
+      `🔑 [DEBUG] validateLicense: Found token in database (length: ${token.length})`
+    );
+    console.log(
+      `🔑 [DEBUG] validateLicense: Token preview: ${token.substring(0, 50)}...`
     );
 
-    if (result.length < 0) return false;
-    return true;
+    // In test mode, just check if token exists
+    if (LICENSE_CONFIG.TEST_MODE) {
+      console.log(
+        "⚠️ [DEBUG] validateLicense: TEST MODE - License validation passed (token exists)"
+      );
+      return true;
+    }
+
+    let decoded: LicensePayload;
+
+    try {
+      // Step 2: Verify and decode JWT
+      console.log("🔒 [DEBUG] validateLicense: Verifying JWT signature...");
+      const SECRET_KEY = LICENSE_CONFIG.JWT_SECRET_KEY;
+      console.log(
+        `🔑 [DEBUG] validateLicense: Using secret key: ${SECRET_KEY.substring(
+          0,
+          20
+        )}...`
+      );
+
+      decoded = jwt.verify(token, SECRET_KEY) as LicensePayload;
+      console.log("✅ [DEBUG] validateLicense: JWT verification successful");
+      console.log(
+        "📋 [DEBUG] validateLicense: Decoded token:",
+        JSON.stringify(decoded, null, 2)
+      );
+
+      // Check if token is expired
+      const now = Math.floor(Date.now() / 1000);
+      console.log(
+        `⏰ [DEBUG] validateLicense: Current time: ${now}, Token expires: ${decoded.exp}`
+      );
+
+      if (decoded.exp && decoded.exp < now) {
+        console.error(
+          "❌ [DEBUG] validateLicense: Token is expired - deleting license"
+        );
+        await deleteLicenseFromDatabase();
+        return false;
+      }
+    } catch (error) {
+      console.error(
+        "❌ [DEBUG] validateLicense: JWT validation error:",
+        error.message
+      );
+      console.error(
+        "❌ [DEBUG] validateLicense: Invalid JWT - deleting license"
+      );
+      await deleteLicenseFromDatabase();
+      return false;
+    }
+
+    try {
+      // Step 3: Validate app_serial number
+      console.log("🔒 [DEBUG] validateLicense: Checking app_serial...");
+      console.log(`🔑 [DEBUG] Expected app_serial: "${APP_SERIAL}"`);
+      console.log(`🔑 [DEBUG] Token app_serial: "${decoded.app_serial}"`);
+
+      if (decoded.app_serial !== APP_SERIAL) {
+        console.error(
+          "❌ [DEBUG] validateLicense: App serial mismatch - deleting license"
+        );
+        await deleteLicenseFromDatabase();
+        return false;
+      }
+      console.log("✅ [DEBUG] validateLicense: App serial validation passed");
+
+      // Step 4: Check ESP32 connection and validate MAC address
+      console.log("🌐 [DEBUG] validateLicense: Validating ESP32 connection...");
+      console.log(`📡 [DEBUG] Target ESP32 IP: ${decoded.ip_address}`);
+      console.log(`🔍 [DEBUG] Expected MAC: ${decoded.mac_address}`);
+
+      const esp32Client = new ESP32Client(decoded.ip_address);
+
+      // Check ESP32 health
+      console.log("🏥 [DEBUG] validateLicense: Checking ESP32 health...");
+      const healthResponse = await esp32Client.checkHealth();
+      console.log("✅ [DEBUG] validateLicense: ESP32 health check passed");
+      console.log(`💚 [DEBUG] ESP32 status: ${healthResponse.server.status}`);
+
+      // Get MAC address from ESP32
+      console.log(
+        "🔍 [DEBUG] validateLicense: Getting MAC address from ESP32..."
+      );
+      const actualMacAddress = await esp32Client.getMacAddress();
+      console.log(`🏷️ [DEBUG] ESP32 MAC address: ${actualMacAddress}`);
+
+      // Step 5: Compare MAC addresses
+      console.log("🔍 [DEBUG] validateLicense: Comparing MAC addresses...");
+      console.log(`🔑 [DEBUG] Expected: "${decoded.mac_address}"`);
+      console.log(`🔑 [DEBUG] Got: "${actualMacAddress}"`);
+
+      if (actualMacAddress !== decoded.mac_address) {
+        console.error(
+          "❌ [DEBUG] validateLicense: MAC address mismatch - deleting license"
+        );
+        await deleteLicenseFromDatabase();
+        return false;
+      }
+      console.log("✅ [DEBUG] validateLicense: MAC address validation passed");
+
+      console.log(
+        "🎉 [DEBUG] validateLicense: All validations passed successfully!"
+      );
+      return true;
+    } catch (error) {
+      console.error(
+        "❌ [DEBUG] validateLicense: ESP32 validation failed:",
+        error.message
+      );
+      console.error(
+        "❌ [DEBUG] validateLicense: Cannot connect to ESP32 or validation failed - deleting license"
+      );
+      await deleteLicenseFromDatabase();
+      return false;
+    }
   } catch (error) {
-    console.log(error);
+    console.error("❌ [DEBUG] validateLicense: Unexpected error:", error);
+    await deleteLicenseFromDatabase();
     return false;
   }
 }
