@@ -73,17 +73,7 @@ const Navbar = ({ active }: NavbarProps) => {
           <span>หน้าหลัก</span>
         </button>
       </Link>
-      <Link href="/document">
-        <button
-          className={`btn btn-ghost flex justify-start items-center gap-2  ${
-            active == 2 ? "btn-active text-white" : null
-          }`}
-        >
-          <BsBook size={16} />
-          <span>คู่มือการใช้งาน</span>
-        </button>
-      </Link>
-      <Link href="/about">
+      {/* <Link href="/about">
         <button
           className={`btn btn-ghost flex justify-start items-center gap-2  ${
             active == 3 ? "btn-active text-white" : null
@@ -92,7 +82,7 @@ const Navbar = ({ active }: NavbarProps) => {
           <BsQuestionCircle size={16} />
           <span>ข้อมูลระบบ</span>
         </button>
-      </Link>
+      </Link> */}
       <Link href="/logs">
         <button
           className={`btn btn-ghost flex justify-start items-center gap-2  ${
@@ -111,6 +101,16 @@ const Navbar = ({ active }: NavbarProps) => {
         <FaLock size={16} />
         <span>Admin</span>
       </button>
+      <Link href="/document">
+        <button
+          className={`btn btn-ghost flex justify-start items-center gap-2  ${
+            active == 2 ? "btn-active text-white" : null
+          }`}
+        >
+          <BsBook size={16} />
+          <span>คู่มือการใช้งาน</span>
+        </button>
+      </Link>
       <Modal
         isOpen={openDispenseModal}
         onClose={() => setOpenDispenseModal(false)}

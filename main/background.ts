@@ -40,6 +40,7 @@ import { registerCU12Handlers } from "./hardware/cu12/ipcMain";
 import { registerUniversalAdapters } from "./adapters";
 import { registerEnhancedLoggingHandlers } from "./adapters/enhanced-logging-adapter";
 import { registerHardwareConfigHandlers } from "./setting/ipcMain/hardwareConfigHandlers";
+import { registerUserGuideAdapters } from "./adapters/userGuideAdapter";
 import "./adapters/enhanced-export-adapter";
 /**
  * Indicates whether the application is running in production mode.
@@ -270,6 +271,11 @@ if (isProd) {
   console.log("[LOGGING] Registering enhanced logging handlers...");
   registerEnhancedLoggingHandlers();
   console.log("[LOGGING] Enhanced logging system activated");
+  
+  // User Guide Documentation System - Modern documentation with hardware detection
+  console.log("[USER-GUIDE] Registering user guide documentation handlers...");
+  registerUserGuideAdapters();
+  console.log("[USER-GUIDE] User guide documentation system activated");
 
   // Enhanced Export System - Provides CSV/XLSX export with Thai encoding
   console.log(

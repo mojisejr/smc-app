@@ -6,74 +6,34 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import Navbar from "../components/Shared/Navbar";
+import UserGuideView from "../components/UserGuide/UserGuideView";
 
-// import Indicators from "../components/Indicators/indicators";
+// Modern User Guide Documentation System
+// Replaces basic documentation with comprehensive, hardware-adaptive user guide
 
 function Document() {
   return (
     <>
       <Head>
-        <title>Smart Medication Cart V1.0</title>
+        <title>Smart Medication Cart V1.0 - คู่มือการใช้งาน</title>
       </Head>
-      <div className=" grid grid-cols-12 text-2xl text-center h-screen">
+      <div className="grid grid-cols-12 text-2xl text-center h-screen">
         <div className="col-span-2 flex flex-col justify-between">
           <div className="w-full px-3 py-10 flex flex-col gap-3 justify-center items-center">
             <Image
               src="/images/deprecision.png"
               width={86}
               height={85}
-              alt="logo"
+              alt="Smart Medication Cart Logo"
             />
 
             <Navbar active={2} />
-
-            {/* <div className="w-full px-3 flex  flex-col gap-2 justify-start items-center">
-              <Indicators />
-            </div> */}
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
-          <div className="w-full h-full p-[2rem] flex flex-col gap-[2rem] overflow-y-auto">
-            <h1 className="text-5xl">คู่มือการใช้งาน</h1>
-            <div className="h-[80h] overflow-auto">
-              <div className="text-start text-xl underline">
-                ขั้นตอนการจัดยา
-              </div>
-              <ul className="flex items-start wrap flex-col text-sm">
-                <li>1. select the slot card that has "Red Locked indicator"</li>
-                <li>
-                  2. input the HN number and click "Unlock button" system will
-                  open the drug slot at the selected slot on screen
-                </li>
-                <li>
-                  3. put the drugs in to the slot and slide the slot back
-                  securely
-                </li>
-              </ul>
-
-              <div className="text-start text-xl underline">
-                ขั้นตอนการจ่ายยา
-              </div>
-              <ul className="flex items-start wrap flex-col text-sm">
-                <li>
-                  1. select the slot card that has "Green Locked" that means
-                  there are some drugs inside
-                </li>
-                <li>
-                  2. input the HN number and click "Unlock button" system will
-                  open the drug slot at the selected slot on screen
-                </li>
-                <li>
-                  3. put the drugs out of the slot and slide the slot back
-                  securely
-                </li>
-                <li>
-                  4. select "Clear Slot" button to clear information an make the
-                  selected slot back to avaliable state
-                </li>
-                <li>5. or select "Continue" button to keep the infomation</li>
-              </ul>
-            </div>
+          <div className="w-full h-full overflow-hidden">
+            {/* Modern User Guide Component with hardware detection and comprehensive content */}
+            <UserGuideView />
           </div>
         </div>
       </div>

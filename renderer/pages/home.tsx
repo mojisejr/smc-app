@@ -163,7 +163,7 @@ function Home() {
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
           <div className="w-full h-full p-[2rem] flex flex-col gap-[1.2rem] overflow-y-auto">
             {/* Connection Status Bar */}
-            <ConnectionStatusBar className="mb-4" showRefreshButton={true} />
+            <ConnectionStatusBar showRefreshButton={true} />
             <>
               {mockSlots === undefined ? (
                 <div>Error: undefined</div>
