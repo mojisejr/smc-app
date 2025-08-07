@@ -113,8 +113,8 @@ export default function SystemSetting({
 
   return (
     <>
-      <div className="bg-white rounded-lg p-6 min-h-[60vh] text-[#000]">
-        <div className="flex justify-between items-center mb-6">
+      <div className="bg-white rounded-lg p-4 text-[#000]">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-start text-xl font-semibold">
             จัดการการตั้งค่าระบบ
           </h2>
@@ -126,7 +126,7 @@ export default function SystemSetting({
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Hardware Configuration Status */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-semibold text-gray-800 mb-3">สถานะการตั้งค่าปัจจุบัน</h3>
