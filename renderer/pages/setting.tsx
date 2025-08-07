@@ -84,7 +84,7 @@ function Setting() {
       <Head>
         <title>Smart Medication Cart V1.0</title>
       </Head>
-      <div className=" grid grid-cols-12 text-2xl text-center h-screen overflow-y-auto">
+      <div className=" grid grid-cols-12 text-2xl text-center h-screen">
         <div className="col-span-2 flex flex-col justify-between">
           <div className="w-full px-3 py-10 flex flex-col gap-3 justify-center items-center">
             <Image
@@ -100,11 +100,12 @@ function Setting() {
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
-          <div className="w-full p-[2rem] flex flex-col gap-[1.2rem] overflow-y-auto"></div>
-          {/**Content Goes here */}
-          <div>Setting</div>
-          <div className="flex w-full justify-center">
-            <form className="form max-w-md flex-col gap-2 flex">
+          <div className="w-full h-[calc(100vh-2rem)] p-4 flex flex-col gap-2 overflow-hidden">
+            {/**Content Goes here */}
+            <div className="flex flex-col gap-4 overflow-y-auto">
+              <div>Setting</div>
+              <div className="flex w-full justify-center">
+                <form className="form max-w-md flex-col gap-2 flex">
               <div className="form-control">
                 <label className="label label-text text-secondary">
                   เชื่อมต่ออยู่กับ port
@@ -161,10 +162,12 @@ function Setting() {
                   บันทึก
                 </button>
               </div>
-              <span className="text-sm text-error">
-                บันทึกข้อมูลแล้วกรุณาปิดแล้วเปิดโปรแกรมใหม่อีกครั้ง
-              </span>
-            </form>
+                  <span className="text-sm text-error">
+                    บันทึกข้อมูลแล้วกรุณาปิดแล้วเปิดโปรแกรมใหม่อีกครั้ง
+                  </span>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       </div>
