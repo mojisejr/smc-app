@@ -13,7 +13,7 @@ interface SystemSettingProps {
 }
 
 interface HardwareConfig {
-  type: 'CU12' | 'KU16';
+  type: "CU12" | "KU16";
   port: string;
   baudrate: number;
   maxSlots: number;
@@ -29,7 +29,9 @@ export default function SystemSetting({
   setSelectedPort,
 }: SystemSettingProps) {
   const [currentHardwareInfo, setCurrentHardwareInfo] = useState<any>(null);
-  const [currentConfig, setCurrentConfig] = useState<HardwareConfig | null>(null);
+  const [currentConfig, setCurrentConfig] = useState<HardwareConfig | null>(
+    null
+  );
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [portExists, setPortExists] = useState<boolean>(true);
 
@@ -48,30 +50,30 @@ export default function SystemSetting({
 
   const loadHardwareInfo = async () => {
     try {
-      const result = await ipcRenderer.invoke('get-hardware-type');
+      const result = await ipcRenderer.invoke("get-hardware-type");
       if (result.success) {
         setCurrentHardwareInfo(result.hardwareInfo);
       }
     } catch (error) {
-      console.error('Failed to load hardware info:', error);
+      console.error("Failed to load hardware info:", error);
     }
   };
 
   const loadCurrentConfig = async () => {
     try {
-      const config = await ipcRenderer.invoke('get-current-hardware-config');
+      const config = await ipcRenderer.invoke("get-current-hardware-config");
       setCurrentConfig(config);
     } catch (error) {
-      console.error('Failed to load current config:', error);
+      console.error("Failed to load current config:", error);
     }
   };
 
   const checkPortExistence = async (port: string) => {
     try {
-      const exists = await ipcRenderer.invoke('check-port-exists', port);
+      const exists = await ipcRenderer.invoke("check-port-exists", port);
       setPortExists(exists);
     } catch (error) {
-      console.error('Failed to check port existence:', error);
+      console.error("Failed to check port existence:", error);
       setPortExists(false);
     }
   };
@@ -93,22 +95,22 @@ export default function SystemSetting({
   };
 
   const getCurrentPort = () => {
-    if (!currentHardwareInfo) return 'ยังไม่ได้ตั้งค่า';
-    
+    if (!currentHardwareInfo) return "ยังไม่ได้ตั้งค่า";
+
     const port = currentHardwareInfo.port;
-    if (!port) return 'ยังไม่ได้ตั้งค่า';
-    
+    if (!port) return "ยังไม่ได้ตั้งค่า";
+
     return port;
   };
 
   const getPortStatusColor = () => {
-    if (!currentHardwareInfo?.port) return 'text-gray-500';
-    return portExists ? 'text-blue-500' : 'text-red-500';
+    if (!currentHardwareInfo?.port) return "text-gray-500";
+    return portExists ? "text-blue-500" : "text-red-500";
   };
 
   const getPortStatusIcon = () => {
-    if (!currentHardwareInfo?.port) return '';
-    return portExists ? '✅' : '❌';
+    if (!currentHardwareInfo?.port) return "";
+    return portExists ? "✅" : "❌";
   };
 
   return (
@@ -118,10 +120,7 @@ export default function SystemSetting({
           <h2 className="text-start text-xl font-semibold">
             จัดการการตั้งค่าระบบ
           </h2>
-          <button
-            onClick={handleOpenWizard}
-            className="btn btn-primary btn-sm"
-          >
+          <button onClick={handleOpenWizard} className="btn btn-primary btn-sm">
             🔧 ตั้งค่าฮาร์ดแวร์
           </button>
         </div>
@@ -129,22 +128,27 @@ export default function SystemSetting({
         <div className="space-y-4">
           {/* Hardware Configuration Status */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-800 mb-3">สถานะการตั้งค่าปัจจุบัน</h3>
-            
+            <h3 className="font-semibold text-gray-800 mb-3">
+              สถานะการตั้งค่าปัจจุบัน
+            </h3>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white rounded-lg p-4 border">
-                <div className="text-sm text-gray-600 mb-1">ประเภทฮาร์ดแวร์</div>
+                <div className="text-sm text-gray-600 mb-1">
+                  ประเภทฮาร์ดแวร์
+                </div>
                 <div className="font-semibold text-lg">
-                  {currentHardwareInfo ? 
-                    `${currentHardwareInfo.type} (${currentHardwareInfo.maxSlots} ช่อง)` : 
-                    'ยังไม่ได้ตั้งค่า'
-                  }
+                  {currentHardwareInfo
+                    ? `${currentHardwareInfo.type} (${currentHardwareInfo.maxSlots} ช่อง)`
+                    : "ยังไม่ได้ตั้งค่า"}
                 </div>
               </div>
-              
+
               <div className="bg-white rounded-lg p-4 border">
                 <div className="text-sm text-gray-600 mb-1">Port ระบบ Lock</div>
-                <div className={`font-semibold text-lg flex items-center gap-2 ${getPortStatusColor()}`}>
+                <div
+                  className={`font-semibold text-lg flex items-center gap-2 ${getPortStatusColor()}`}
+                >
                   <span>{getCurrentPort()}</span>
                   <span>{getPortStatusIcon()}</span>
                 </div>
@@ -159,17 +163,16 @@ export default function SystemSetting({
             {currentConfig && (
               <div className="mt-4 bg-blue-50 rounded-lg p-3">
                 <div className="text-sm text-blue-800">
-                  <strong>การตั้งค่าล่าสุด:</strong> {currentConfig.type} | 
-                  Port: {currentConfig.port} | 
-                  Baudrate: {currentConfig.baudrate} | 
-                  {currentConfig.maxSlots} ช่อง
+                  <strong>การตั้งค่าล่าสุด:</strong> {currentConfig.type} |
+                  Port: {currentConfig.port} | Baudrate:{" "}
+                  {currentConfig.baudrate} |{currentConfig.maxSlots} ช่อง
                 </div>
               </div>
             )}
           </div>
 
           {/* Legacy Indicator Port Setting */}
-          <div className="bg-gray-50 rounded-lg p-4">
+          {/* <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-semibold text-gray-800 mb-3">การตั้งค่า Indicator Port</h3>
             
             <div className="bg-white rounded-lg p-4 border">
@@ -203,18 +206,22 @@ export default function SystemSetting({
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Quick Actions */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-start">
               <div className="text-yellow-600 mr-2">💡</div>
               <div>
-                <div className="font-semibold text-yellow-800 mb-1">คำแนะนำ</div>
+                <div className="font-semibold text-yellow-800 mb-1">
+                  คำแนะนำ
+                </div>
                 <div className="text-sm text-yellow-700">
-                  • ใช้ปุ่ม "ตั้งค่าฮาร์ดแวร์" เพื่อเปลี่ยนประเภทฮาร์ดแวร์หรือ port แบบครบถ้วน<br/>
-                  • ระบบจะทดสอบการเชื่อมต่อก่อนบันทึกการตั้งค่า<br/>
-                  • การเปลี่ยนฮาร์ดแวร์จะต้องรีสตาร์ทแอปพลิเคชัน
+                  • ใช้ปุ่ม "ตั้งค่าฮาร์ดแวร์" เพื่อเปลี่ยนประเภทฮาร์ดแวร์หรือ
+                  port แบบครบถ้วน
+                  <br />
+                  • ระบบจะทดสอบการเชื่อมต่อก่อนบันทึกการตั้งค่า
+                  <br />• การเปลี่ยนฮาร์ดแวร์จะต้องรีสตาร์ทแอปพลิเคชัน
                 </div>
               </div>
             </div>
