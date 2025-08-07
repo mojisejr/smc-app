@@ -161,7 +161,7 @@ function Home() {
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
-          <div className="w-full h-full p-[2rem] flex flex-col gap-[1.2rem] overflow-y-auto">
+          <div className="w-full h-[calc(100vh-2rem)] p-4 flex flex-col gap-2 overflow-hidden">
             {/* Connection Status Bar */}
             <ConnectionStatusBar showRefreshButton={true} />
             <>
@@ -174,7 +174,7 @@ function Home() {
                       <Loading />
                     </div>
                   ) : (
-                    <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[70vh] place-content-start px-20 py-6">
+                    <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[70vh] place-content-start px-20 py-6 overflow-y-auto">
                       {mockSlots
                         .map((s, index) => {
                           return {
