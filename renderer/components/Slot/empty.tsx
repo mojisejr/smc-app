@@ -14,26 +14,34 @@ export const EmptySlot = ({
 }: EmptySlotProps) => {
   return (
     <div
-      className={`relative min-w-[170px] min-h-[175px] ${
-        isActive ? "bg-[#F6F6F6]" : "bg-[#eee] opacity-30"
-      } shadow-xl rounded-xl p-3`}
+      className={`relative min-w-[170px] min-h-[175px] transition-all duration-300 ease-in-out ${
+        isActive 
+          ? "bg-blue-50/80 backdrop-blur-sm border border-blue-100/50 shadow-lg" 
+          : "bg-gray-100/60 backdrop-blur-sm border border-gray-200/30 opacity-50 shadow-md"
+      } rounded-xl p-3`}
     >
       <div className="flex justify-between ">
-        <FaLock className="fill-[#F9324A]" size={20} />
+        <FaLock className="fill-blue-600 transition-colors duration-200" size={20} />
       </div>
       <div className="flex flex-col justify-center items-center pt-3 min-h-[100px]">
-        <div className="font-bold">ปลดล็อค</div>
+        <div className="font-semibold text-blue-700 tracking-wide">ปลดล็อค</div>
       </div>
       <div className="absolute bottom-0 right-0 w-full flex justify-between px-3 py-1">
         {isActive ? (
-          <div className="flex">
-            <Indicator value={temp} unit="*C" title="Temp." threshold={50} />
-            <Indicator value={humid} unit="%" title="%RH" threshold={85} />
+          <div className="flex gap-1 text-xs text-gray-500 items-center">
+            <span className="flex items-center gap-1">
+              <span>🌡️</span>
+              <span>{temp}°C</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span>💧</span>
+              <span>{humid}%</span>
+            </span>
           </div>
         ) : (
           <div></div>
         )}
-        <div className="text-[#615858] text-[40px] font-bold">{slotNo}</div>
+        <div className="text-blue-700 text-[40px] font-bold">{slotNo}</div>
       </div>
     </div>
   );
