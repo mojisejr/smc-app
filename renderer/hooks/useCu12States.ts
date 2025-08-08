@@ -11,10 +11,10 @@ interface ISlotPayload {
 }
 
 /**
- * CU12-compatible state hook for 12-slot medication cart
+ * DS12-compatible state hook for 12-slot medication cart
  *
- * This hook handles both KU16 and CU12 hardware through the universal adapter system.
- * It limits slot operations to 12 slots (1-12) and provides CU12-specific functionality.
+ * This hook handles both DS16 and DS12 hardware through the universal adapter system.
+ * It limits slot operations to 12 slots (1-12) and provides DS12-specific functionality.
  */
 export const useCu12States = () => {
   const [slots, setSlots] = useState<ISlotPayload[]>([]);
@@ -29,7 +29,7 @@ export const useCu12States = () => {
     payload: ISlotPayload[]
   ) => {
     if (payload != undefined) {
-      // Filter to only include slots 1-12 for CU12 compatibility
+      // Filter to only include slots 1-12 for DS12 compatibility
       const cu12Slots = payload.filter((slot) => slot.slotId <= 12);
       setSlots(cu12Slots);
       isDispensible(cu12Slots);
@@ -47,7 +47,7 @@ export const useCu12States = () => {
   useEffect(() => {
     get();
 
-    // Listen to the same IPC event as KU16 for compatibility
+    // Listen to the same IPC event as DS16 for compatibility
     ipcRenderer.on("init-res", (event, payload) => {
       handleGetSlotStates(event, payload);
     });

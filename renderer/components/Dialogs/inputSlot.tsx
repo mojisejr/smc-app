@@ -30,7 +30,7 @@ const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
   const onSubmit: SubmitHandler<Inputs> = (data) => {
     // ipcRenderer.invoke(DB.RegisterSlot, slotNo, data.hn, true);
 
-    // Validate slot number for CU12 (12-slot system)
+    // Validate slot number for DS12 (12-slot system)
     if (slotNo > 12 || slotNo < 1) {
       toast.error("หมายเลขช่องไม่ถูกต้อง (1-12 เท่านั้น)");
       return;

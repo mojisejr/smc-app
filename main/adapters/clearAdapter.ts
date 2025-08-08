@@ -36,7 +36,7 @@ export const registerUniversalClearSlotHandler = (
         details: {},
       });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 clear slot operation (no hardware, just database + audit)
         console.log(
           `[CU12-CLEAR-SLOT] Processing clear for slot ${payload.slotId} - complete dispense`
@@ -111,7 +111,7 @@ export const registerUniversalClearSlotHandler = (
           console.error(`[CU12-CLEAR-SLOT] Clear slot failed:`, error.message);
           throw error;
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 clear slot operation (use existing reset logic)
         console.log(
           `[KU16-CLEAR-SLOT] Processing clear for slot ${payload.slotId}`
@@ -152,7 +152,7 @@ export const registerUniversalClearSlotHandler = (
         return {
           success: true,
           slotId: payload.slotId,
-          message: "KU16 slot cleared successfully",
+          message: "DS16 slot cleared successfully",
           action: "clear",
         };
       } else {

@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import { updateSetting } from '../updateSetting';
 
 export const setHardwareTypeHandler = () => {
-  ipcMain.handle('set-hardware-type', async (event, hardwareType: 'AUTO' | 'KU16' | 'CU12') => {
+  ipcMain.handle('set-hardware-type', async (event, hardwareType: 'AUTO' | 'DS16' | 'DS12') => {
     try {
       console.log(`[HARDWARE] Setting hardware type to: ${hardwareType}`);
       

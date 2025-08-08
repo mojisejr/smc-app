@@ -32,7 +32,7 @@ export const registerUniversalResetHandler = (
         details: { slotId: payload.slotId, hn: payload.hn, hardwareType: hardwareInfo.type },
       });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 reset operation
         console.log(`[CU12-RESET] Processing reset for slot ${payload.slotId}`);
 
@@ -48,7 +48,7 @@ export const registerUniversalResetHandler = (
 
           if (unlockSuccess) {
             await unifiedLoggingService.logInfo({
-              message: `CU12 reset successful: slot ${payload.slotId}, HN: ${payload.hn}`,
+              message: `DS12 reset successful: slot ${payload.slotId}, HN: ${payload.hn}`,
               component: "ResetAdapter",
               details: { slotId: payload.slotId, hn: payload.hn, hardwareType: "CU12", operation: "reset" },
             });
@@ -69,18 +69,18 @@ export const registerUniversalResetHandler = (
               message: "Slot reset successfully",
             };
           } else {
-            throw new Error("CU12 reset operation failed");
+            throw new Error("DS12 reset operation failed");
           }
         } finally {
           await cu12StateManager.exitOperationMode();
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 reset operation
         console.log(`[KU16-RESET] Processing reset for slot ${payload.slotId}`);
 
         if (!ku16Instance.connected) {
           await unifiedLoggingService.logError({
-            message: `KU16 reset failed: connection error for slot ${payload.slotId}`,
+            message: `DS16 reset failed: connection error for slot ${payload.slotId}`,
             component: "ResetAdapter",
             details: { slotId: payload.slotId, hardwareType: "KU16", reason: "connection_error" },
           });
@@ -93,14 +93,14 @@ export const registerUniversalResetHandler = (
             path: "/error/connection-error",
           });
 
-          throw new Error("KU16 connection error");
+          throw new Error("DS16 connection error");
         }
 
         // Use existing KU16 reset logic
         const result = await ku16Instance.reset(payload);
 
         await unifiedLoggingService.logInfo({
-          message: `KU16 reset completed: slot ${payload.slotId}, HN: ${payload.hn}, success: ${result.success}`,
+          message: `DS16 reset completed: slot ${payload.slotId}, HN: ${payload.hn}, success: ${result.success}`,
           component: "ResetAdapter",
           details: { slotId: payload.slotId, hn: payload.hn, hardwareType: "KU16", success: result.success },
         });
@@ -186,7 +186,7 @@ export const registerUniversalForceResetHandler = (
         details: { slotId: payload.slotId, hn: payload.hn, hardwareType: hardwareInfo.type, userId, userName, operation: "force-reset" },
       });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 force reset operation - DATABASE RESET (not hardware unlock)
         console.log(
           `[CU12-FORCE-RESET] Processing database reset for slot ${payload.slotId}`
@@ -200,7 +200,7 @@ export const registerUniversalForceResetHandler = (
         );
 
         await unifiedLoggingService.logInfo({
-          message: `CU12 force-reset: slot #${payload.slotId} by ${userName}`,
+          message: `DS12 force-reset: slot #${payload.slotId} by ${userName}`,
           component: "ResetAdapter",
           details: { slotId: payload.slotId, userName, hardwareType: "CU12", operation: "force-reset" },
         });
@@ -217,7 +217,7 @@ export const registerUniversalForceResetHandler = (
         await cu12StateManager.triggerFrontendSync();
 
         await unifiedLoggingService.logInfo({
-          message: `CU12 force-reset completed: slot ${payload.slotId}, HN: ${payload.hn}`,
+          message: `DS12 force-reset completed: slot ${payload.slotId}, HN: ${payload.hn}`,
           component: "ResetAdapter",
           details: { slotId: payload.slotId, hn: payload.hn, hardwareType: "CU12", operation: "force-reset-completed" },
         });
@@ -227,7 +227,7 @@ export const registerUniversalForceResetHandler = (
           slotId: payload.slotId,
           message: "Slot force reset successfully",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 force reset operation - replicate original handler flow
         console.log(
           `[KU16-FORCE-RESET] Processing database reset for slot ${payload.slotId}`
@@ -237,7 +237,7 @@ export const registerUniversalForceResetHandler = (
         await ku16Instance.resetSlot(payload.slotId);
 
         await unifiedLoggingService.logInfo({
-          message: `KU16 force-reset: slot #${payload.slotId} by ${userName}`,
+          message: `DS16 force-reset: slot #${payload.slotId} by ${userName}`,
           component: "ResetAdapter",
           details: { slotId: payload.slotId, userName, hardwareType: "KU16", operation: "force-reset" },
         });
@@ -255,7 +255,7 @@ export const registerUniversalForceResetHandler = (
         ku16Instance.sendCheckState();
 
         await unifiedLoggingService.logInfo({
-          message: `KU16 force-reset completed: slot ${payload.slotId}, HN: ${payload.hn}`,
+          message: `DS16 force-reset completed: slot ${payload.slotId}, HN: ${payload.hn}`,
           component: "ResetAdapter",
           details: { slotId: payload.slotId, hn: payload.hn, hardwareType: "KU16", operation: "force-reset-completed" },
         });

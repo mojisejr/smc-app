@@ -124,7 +124,7 @@ if (isProd) {
   // Initialize hardware based on detected configuration (SINGLE HARDWARE MODE)
   let ku16: KU16 | null = null;
 
-  if (hardwareInfo.type === "CU12" && hardwareInfo.isConfigured) {
+  if (hardwareInfo.type === "DS12" && hardwareInfo.isConfigured) {
     // CU12 Mode - Initialize CU12 only
     console.log("[HARDWARE] Initializing CU12 (12-slot system)...");
 
@@ -148,7 +148,7 @@ if (isProd) {
     } catch (error) {
       console.error("[CU12] Initialization failed:", error.message);
     }
-  } else if (hardwareInfo.type === "KU16" && hardwareInfo.isConfigured) {
+  } else if (hardwareInfo.type === "DS16" && hardwareInfo.isConfigured) {
     // KU16 Mode - Initialize both modern and legacy KU16 for transition
     console.log("[HARDWARE] Initializing KU16 (15-slot system)...");
 
@@ -283,7 +283,7 @@ if (isProd) {
   );
 
   // Hardware-specific handlers registration
-  if (hardwareInfo.type === "CU12" && cu12Initialized) {
+  if (hardwareInfo.type === "DS12" && cu12Initialized) {
     // CU12 Mode - Register CU12-specific handlers (excluding universal ones)
     console.log("[HARDWARE] Registering CU12-specific IPC handlers...");
     registerCU12Handlers(cu12StateManager, mainWindow);

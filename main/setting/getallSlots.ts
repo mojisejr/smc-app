@@ -17,8 +17,8 @@ export async function getAllSlots() {
   if (!hardware.isConfigured) {
     console.warn('[getAllSlots] No hardware configured, using fallback to prevent empty array');
     console.warn('[getAllSlots] Hardware object:', hardware);
-    // Fallback: assume CU12 with 12 slots to prevent empty array
-    console.log('[getAllSlots] Using fallback: 12 slots for CU12');
+    // Fallback: assume DS12 with 12 slots to prevent empty array
+    console.log('[getAllSlots] Using fallback: 12 slots for DS12');
     // Don't return empty - continue with fallback maxSlots = 12
   }
   

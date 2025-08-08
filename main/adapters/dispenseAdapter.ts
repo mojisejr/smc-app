@@ -84,7 +84,7 @@ export const registerUniversalDispenseHandler = (
         details: { slotId: payload.slotId, hn: payload.hn, userId, hardwareType: hardwareInfo.type },
       });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 dispense operation with user-controlled modal flow
         console.log(
           `[CU12-DISPENSE] Processing dispense for slot ${payload.slotId} with user-controlled modal flow`
@@ -146,7 +146,7 @@ export const registerUniversalDispenseHandler = (
         } finally {
           await cu12StateManager.exitOperationMode();
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 dispense operation
         console.log(
           `[KU16-DISPENSE] Processing dispense for slot ${payload.slotId}`
@@ -154,7 +154,7 @@ export const registerUniversalDispenseHandler = (
 
         if (!ku16Instance.connected) {
           await unifiedLoggingService.logError({
-            message: `KU16 dispense failed: connection error for slot ${payload.slotId}`,
+            message: `DS16 dispense failed: connection error for slot ${payload.slotId}`,
             component: "DispenseAdapter",
             details: { slotId: payload.slotId, hardwareType: "KU16", reason: "connection_error" },
           });
@@ -167,7 +167,7 @@ export const registerUniversalDispenseHandler = (
             path: "/error/connection-error",
           });
 
-          throw new Error("KU16 connection error");
+          throw new Error("DS16 connection error");
         }
 
         // Use existing KU16 dispense logic (void method - no return value)
@@ -186,7 +186,7 @@ export const registerUniversalDispenseHandler = (
           success: true,
           slotId: payload.slotId,
           hn: payload.hn,
-          message: "KU16 dispense operation initiated successfully",
+          message: "DS16 dispense operation initiated successfully",
         };
       } else {
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported for dispense operation`;
@@ -263,7 +263,7 @@ export const registerUniversalDispenseContinueHandler = (
         `[UNIVERSAL-ADAPTER] dispense-continue routing to ${hardwareInfo.type} for slot ${payload.slotId}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 dispense continue operation (partial dispense)
         console.log(
           `[CU12-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId} - partial dispense`
@@ -276,7 +276,7 @@ export const registerUniversalDispenseContinueHandler = (
           });
           if (!user) {
             await unifiedLoggingService.logWarning({
-              message: `CU12 dispense-continue: user not found for slot ${payload.slotId}`,
+              message: `DS12 dispense-continue: user not found for slot ${payload.slotId}`,
               component: "DispenseAdapter",
               details: { slotId: payload.slotId, operation: "dispense-continue", reason: "user_not_found" },
             });
@@ -327,14 +327,14 @@ export const registerUniversalDispenseContinueHandler = (
           );
           throw error;
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 dispense continue operation
         console.log(
           `[KU16-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId}`
         );
 
         if (!ku16Instance.connected) {
-          throw new Error("KU16 connection error");
+          throw new Error("DS16 connection error");
         }
 
         // KU16 dispense-continue: Keep slot occupied with medicine remaining

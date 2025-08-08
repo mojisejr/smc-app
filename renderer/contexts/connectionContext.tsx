@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 
 export interface ConnectionStatus {
   isConnected: boolean;
-  hardwareType: 'KU16' | 'CU12' | 'UNKNOWN';
+  hardwareType: 'DS16' | 'DS12' | 'UNKNOWN';
   lastChecked: Date;
   error?: string;
   message: string;

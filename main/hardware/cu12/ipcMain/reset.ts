@@ -46,7 +46,7 @@ export const cu12ResetHandler = (stateManager: CU12SmartStateManager) => {
       
 
       event.sender.send("cu12-reset-error", {
-        message: "การรีเซ็ต CU12 ล้มเหลว กรุณาลองใหม่อีกครั้ง",
+        message: "การรีเซ็ต DS12 ล้มเหลว กรุณาลองใหม่อีกครั้ง",
         slotId: payload.slotId,
         error: error.message,
       });

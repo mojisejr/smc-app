@@ -114,7 +114,7 @@ const useRealTimeLogs = (
     const categories = ['HARDWARE', 'SYSTEM', 'USER', 'NETWORK'];
     const riskLevels = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
     const operations = ['DISPENSE', 'LOGIN', 'RESET', 'STATUS_CHECK'];
-    const hardwareTypes = ['CU12', 'KU16', 'SENSOR'];
+    const hardwareTypes = ['DS12', 'DS16', 'SENSOR'];
     const messages = [
       'System initialized successfully',
       'Hardware connection established',

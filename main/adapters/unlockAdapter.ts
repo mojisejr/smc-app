@@ -84,7 +84,7 @@ export const registerUniversalUnlockHandler = (
       //   message: `Universal unlock request: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}, hardware: ${hardwareInfo.type}`,
       // });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 unlock operation with user-controlled modal flow
         console.log(
           `[CU12-UNLOCK] Processing unlock for slot ${payload.slotId} with user-controlled modal flow`
@@ -102,7 +102,7 @@ export const registerUniversalUnlockHandler = (
           );
 
           if (!success) {
-            throw new Error("CU12 unlock operation failed");
+            throw new Error("DS12 unlock operation failed");
           }
 
           // Step 2: Update database slot state (opening: true to indicate unlock in progress)
@@ -136,7 +136,7 @@ export const registerUniversalUnlockHandler = (
 
           // Log system info
           await unifiedLoggingService.logInfo({
-            message: `CU12 unlock initiated: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
+            message: `DS12 unlock initiated: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
             component: "CU12-UnlockAdapter",
             details: {
               slotId: payload.slotId,
@@ -166,7 +166,7 @@ export const registerUniversalUnlockHandler = (
           // Always exit operation mode
           await cu12StateManager.exitOperationMode();
         }
-      } else if (hardwareInfo.type === "KU16") {
+      } else if (hardwareInfo.type === "DS16") {
         // Route to KU16 unlock operation - Modern or Legacy
         console.log(
           `[KU16-UNLOCK] Processing unlock for slot ${payload.slotId}`
@@ -201,7 +201,7 @@ export const registerUniversalUnlockHandler = (
               });
 
               await unifiedLoggingService.logInfo({
-                message: `KU16 modern unlock completed successfully: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
+                message: `DS16 modern unlock completed successfully: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
                 component: "KU16-ModernUnlockAdapter",
                 details: {
                   slotId: payload.slotId,
@@ -215,12 +215,12 @@ export const registerUniversalUnlockHandler = (
               return {
                 success: true,
                 slotId: payload.slotId,
-                message: "KU16 unlock operation completed successfully",
+                message: "DS16 unlock operation completed successfully",
                 modernArchitecture: true
               };
             } else {
               await unifiedLoggingService.logError({
-                message: `KU16 modern unlock failed: slot ${payload.slotId}, error: ${result.error}`,
+                message: `DS16 modern unlock failed: slot ${payload.slotId}, error: ${result.error}`,
                 component: "KU16-ModernUnlockAdapter",
                 details: {
                   slotId: payload.slotId,
@@ -231,11 +231,11 @@ export const registerUniversalUnlockHandler = (
                   error: result.error,
                 },
               });
-              throw new Error(result.error || "KU16 unlock operation failed");
+              throw new Error(result.error || "DS16 unlock operation failed");
             }
           } catch (error) {
             await unifiedLoggingService.logError({
-              message: `KU16 modern unlock operation failed: ${error.message}`,
+              message: `DS16 modern unlock operation failed: ${error.message}`,
               component: "KU16-ModernUnlockAdapter",
               details: {
                 slotId: payload.slotId,
@@ -254,7 +254,7 @@ export const registerUniversalUnlockHandler = (
 
           if (!ku16Instance.connected) {
             await unifiedLoggingService.logError({
-              message: `KU16 legacy unlock failed: connection error for slot ${payload.slotId}`,
+              message: `DS16 legacy unlock failed: connection error for slot ${payload.slotId}`,
               component: "KU16-LegacyUnlockAdapter",
               details: {
                 slotId: payload.slotId,
@@ -271,7 +271,7 @@ export const registerUniversalUnlockHandler = (
               path: "/error/connection-error",
             });
 
-            throw new Error("KU16 connection error");
+            throw new Error("DS16 connection error");
           }
 
           // Use existing KU16 unlock logic
@@ -290,7 +290,7 @@ export const registerUniversalUnlockHandler = (
           });
 
           await unifiedLoggingService.logInfo({
-            message: `KU16 legacy unlock initiated: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
+            message: `DS16 legacy unlock initiated: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}`,
             component: "KU16-LegacyUnlockAdapter",
             details: {
               slotId: payload.slotId,
@@ -304,11 +304,11 @@ export const registerUniversalUnlockHandler = (
           return {
             success: true,
             slotId: payload.slotId,
-            message: "KU16 legacy unlock initiated",
+            message: "DS16 legacy unlock initiated",
             legacyMode: true
           };
         } else {
-          throw new Error("No KU16 instance available (neither modern nor legacy)");
+          throw new Error("No DS16 instance available (neither modern nor legacy)");
         }
       } else {
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported for unlock operation`;

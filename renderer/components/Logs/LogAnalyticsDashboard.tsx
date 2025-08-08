@@ -369,7 +369,7 @@ const LogAnalyticsDashboard: React.FC<LogAnalyticsDashboardProps> = ({
                     <div className="flex-1 bg-gray-200 rounded-full h-4 mx-3">
                       <div
                         className={`h-4 rounded-full ${
-                          item.hardwareType === 'KU16' ? 'bg-blue-400' : 'bg-green-400'
+                          item.hardwareType === 'DS16' ? 'bg-blue-400' : 'bg-green-400'
                         }`}
                         style={{ width: `${percentage}%` }}
                       ></div>

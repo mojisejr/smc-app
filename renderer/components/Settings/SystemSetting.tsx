@@ -13,7 +13,7 @@ interface SystemSettingProps {
 }
 
 interface HardwareConfig {
-  type: "CU12" | "KU16";
+  type: "DS12" | "DS16";
   port: string;
   baudrate: number;
   maxSlots: number;

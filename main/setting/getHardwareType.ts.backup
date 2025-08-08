@@ -1,6 +1,6 @@
 import { getSetting } from "./getSetting";
 
-export type HardwareType = 'DS16' | 'DS12' | 'UNKNOWN';
+export type HardwareType = 'KU16' | 'CU12' | 'UNKNOWN';
 
 export interface HardwareInfo {
   type: HardwareType;
@@ -152,9 +152,9 @@ export async function getHardwareType(): Promise<HardwareInfo> {
 async function detectHardwareFromSettings(settings: any): Promise<HardwareInfo> {
   // Check for explicit hardware type setting first
   if (settings.hardware_type && settings.hardware_type !== 'AUTO') {
-    if (settings.hardware_type === 'DS12' && settings.cu_port && settings.cu_baudrate) {
+    if (settings.hardware_type === 'CU12' && settings.cu_port && settings.cu_baudrate) {
       return {
-        type: 'DS12',
+        type: 'CU12',
         port: settings.cu_port,
         baudrate: settings.cu_baudrate,
         maxSlots: 12,
@@ -162,9 +162,9 @@ async function detectHardwareFromSettings(settings: any): Promise<HardwareInfo> 
       };
     }
     
-    if (settings.hardware_type === 'DS16' && settings.ku_port && settings.ku_baudrate) {
+    if (settings.hardware_type === 'KU16' && settings.ku_port && settings.ku_baudrate) {
       return {
-        type: 'DS16',
+        type: 'KU16',
         port: settings.ku_port,
         baudrate: settings.ku_baudrate,
         maxSlots: settings.available_slots || 15,
@@ -173,10 +173,10 @@ async function detectHardwareFromSettings(settings: any): Promise<HardwareInfo> 
     }
   }
 
-  // AUTO mode: Check for DS12 configuration first (preferred)
+  // AUTO mode: Check for CU12 configuration first (preferred)
   if (settings.cu_port && settings.cu_baudrate) {
     return {
-      type: 'DS12',
+      type: 'CU12',
       port: settings.cu_port,
       baudrate: settings.cu_baudrate,
       maxSlots: 12,
@@ -184,10 +184,10 @@ async function detectHardwareFromSettings(settings: any): Promise<HardwareInfo> 
     };
   }
 
-  // Check for DS16 configuration (legacy)
+  // Check for KU16 configuration (legacy)
   if (settings.ku_port && settings.ku_baudrate) {
     return {
-      type: 'DS16',
+      type: 'KU16',
       port: settings.ku_port,
       baudrate: settings.ku_baudrate,
       maxSlots: settings.available_slots || 15,
@@ -206,19 +206,19 @@ async function detectHardwareFromSettings(settings: any): Promise<HardwareInfo> 
 }
 
 /**
- * Check if system is configured for DS12
+ * Check if system is configured for CU12
  */
-export async function isDS12System(): Promise<boolean> {
+export async function isCU12System(): Promise<boolean> {
   const hardware = await getHardwareType();
-  return hardware.type === 'DS12' && hardware.isConfigured;
+  return hardware.type === 'CU12' && hardware.isConfigured;
 }
 
 /**
- * Check if system is configured for DS16
+ * Check if system is configured for KU16
  */
-export async function isDS16System(): Promise<boolean> {
+export async function isKU16System(): Promise<boolean> {
   const hardware = await getHardwareType();
-  return hardware.type === 'DS16' && hardware.isConfigured;
+  return hardware.type === 'KU16' && hardware.isConfigured;
 }
 
 /**
@@ -226,7 +226,7 @@ export async function isDS16System(): Promise<boolean> {
  */
 export async function getMaxSlots(): Promise<number> {
   const hardware = await getHardwareType();
-  return hardware.maxSlots || 12; // Default to DS12 (12 slots)
+  return hardware.maxSlots || 12; // Default to CU12 (12 slots)
 }
 
 // ============================================================================
@@ -235,8 +235,8 @@ export async function getMaxSlots(): Promise<number> {
 // ============================================================================
 
 export interface HardwareContentFilter {
-  showDS12Content: boolean;
-  showDS16Content: boolean;
+  showCU12Content: boolean;
+  showKU16Content: boolean;
   showUniversalContent: boolean;
   currentHardware: HardwareType;
   slotCount: number;
@@ -251,8 +251,8 @@ export async function getHardwareContentFilter(): Promise<HardwareContentFilter>
   const hardware = await getHardwareType();
   
   const filter: HardwareContentFilter = {
-    showDS12Content: false,
-    showDS16Content: false,
+    showCU12Content: false,
+    showKU16Content: false,
     showUniversalContent: true, // Always show universal content
     currentHardware: hardware.type,
     slotCount: hardware.maxSlots,
@@ -260,8 +260,8 @@ export async function getHardwareContentFilter(): Promise<HardwareContentFilter>
   };
   
   switch (hardware.type) {
-    case 'DS12':
-      filter.showDS12Content = true;
+    case 'CU12':
+      filter.showCU12Content = true;
       filter.showUniversalContent = true;
       filter.features = [
         'circuit-breaker',
@@ -272,8 +272,8 @@ export async function getHardwareContentFilter(): Promise<HardwareContentFilter>
       ];
       break;
       
-    case 'DS16':
-      filter.showDS16Content = true;
+    case 'KU16':
+      filter.showKU16Content = true;
       filter.showUniversalContent = true;
       filter.features = [
         'legacy-compatibility',
@@ -286,16 +286,16 @@ export async function getHardwareContentFilter(): Promise<HardwareContentFilter>
     case 'UNKNOWN':
     default:
       // Show all content when hardware unknown
-      filter.showDS12Content = true;
-      filter.showDS16Content = true;
+      filter.showCU12Content = true;
+      filter.showKU16Content = true;
       filter.showUniversalContent = true;
       filter.features = ['all-features'];
       break;
   }
   
   console.log(`[getHardwareContentFilter] Content filter for ${hardware.type}:`, {
-    showDS12: filter.showDS12Content,
-    showDS16: filter.showDS16Content,
+    showCU12: filter.showCU12Content,
+    showKU16: filter.showKU16Content,
     features: filter.features,
     cached: hardware.cached
   });
@@ -325,11 +325,11 @@ export async function getRelevantDocumentationSections(): Promise<string[]> {
   ];
   
   // Add hardware-specific sections
-  if (filter.showDS12Content) {
+  if (filter.showCU12Content) {
     sections.push('cu12-features', 'cu12-advanced-operations');
   }
   
-  if (filter.showDS16Content) {
+  if (filter.showKU16Content) {
     sections.push('ku16-legacy-operations', 'ku16-compatibility');
   }
   
@@ -352,18 +352,18 @@ export async function getHardwareDisplayInfo(): Promise<{
   const hardware = await getHardwareType();
   
   switch (hardware.type) {
-    case 'DS12':
+    case 'CU12':
       return {
-        displayName: 'DS12 (Advanced)',
+        displayName: 'CU12 (Advanced)',
         statusColor: 'green',
         description: 'ระบบขั้นสูงพร้อม Circuit Breaker และ Adaptive Monitoring',
         slotInfo: `12 ช่อง (Slots 1-12)`,
         protocolInfo: `RS-485 Protocol | ${hardware.port} | ${hardware.baudrate} baud`
       };
       
-    case 'DS16':
+    case 'KU16':
       return {
-        displayName: 'DS16 (Legacy)',
+        displayName: 'KU16 (Legacy)',
         statusColor: 'blue',
         description: 'ระบบมาตรฐานเพื่อความเข้ากันได้ (Legacy Compatibility)',
         slotInfo: `15 ช่อง (Slots 1-15)`,

@@ -59,7 +59,7 @@ export const cu12DispenseContinueHandler = (
       
 
       event.sender.send("cu12-dispense-continue-error", {
-        message: "การดำเนินการจ่ายยา CU12 ต่อล้มเหลว กรุณาลองใหม่อีกครั้ง",
+        message: "การดำเนินการจ่ายยา DS12 ต่อล้มเหลว กรุณาลองใหม่อีกครั้ง",
         slotId: payload.slotId,
         error: error.message,
       });

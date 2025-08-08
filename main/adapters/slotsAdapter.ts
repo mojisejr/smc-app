@@ -33,7 +33,7 @@ export const registerUniversalGetAllSlotsHandler = (
         `[UNIVERSAL-ADAPTER] get-all-slots routing to ${hardwareInfo.type}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // CU12 Mode - Sync hardware state before returning slots
         try {
           // Force hardware synchronization to get current slot states
@@ -80,7 +80,7 @@ export const registerUniversalGetAllSlotsHandler = (
           hardwareType: "CU12",
           maxSlots: hardwareInfo.maxSlots,
         }));
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // KU16 Mode - Use existing slot retrieval
         console.log(
           "[UNIVERSAL-ADAPTER] KU16 slot retrieval using standard method"
@@ -146,7 +146,7 @@ export const registerUniversalSlotStatusHandler = (
         `[UNIVERSAL-ADAPTER] get-slot-status for slot ${slotId} routing to ${hardwareInfo.type}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Get real-time status from CU12 hardware
         const slotStatuses = await cu12StateManager.syncSlotStatus("REAL_TIME");
         const targetSlot = slotStatuses.find((slot) => slot.slotId === slotId);
@@ -166,7 +166,7 @@ export const registerUniversalSlotStatusHandler = (
               ? "เปิดใช้งาน"
               : "ปิดใช้งาน",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Get status from KU16 (trigger state check first)
         ku16Instance.sendCheckState();
 
