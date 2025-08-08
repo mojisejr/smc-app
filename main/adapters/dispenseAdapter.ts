@@ -154,7 +154,7 @@ export const registerUniversalDispenseHandler = (
 
         if (!ku16Instance.connected) {
           await unifiedLoggingService.logError({
-            message: `KU16 dispense failed: connection error for slot ${payload.slotId}`,
+            message: `DS16 dispense failed: connection error for slot ${payload.slotId}`,
             component: "DispenseAdapter",
             details: { slotId: payload.slotId, hardwareType: "KU16", reason: "connection_error" },
           });
@@ -167,7 +167,7 @@ export const registerUniversalDispenseHandler = (
             path: "/error/connection-error",
           });
 
-          throw new Error("KU16 connection error");
+          throw new Error("DS16 connection error");
         }
 
         // Use existing KU16 dispense logic (void method - no return value)
@@ -186,7 +186,7 @@ export const registerUniversalDispenseHandler = (
           success: true,
           slotId: payload.slotId,
           hn: payload.hn,
-          message: "KU16 dispense operation initiated successfully",
+          message: "DS16 dispense operation initiated successfully",
         };
       } else {
         const errorMsg = `Hardware ${hardwareInfo.type} not initialized or not supported for dispense operation`;
@@ -276,7 +276,7 @@ export const registerUniversalDispenseContinueHandler = (
           });
           if (!user) {
             await unifiedLoggingService.logWarning({
-              message: `CU12 dispense-continue: user not found for slot ${payload.slotId}`,
+              message: `DS12 dispense-continue: user not found for slot ${payload.slotId}`,
               component: "DispenseAdapter",
               details: { slotId: payload.slotId, operation: "dispense-continue", reason: "user_not_found" },
             });
@@ -334,7 +334,7 @@ export const registerUniversalDispenseContinueHandler = (
         );
 
         if (!ku16Instance.connected) {
-          throw new Error("KU16 connection error");
+          throw new Error("DS16 connection error");
         }
 
         // KU16 dispense-continue: Keep slot occupied with medicine remaining

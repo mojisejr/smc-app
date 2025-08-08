@@ -49,7 +49,7 @@ export const cu12DeactivateHandler = (stateManager: CU12SmartStateManager) => {
       
 
       event.sender.send("cu12-deactivate-error", {
-        message: "การปิดใช้งาน CU12 ล้มเหลว กรุณาลองใหม่อีกครั้ง",
+        message: "การปิดใช้งาน DS12 ล้มเหลว กรุณาลองใหม่อีกครั้ง",
         slotId: payload.slotId,
         error: error.message,
       });
@@ -105,7 +105,7 @@ export const cu12DeactivateAllHandler = (
       
 
       event.sender.send("cu12-deactivate-all-error", {
-        message: "การปิดใช้งาน CU12 ทั้งหมดล้มเหลว กรุณาลองใหม่อีกครั้ง",
+        message: "การปิดใช้งาน DS12 ทั้งหมดล้มเหลว กรุณาลองใหม่อีกครั้ง",
         error: error.message,
       });
 

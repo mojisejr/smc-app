@@ -58,7 +58,7 @@ export const cu12DispenseHandler = (stateManager: CU12SmartStateManager) => {
       await stateManager.exitOperationMode();
 
       event.sender.send("cu12-dispense-error", {
-        message: "การจ่ายยา CU12 ล้มเหลว กรุณาลองใหม่อีกครั้ง",
+        message: "การจ่ายยา DS12 ล้มเหลว กรุณาลองใหม่อีกครั้ง",
         slotId: payload.slotId,
         error: error.message,
       });

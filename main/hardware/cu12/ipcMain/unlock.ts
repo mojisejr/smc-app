@@ -46,7 +46,7 @@ export const cu12UnlockHandler = (stateManager: CU12SmartStateManager) => {
     } catch (error) {
       // Send error to renderer
       event.sender.send("cu12-unlock-error", {
-        message: "ปลดล็อก CU12 ไม่สำเร็จกรุณาตรวจสอบรหัสผู้ใช้งานอีกครั้ง",
+        message: "ปลดล็อก DS12 ไม่สำเร็จกรุณาตรวจสอบรหัสผู้ใช้งานอีกครั้ง",
         slotId: payload.slotId,
         error: error.message,
       });
@@ -61,7 +61,7 @@ export const cu12UnlockHandler = (stateManager: CU12SmartStateManager) => {
         hn: payload.hn,
         slotId: payload.slotId,
         process: "unlock-error",
-        message: "ปลดล็อค CU12 ล้มเหลว",
+        message: "ปลดล็อค DS12 ล้มเหลว",
       });
 
       return {

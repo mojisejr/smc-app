@@ -208,14 +208,14 @@ export const registerUniversalCheckLockedBackHandler = (
             path: "/error/connection-error",
           });
 
-          throw new Error("KU16 connection error");
+          throw new Error("DS16 connection error");
         }
 
         // Use existing KU16 check locked back logic (just trigger state check)
         ku16Instance.sendCheckState();
         const result = {
           success: true,
-          message: "KU16 status check triggered",
+          message: "DS16 status check triggered",
         };
 
         await unifiedLoggingService.logInfo({

@@ -152,7 +152,7 @@ export const registerUniversalClearSlotHandler = (
         return {
           success: true,
           slotId: payload.slotId,
-          message: "KU16 slot cleared successfully",
+          message: "DS16 slot cleared successfully",
           action: "clear",
         };
       } else {

@@ -46,7 +46,7 @@ export const cu12ReactivateAllHandler = (
       
 
       event.sender.send("cu12-reactivate-all-error", {
-        message: "การเปิดใช้งาน CU12 ทั้งหมดล้มเหลว กรุณาลองใหม่อีกครั้ง",
+        message: "การเปิดใช้งาน DS12 ทั้งหมดล้มเหลว กรุณาลองใหม่อีกครั้ง",
         error: error.message,
       });
 
@@ -101,7 +101,7 @@ export const cu12ReactivateAdminHandler = (
       
 
       event.sender.send("cu12-reactivate-admin-error", {
-        message: "การเปิดใช้งาน CU12 โดย Admin ล้มเหลว",
+        message: "การเปิดใช้งาน DS12 โดย Admin ล้มเหลว",
         slotId: payload.slotId,
         error: error.message,
       });

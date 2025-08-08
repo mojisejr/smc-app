@@ -33,14 +33,14 @@ export const registerUniversalInitHandler = (
 
         if (!isConnected) {
           mainWindow.webContents.send("cu12-init-failed-on-connection-error", {
-            title: "ไม่สามารถเชื่อมต่อกับตู้เก็บยา CU12 ได้",
+            title: "ไม่สามารถเชื่อมต่อกับตู้เก็บยา DS12 ได้",
             message:
-              "ไม่สามารถเชื่อมต่อกับตู้เก็บยา CU12 ได้ ตรวจสอบที่หน้า admin",
+              "ไม่สามารถเชื่อมต่อกับตู้เก็บยา DS12 ได้ ตรวจสอบที่หน้า admin",
             suggestion:
               "กรุณาตรวจสอบการเชื่อมต่อกับตู้เก็บยา และลองใหม่อีกครั้ง",
             path: "/error/connection-error",
           });
-          return { success: false, error: "CU12 Connection failed" };
+          return { success: false, error: "DS12 Connection failed" };
         }
 
         // Trigger user interaction to activate monitoring
@@ -73,14 +73,14 @@ export const registerUniversalInitHandler = (
 
         if (!isConnected) {
           mainWindow.webContents.send("init-failed-on-connection-error", {
-            title: "ไม่สามารถเชื่อมต่อกับตู้เก็บยา KU16 ได้",
+            title: "ไม่สามารถเชื่อมต่อกับตู้เก็บยา DS16 ได้",
             message:
-              "ไม่สามารถเชื่อมต่อกับตู้เก็บยา KU16 ได้ ตรวจสอบที่หน้า admin",
+              "ไม่สามารถเชื่อมต่อกับตู้เก็บยา DS16 ได้ ตรวจสอบที่หน้า admin",
             suggestion:
               "กรุณาตรวจสอบการเชื่อมต่อกับตู้เก็บยา และลองใหม่อีกครั้ง",
             path: "/error/connection-error",
           });
-          return { success: false, error: "KU16 Connection failed" };
+          return { success: false, error: "DS16 Connection failed" };
         }
 
         // Send check state command to KU16 (similar to original KU16 init handler)
@@ -89,7 +89,7 @@ export const registerUniversalInitHandler = (
         return {
           success: true,
           connected: isConnected,
-          message: "KU16 initialization completed - slot status requested",
+          message: "DS16 initialization completed - slot status requested",
           hardwareType: "KU16",
         };
       } else {
@@ -97,7 +97,7 @@ export const registerUniversalInitHandler = (
         console.error("[ADAPTER] No compatible hardware available for init");
         mainWindow.webContents.send("init-failed-on-connection-error", {
           title: "ไม่พบฮาร์ดแวร์ที่รองรับ",
-          message: "ไม่สามารถตรวจพบฮาร์ดแวร์ที่รองรับได้ (KU16/CU12)",
+          message: "ไม่สามารถตรวจพบฮาร์ดแวร์ที่รองรับได้ (DS16/DS12)",
           suggestion: "กรุณาตรวจสอบการตั้งค่าฮาร์ดแวร์ในหน้า admin",
           path: "/error/connection-error",
         });
