@@ -18,7 +18,7 @@ export const registerUniversalPortListHandler = (ku16Instance: KU16 | null) => {
       const hardwareInfo = await getHardwareType();
       console.log(`[ADAPTER] Getting port list for ${hardwareInfo.type} hardware`);
       
-      if (hardwareInfo.type === 'CU12') {
+      if (hardwareInfo.type === 'DS12') {
         // CU12 Mode - Use SerialPort.list() with CU12-compatible filtering
         console.log('[ADAPTER] Getting CU12 compatible port list');
         
@@ -44,10 +44,10 @@ export const registerUniversalPortListHandler = (ku16Instance: KU16 | null) => {
           serialNumber: port.serialNumber || 'Unknown',
           vendorId: port.vendorId || 'Unknown',
           productId: port.productId || 'Unknown',
-          compatible: 'CU12'
+          compatible: 'DS12'
         }));
         
-      } else if (hardwareInfo.type === 'KU16' && ku16Instance) {
+      } else if (hardwareInfo.type === 'DS16' && ku16Instance) {
         // KU16 Mode - Use existing KU16 implementation
         console.log('[ADAPTER] Routing to KU16 port list handler');
         
@@ -60,7 +60,7 @@ export const registerUniversalPortListHandler = (ku16Instance: KU16 | null) => {
           serialNumber: port.serialNumber || 'Unknown',
           vendorId: port.vendorId || 'Unknown',
           productId: port.productId || 'Unknown',
-          compatible: 'KU16'
+          compatible: 'DS16'
         }));
         
       } else {

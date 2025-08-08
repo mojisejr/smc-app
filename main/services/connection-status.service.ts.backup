@@ -5,7 +5,7 @@ import { unifiedLoggingService } from "./unified-logging.service";
 
 export interface ConnectionStatus {
   isConnected: boolean;
-  hardwareType: 'DS16' | 'DS12' | 'UNKNOWN';
+  hardwareType: 'KU16' | 'CU12' | 'UNKNOWN';
   lastChecked: Date;
   error?: string;
   message: string;
@@ -50,10 +50,10 @@ export class ConnectionStatusService {
       const hardwareInfo = await getHardwareType();
       let status: ConnectionStatus;
 
-      if (hardwareInfo.type === 'DS12' && this.cu12StateManager) {
-        status = await this.checkDS12Connection();
-      } else if (hardwareInfo.type === 'DS16' && this.ku16Instance) {
-        status = await this.checkDS16Connection();
+      if (hardwareInfo.type === 'CU12' && this.cu12StateManager) {
+        status = await this.checkCU12Connection();
+      } else if (hardwareInfo.type === 'KU16' && this.ku16Instance) {
+        status = await this.checkKU16Connection();
       } else {
         status = this.createDisconnectedStatus(`Hardware ${hardwareInfo.type} not initialized or not supported`);
       }
@@ -88,43 +88,43 @@ export class ConnectionStatusService {
     }
   }
 
-  private async checkDS12Connection(): Promise<ConnectionStatus> {
+  private async checkCU12Connection(): Promise<ConnectionStatus> {
     try {
       const isConnected = this.cu12StateManager?.isConnected() || false;
       
       return {
         isConnected,
-        hardwareType: 'DS12',
+        hardwareType: 'CU12',
         lastChecked: new Date(),
         message: isConnected 
-          ? 'เชื่อมต่อ DS12 Hardware สำเร็จ' 
-          : 'ไม่พบการเชื่อมต่อ DS12 Hardware',
-        error: isConnected ? undefined : 'DS12 hardware not connected'
+          ? 'เชื่อมต่อ CU12 Hardware สำเร็จ' 
+          : 'ไม่พบการเชื่อมต่อ CU12 Hardware',
+        error: isConnected ? undefined : 'CU12 hardware not connected'
       };
     } catch (error) {
-      return this.createDisconnectedStatus(`DS12 connection error: ${error.message}`, 'DS12');
+      return this.createDisconnectedStatus(`CU12 connection error: ${error.message}`, 'CU12');
     }
   }
 
-  private async checkDS16Connection(): Promise<ConnectionStatus> {
+  private async checkKU16Connection(): Promise<ConnectionStatus> {
     try {
       const isConnected = this.ku16Instance?.isConnected() || false;
       
       return {
         isConnected,
-        hardwareType: 'DS16',
+        hardwareType: 'KU16',
         lastChecked: new Date(),
         message: isConnected 
-          ? 'เชื่อมต่อ DS16 Hardware สำเร็จ' 
-          : 'ไม่พบการเชื่อมต่อ DS16 Hardware',
-        error: isConnected ? undefined : 'DS16 hardware not connected'
+          ? 'เชื่อมต่อ KU16 Hardware สำเร็จ' 
+          : 'ไม่พบการเชื่อมต่อ KU16 Hardware',
+        error: isConnected ? undefined : 'KU16 hardware not connected'
       };
     } catch (error) {
-      return this.createDisconnectedStatus(`DS16 connection error: ${error.message}`, 'DS16');
+      return this.createDisconnectedStatus(`KU16 connection error: ${error.message}`, 'KU16');
     }
   }
 
-  private createDisconnectedStatus(error: string, hardwareType: 'DS16' | 'DS12' | 'UNKNOWN' = 'UNKNOWN'): ConnectionStatus {
+  private createDisconnectedStatus(error: string, hardwareType: 'KU16' | 'CU12' | 'UNKNOWN' = 'UNKNOWN'): ConnectionStatus {
     return {
       isConnected: false,
       hardwareType,

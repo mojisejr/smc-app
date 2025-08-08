@@ -2,27 +2,27 @@ import { BrowserWindow, ipcMain } from "electron";
 import { unifiedLoggingService } from "../../services/unified-logging.service";
 import { updateSetting } from "../updateSetting";
 import { IUpdateSetting } from "../../interfaces/setting";
-import { KU16 } from "../../ku16";
+import { DS16 } from "../../ku16";
 import { SerialPort } from "serialport";
 
-export const updateSettingHandler = (win: BrowserWindow, ku16: KU16) => {
+export const updateSettingHandler = (win: BrowserWindow, ku16: DS16) => {
   ipcMain.handle("set-setting", async (event, payload: IUpdateSetting) => {
     // Determine which hardware type is being configured
-    const isKU16 = payload.ku_port && payload.ku_baudrate;
-    const isCU12 = payload.cu_port && payload.cu_baudrate;
+    const isDS16 = payload.ku_port && payload.ku_baudrate;
+    const isDS12 = payload.cu_port && payload.cu_baudrate;
 
     let testPort: string;
     let testBaudrate: number;
     let hardwareType: string;
 
-    if (isCU12) {
+    if (isDS12) {
       testPort = payload.cu_port!;
       testBaudrate = payload.cu_baudrate!;
-      hardwareType = "CU12";
-    } else if (isKU16) {
+      hardwareType = "DS12";
+    } else if (isDS16) {
       testPort = payload.ku_port!;
       testBaudrate = payload.ku_baudrate!;
-      hardwareType = "KU16";
+      hardwareType = "DS16";
     } else {
       win.webContents.send("set-setting-res", null);
       win.webContents.send("connection", {
@@ -61,8 +61,8 @@ export const updateSettingHandler = (win: BrowserWindow, ku16: KU16) => {
         // Add hardware type and available slots to payload
         const settingUpdate = {
           ...payload,
-          hardware_type: hardwareType as "KU16" | "CU12",
-          available_slots: hardwareType === "CU12" ? 12 : 15,
+          hardware_type: hardwareType as "DS16" | "DS12",
+          available_slots: hardwareType === "DS12" ? 12 : 15,
         };
 
         win.webContents.send("set-setting-res", settingUpdate);

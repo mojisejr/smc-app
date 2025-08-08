@@ -4,7 +4,7 @@ import { getHardwareType } from "../setting/getHardwareType";
 import { unifiedLoggingService } from "./unified-logging.service";
 
 export interface HardwareConfig {
-  type: 'DS12' | 'DS16';
+  type: 'CU12' | 'KU16';
   port: string;
   baudrate: number;
   maxSlots: number;
@@ -23,7 +23,7 @@ export class HardwareConfigService {
   /**
    * Test port connection without saving configuration
    */
-  static async testPortConnection(port: string, baudrate: number, hardwareType: 'DS12' | 'DS16'): Promise<ValidationResult> {
+  static async testPortConnection(port: string, baudrate: number, hardwareType: 'CU12' | 'KU16'): Promise<ValidationResult> {
     return new Promise((resolve) => {
       const serialTest = new SerialPort({
         path: port,
@@ -99,7 +99,7 @@ export class HardwareConfigService {
       }
 
       return {
-        type: hardwareInfo.type as 'DS12' | 'DS16',
+        type: hardwareInfo.type as 'CU12' | 'KU16',
         port: hardwareInfo.port!,
         baudrate: hardwareInfo.baudrate!,
         maxSlots: hardwareInfo.maxSlots,
@@ -133,10 +133,10 @@ export class HardwareConfigService {
         available_slots: config.maxSlots
       };
 
-      if (config.type === "DS12") {
+      if (config.type === "CU12") {
         updateFields.cu_port = config.port;
         updateFields.cu_baudrate = config.baudrate;
-      } else if (config.type === "DS16") {
+      } else if (config.type === "KU16") {
         updateFields.ku_port = config.port;
         updateFields.ku_baudrate = config.baudrate;
       }
@@ -213,7 +213,7 @@ export class HardwareConfigService {
     }
 
     // Validate configuration values
-    if (!config.type || !['DS12', 'DS16'].includes(config.type)) {
+    if (!config.type || !['CU12', 'KU16'].includes(config.type)) {
       return {
         success: false,
         message: "ประเภทฮาร์ดแวร์ไม่ถูกต้อง",

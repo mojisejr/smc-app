@@ -15,12 +15,12 @@ export const setSelectedPortHandler = () => {
       const hardwareInfo = await getHardwareType();
       const updateFields: any = {};
 
-      if (hardwareInfo.type === "CU12") {
+      if (hardwareInfo.type === "DS12") {
         updateFields.cu_port = payload.port;
-      } else if (hardwareInfo.type === "KU16") {
+      } else if (hardwareInfo.type === "DS16") {
         updateFields.ku_port = payload.port;
       } else {
-        // Auto mode - default to KU16 for backward compatibility
+        // Auto mode - default to DS16 for backward compatibility
         updateFields.ku_port = payload.port;
       }
 
