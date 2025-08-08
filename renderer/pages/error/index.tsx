@@ -35,7 +35,7 @@ function ErrorPage() {
                   {"< "}ติดต่อผู้ให้บริการ{" >"}
                 </p>
                 <Link
-                  href={query.title == "KU16" ? "/setting?r=nls" : "/home"}
+                  href={query.title == "DS16" ? "/setting?r=nls" : "/home"}
                   className="btn btn-primary"
                 >
                   Back

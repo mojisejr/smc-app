@@ -8,16 +8,16 @@ interface UserGuideSection {
   titleEn: string;
   content: React.ReactNode;
   searchKeywords: string[];
-  hardwareSpecific?: 'CU12' | 'KU16' | 'UNIVERSAL';
+  hardwareSpecific?: 'DS12' | 'DS16' | 'UNIVERSAL';
   icon?: string;
 }
 
 // Hardware Content Filter Interface
 interface HardwareContentFilter {
-  showCU12Content: boolean;
-  showKU16Content: boolean;
+  showDS12Content: boolean;
+  showDS16Content: boolean;
   showUniversalContent: boolean;
-  currentHardware: 'KU16' | 'CU12' | 'UNKNOWN';
+  currentHardware: 'DS16' | 'DS12' | 'UNKNOWN';
   slotCount: number;
   features: string[];
 }
@@ -63,8 +63,8 @@ const UserGuideView: React.FC = () => {
         console.error('[UserGuideView] Error loading hardware info:', error);
         // Fallback to show all content
         setContentFilter({
-          showCU12Content: true,
-          showKU16Content: true,
+          showDS12Content: true,
+          showDS16Content: true,
           showUniversalContent: true,
           currentHardware: 'UNKNOWN',
           slotCount: 0,
@@ -277,7 +277,7 @@ const UserGuideView: React.FC = () => {
       titleEn: 'Hardware Information',
       icon: '🔌',
       hardwareSpecific: 'UNIVERSAL',
-      searchKeywords: ['hardware', 'CU12', 'KU16', 'ฮาร์ดแวร์', 'เชื่อมต่อ', 'connection'],
+      searchKeywords: ['hardware', 'DS12', 'DS16', 'ฮาร์ดแวร์', 'เชื่อมต่อ', 'connection'],
       content: (
         <div className="space-y-6">
           {hardwareDisplay && (
@@ -317,8 +317,8 @@ const UserGuideView: React.FC = () => {
 
     let sections = userGuideSections.filter(section => {
       // Hardware filtering
-      if (section.hardwareSpecific === 'CU12' && !contentFilter.showCU12Content) return false;
-      if (section.hardwareSpecific === 'KU16' && !contentFilter.showKU16Content) return false;
+      if (section.hardwareSpecific === 'DS12' && !contentFilter.showDS12Content) return false;
+      if (section.hardwareSpecific === 'DS16' && !contentFilter.showDS16Content) return false;
       
       // Search filtering
       if (searchTerm) {

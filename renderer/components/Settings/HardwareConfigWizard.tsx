@@ -3,7 +3,7 @@ import { ipcRenderer } from "electron";
 import Tooltip from "../Shared/Tooltip";
 
 interface HardwareConfig {
-  type: 'CU12' | 'KU16';
+  type: 'DS12' | 'DS16';
   port: string;
   baudrate: number;
   maxSlots: number;
@@ -27,7 +27,7 @@ type WizardStep = 'hardware-select' | 'port-config' | 'testing' | 'restart';
 export default function HardwareConfigWizard({ isOpen, onClose, currentConfig, onConfigSaved }: WizardProps) {
   const [step, setStep] = useState<WizardStep>('hardware-select');
   const [config, setConfig] = useState<HardwareConfig>({
-    type: 'KU16',
+    type: 'DS16',
     port: '',
     baudrate: 19200,
     maxSlots: 15,
@@ -74,11 +74,11 @@ export default function HardwareConfigWizard({ isOpen, onClose, currentConfig, o
     }
   };
 
-  const handleHardwareTypeChange = (type: 'CU12' | 'KU16') => {
+  const handleHardwareTypeChange = (type: 'DS12' | 'DS16') => {
     setConfig(prev => ({
       ...prev,
       type,
-      maxSlots: type === 'CU12' ? 12 : 15,
+      maxSlots: type === 'DS12' ? 12 : 15,
       baudrate: 19200 // Default baudrate for both
     }));
   };
@@ -166,7 +166,7 @@ export default function HardwareConfigWizard({ isOpen, onClose, currentConfig, o
     setCountdown(5);
     setAutoRestartEnabled(true);
     setConfig({
-      type: 'KU16',
+      type: 'DS16',
       port: '',
       baudrate: 19200,
       maxSlots: 15,
@@ -233,23 +233,23 @@ export default function HardwareConfigWizard({ isOpen, onClose, currentConfig, o
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <button
-                    onClick={() => handleHardwareTypeChange('KU16')}
+                    onClick={() => handleHardwareTypeChange('DS16')}
                     className={`p-4 border-2 rounded-lg text-left transition-all ${
-                      config.type === 'KU16' ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                      config.type === 'DS16' ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
                     }`}
                   >
-                    <div className="font-semibold">KU16</div>
+                    <div className="font-semibold">DS16</div>
                     <div className="text-sm text-gray-600">15 ช่อง</div>
                     <div className="text-xs text-gray-500 mt-2">เหมาะสำหรับการใช้งานทั่วไป</div>
                   </button>
                   
                   <button
-                    onClick={() => handleHardwareTypeChange('CU12')}
+                    onClick={() => handleHardwareTypeChange('DS12')}
                     className={`p-4 border-2 rounded-lg text-left transition-all ${
-                      config.type === 'CU12' ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+                      config.type === 'DS12' ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
                     }`}
                   >
-                    <div className="font-semibold">CU12</div>
+                    <div className="font-semibold">DS12</div>
                     <div className="text-sm text-gray-600">12 ช่อง</div>
                     <div className="text-xs text-gray-500 mt-2">ระบบใหม่พร้อมฟีเจอร์ขั้นสูง</div>
                   </button>

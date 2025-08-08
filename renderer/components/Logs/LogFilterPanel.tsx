@@ -93,7 +93,7 @@ const LogFilterPanel: React.FC<LogFilterPanelProps> = ({
   }, [onFiltersChange]);
 
   // Hardware type handler
-  const handleHardwareTypeChange = useCallback((hardwareType: 'KU16' | 'CU12' | undefined) => {
+  const handleHardwareTypeChange = useCallback((hardwareType: 'DS16' | 'DS12' | undefined) => {
     onFiltersChange({ hardwareType });
   }, [onFiltersChange]);
 
@@ -284,21 +284,21 @@ const LogFilterPanel: React.FC<LogFilterPanelProps> = ({
                 <input
                   type="radio"
                   name="hardwareType"
-                  checked={filters.hardwareType === 'KU16'}
-                  onChange={() => handleHardwareTypeChange('KU16')}
+                  checked={filters.hardwareType === 'DS16'}
+                  onChange={() => handleHardwareTypeChange('DS16')}
                   className="border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm">KU16 (15 ช่อง)</span>
+                <span className="ml-2 text-sm">DS16 (15 ช่อง)</span>
               </label>
               <label className="flex items-center">
                 <input
                   type="radio"
                   name="hardwareType"
-                  checked={filters.hardwareType === 'CU12'}
-                  onChange={() => handleHardwareTypeChange('CU12')}
+                  checked={filters.hardwareType === 'DS12'}
+                  onChange={() => handleHardwareTypeChange('DS12')}
                   className="border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm">CU12 (12 ช่อง)</span>
+                <span className="ml-2 text-sm">DS12 (12 ช่อง)</span>
               </label>
             </div>
           </div>
