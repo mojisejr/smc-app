@@ -55,32 +55,32 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
 
   return (
     <>
-      <div className="rounded-md shadow-md flex justify-between items-center p-3">
-        <span className="font-bold">จ่ายยา</span>
+      <div className="bg-orange-50/90 backdrop-blur-sm border border-orange-200/50 rounded-xl shadow-lg flex justify-between items-center p-3">
+        <span className="font-bold text-orange-800 tracking-wide">จ่ายยา</span>
         <button
           onClick={() => onClose()}
-          className="btn btn-circle btn-sm btn-ghost font-bold"
+          className="btn btn-circle btn-sm btn-ghost font-bold text-orange-600 hover:bg-orange-100/50 transition-colors duration-200"
         >
-          x
+          ✕
         </button>
       </div>
       <form
-        className="flex gap-2 flex-col p-3 "
+        className="flex gap-3 flex-col p-4 bg-white/80 backdrop-blur-sm rounded-xl"
         onSubmit={handleSubmit(onSubmit)}
       >
         <input
-          className="p-2 bg-gray-100 rounded-md text-[#000]"
+          className="p-3 bg-orange-50/70 backdrop-blur-sm border border-orange-200/30 rounded-lg text-orange-900 placeholder-orange-600/70 focus:bg-orange-50/90 focus:border-orange-300/50 focus:outline-none transition-all duration-200"
           placeholder="รหัสผู้ป่วย"
           {...register("hn", { required: true })}
-        ></input>
+        />
         <input
-          className="p-2 bg-gray-100 rounded-md text-[#000]"
+          className="p-3 bg-orange-50/70 backdrop-blur-sm border border-orange-200/30 rounded-lg text-orange-900 placeholder-orange-600/70 focus:bg-orange-50/90 focus:border-orange-300/50 focus:outline-none transition-all duration-200"
           placeholder="รหัสผู้ใช้"
           type="password"
           {...register("passkey", { required: true })}
-        ></input>
+        />
         <button
-          className="font-bold p-2 bg-[#eee] hover:bg-[#F9324A] hover:text-white rounded-md"
+          className="font-bold p-3 bg-orange-100/70 backdrop-blur-sm border border-orange-200/40 hover:bg-orange-600 hover:text-white text-orange-800 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg"
           type="submit"
         >
           จ่ายยา

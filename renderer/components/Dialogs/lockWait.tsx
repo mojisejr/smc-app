@@ -26,22 +26,21 @@ const handleCheckLockedBack = () => {
 
   return (
     <>
-      <div className="flex flex-col rounded-md overflow-hidden gap-2 max-w-[300px]">
-        <div className="flex justify-between items-center shadow-xl px-3 py-2 font-bold text-xl">
-          HN: {hn}
-          <button onClick={onOpenDeactive}  className="btn btn-circle btn-sm btn-ghost font-bold text-xl">!</button>
+      <div className="flex flex-col bg-blue-50/90 backdrop-blur-sm border border-blue-200/50 rounded-xl shadow-lg overflow-hidden gap-3 max-w-[320px]">
+        <div className="flex justify-between items-center bg-blue-100/70 backdrop-blur-sm p-4 font-bold text-lg">
+          <span className="font-bold text-blue-800 tracking-wide">HN: {hn}</span>
+          <button onClick={onOpenDeactive} className="btn btn-circle btn-sm btn-ghost font-bold text-blue-600 hover:bg-blue-100/50 transition-colors duration-200">!</button>
         </div>
-        <div className="flex flex-col p-3 flex-wrap jusitfy-center items-center">
-          <div className="font-bold text-[#ff0000]">
-            ช่อง #[{slotNo}] เปิดอยู่
+        <div className="flex flex-col p-4 flex-wrap justify-center items-center gap-3">
+          <div className="font-bold text-blue-700 text-center">
+            🔓 ช่อง #{slotNo} เปิดอยู่
           </div>
-          <p className="font-bold p-3">
-            นำยาเข้าช่อง #{slotNo} เปิด และปิดช่อง จากนั้นกดปุ่มตกลง
+          <p className="font-semibold text-blue-800 text-center leading-relaxed">
+            นำยาเข้าช่อง #{slotNo} และปิดช่อง จากนั้นกดปุ่มตกลง
           </p>
           <Loading />
-          <button className="btn" onClick={handleCheckLockedBack}>ตกลง</button>
+          <button className="btn bg-blue-100/70 backdrop-blur-sm border border-blue-200/40 hover:bg-blue-600 hover:text-white text-blue-800 font-bold transition-all duration-300 shadow-md hover:shadow-lg" onClick={handleCheckLockedBack}>ตกลง</button>
         </div>
-
       </div>
     </>
   );

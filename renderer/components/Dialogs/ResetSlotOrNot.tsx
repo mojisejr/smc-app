@@ -42,32 +42,32 @@ const ResetSlotOrNot = ({ slotNo, hn, onClose }: ResetSlotOrNotProps) => {
 
   return (
     <>
-      <div className="flex gap-2 p-5 flex-col max-w-[300px]">
-        <div className="text-[#ff0000] font-bold text-xl">
-          ระวังการ [FORCE RESET] จะทำให้สถานะของช่อง กลับมาเป็นว่าง
+      <div className="flex gap-3 p-5 flex-col max-w-[320px] bg-red-50/90 backdrop-blur-sm border border-red-200/50 rounded-xl shadow-lg">
+        <div className="text-red-700 font-bold text-lg leading-tight tracking-wide">
+          ⚠️ ระวัง [FORCE RESET] จะทำให้สถานะของช่อง กลับมาเป็นว่าง
           กรุณาเอายาที่เหลือออกจากช่อง {slotNo} ก่อนนะครับ
         </div>
 
         <input
           type="text"
-          className="input"
+          className="p-3 bg-red-50/70 backdrop-blur-sm border border-red-200/30 rounded-lg text-red-900 placeholder-red-600/70 focus:bg-red-50/90 focus:border-red-300/50 focus:outline-none transition-all duration-200"
           placeholder="เหตุผลการล้างช่อง"
           ref={inputRef}
-        ></input>
+        />
         <input
           type="password"
-          className="input"
+          className="p-3 bg-red-50/70 backdrop-blur-sm border border-red-200/30 rounded-lg text-red-900 placeholder-red-600/70 focus:bg-red-50/90 focus:border-red-300/50 focus:outline-none transition-all duration-200"
           placeholder="รหัสผู้ใช้"
           ref={passkeyRef}
-        ></input>
+        />
         <button
-          className="p-3 bg-gray-200 hover:bg-[#5495f6] text-white font-bold rounded-md"
+          className="p-3 bg-red-100/70 backdrop-blur-sm border border-red-200/40 hover:bg-red-600 hover:text-white text-red-800 font-bold rounded-lg transition-all duration-300 shadow-md hover:shadow-lg"
           onClick={handleReset}
         >
           เคลียร์ช่อง {slotNo}
         </button>
         <button
-          className="p-3 bg-gray-200 hover:bg-[#ff0000] text-white font-bold rounded-md"
+          className="p-3 bg-gray-100/70 backdrop-blur-sm border border-gray-200/40 hover:bg-gray-600 hover:text-white text-gray-800 font-bold rounded-lg transition-all duration-300 shadow-md hover:shadow-lg"
           onClick={() => handleContinue()}
         >
           ยกเลิก
