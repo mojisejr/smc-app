@@ -84,7 +84,7 @@ export const registerUniversalUnlockHandler = (
       //   message: `Universal unlock request: slot ${payload.slotId}, HN: ${payload.hn}, user: ${userName}, hardware: ${hardwareInfo.type}`,
       // });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 unlock operation with user-controlled modal flow
         console.log(
           `[CU12-UNLOCK] Processing unlock for slot ${payload.slotId} with user-controlled modal flow`
@@ -166,7 +166,7 @@ export const registerUniversalUnlockHandler = (
           // Always exit operation mode
           await cu12StateManager.exitOperationMode();
         }
-      } else if (hardwareInfo.type === "KU16") {
+      } else if (hardwareInfo.type === "DS16") {
         // Route to KU16 unlock operation - Modern or Legacy
         console.log(
           `[KU16-UNLOCK] Processing unlock for slot ${payload.slotId}`

@@ -32,7 +32,7 @@ export const registerUniversalResetHandler = (
         details: { slotId: payload.slotId, hn: payload.hn, hardwareType: hardwareInfo.type },
       });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 reset operation
         console.log(`[CU12-RESET] Processing reset for slot ${payload.slotId}`);
 
@@ -74,7 +74,7 @@ export const registerUniversalResetHandler = (
         } finally {
           await cu12StateManager.exitOperationMode();
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 reset operation
         console.log(`[KU16-RESET] Processing reset for slot ${payload.slotId}`);
 
@@ -186,7 +186,7 @@ export const registerUniversalForceResetHandler = (
         details: { slotId: payload.slotId, hn: payload.hn, hardwareType: hardwareInfo.type, userId, userName, operation: "force-reset" },
       });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 force reset operation - DATABASE RESET (not hardware unlock)
         console.log(
           `[CU12-FORCE-RESET] Processing database reset for slot ${payload.slotId}`
@@ -227,7 +227,7 @@ export const registerUniversalForceResetHandler = (
           slotId: payload.slotId,
           message: "Slot force reset successfully",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 force reset operation - replicate original handler flow
         console.log(
           `[KU16-FORCE-RESET] Processing database reset for slot ${payload.slotId}`

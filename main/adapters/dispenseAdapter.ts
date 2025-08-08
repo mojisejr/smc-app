@@ -84,7 +84,7 @@ export const registerUniversalDispenseHandler = (
         details: { slotId: payload.slotId, hn: payload.hn, userId, hardwareType: hardwareInfo.type },
       });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 dispense operation with user-controlled modal flow
         console.log(
           `[CU12-DISPENSE] Processing dispense for slot ${payload.slotId} with user-controlled modal flow`
@@ -146,7 +146,7 @@ export const registerUniversalDispenseHandler = (
         } finally {
           await cu12StateManager.exitOperationMode();
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 dispense operation
         console.log(
           `[KU16-DISPENSE] Processing dispense for slot ${payload.slotId}`
@@ -263,7 +263,7 @@ export const registerUniversalDispenseContinueHandler = (
         `[UNIVERSAL-ADAPTER] dispense-continue routing to ${hardwareInfo.type} for slot ${payload.slotId}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 dispense continue operation (partial dispense)
         console.log(
           `[CU12-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId} - partial dispense`
@@ -327,7 +327,7 @@ export const registerUniversalDispenseContinueHandler = (
           );
           throw error;
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 dispense continue operation
         console.log(
           `[KU16-DISPENSE-CONTINUE] Processing continue for slot ${payload.slotId}`

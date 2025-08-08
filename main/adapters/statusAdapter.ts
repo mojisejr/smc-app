@@ -34,7 +34,7 @@ export const registerUniversalCheckLockedBackHandler = (
         details: {},
       });
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 status check with user-controlled modal management
         console.log(
           `[CU12-STATUS] User-controlled status check for slot ${payload.slotId}`
@@ -187,7 +187,7 @@ export const registerUniversalCheckLockedBackHandler = (
           );
           throw error;
         }
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 status check
         console.log(
           `[KU16-STATUS] Checking lock status for slot ${payload.slotId}`

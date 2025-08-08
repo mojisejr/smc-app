@@ -45,7 +45,7 @@ export const registerUniversalDeactivateAdminHandler = (
         `[UNIVERSAL-ADAPTER] deactivate-admin routing to ${hardwareInfo.type} for slot ${payload.slotId}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 deactivation - Direct database update (same as KU16)
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -76,7 +76,7 @@ export const registerUniversalDeactivateAdminHandler = (
           slotId: payload.slotId,
           message: "ปิดใช้งานช่องเก็บยาสำเร็จ",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 deactivation
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -146,7 +146,7 @@ export const registerUniversalDeactivateAllHandler = (
         `[UNIVERSAL-ADAPTER] deactivate-all routing to ${hardwareInfo.type}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 bulk deactivation - Direct database update
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -178,7 +178,7 @@ export const registerUniversalDeactivateAllHandler = (
           success: true,
           message: "ปิดใช้งานช่องเก็บยาทั้งหมดสำเร็จ",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 bulk deactivation
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -246,7 +246,7 @@ export const registerUniversalReactivateAdminHandler = (
         `[UNIVERSAL-ADAPTER] reactivate-admin routing to ${hardwareInfo.type} for slot ${payload.slotId}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 reactivation - Direct database update (same as KU16)
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -274,7 +274,7 @@ export const registerUniversalReactivateAdminHandler = (
           slotId: payload.slotId,
           message: "เปิดใช้งานช่องเก็บยาสำเร็จ",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 reactivation
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -342,7 +342,7 @@ export const registerUniversalReactivateAllHandler = (
         `[UNIVERSAL-ADAPTER] reactivate-all routing to ${hardwareInfo.type}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 bulk reactivation - Direct database update
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -369,7 +369,7 @@ export const registerUniversalReactivateAllHandler = (
           success: true,
           message: "เปิดใช้งานช่องเก็บยาทั้งหมดสำเร็จ",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 bulk reactivation
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -472,7 +472,7 @@ export const registerUniversalDeactivateHandler = (
         `[UNIVERSAL-ADAPTER] deactivate routing to ${hardwareInfo.type} for slot ${payload.slotId}`
       );
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 deactivation
         await unifiedLoggingService.logInfo({
         message: "System operation logged",
@@ -511,7 +511,7 @@ export const registerUniversalDeactivateHandler = (
           slotId: payload.slotId,
           message: "ปิดใช้งานช่องเก็บยาสำเร็จ",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 deactivation (existing logic)
         await ku16Instance.deactivate(payload.slotId);
 

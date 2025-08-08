@@ -25,7 +25,7 @@ export const registerUniversalInitHandler = (
       const hardwareInfo = await getHardwareType();
       console.log(`[ADAPTER] Routing init to ${hardwareInfo.type} hardware`);
 
-      if (hardwareInfo.type === "CU12" && cu12StateManager) {
+      if (hardwareInfo.type === "DS12" && cu12StateManager) {
         // Route to CU12 initialization
         console.log("[ADAPTER] Routing to CU12 init handler");
 
@@ -65,7 +65,7 @@ export const registerUniversalInitHandler = (
           slotStatus: ku16CompatibleData, // Send transformed data
           hardwareType: "CU12",
         };
-      } else if (hardwareInfo.type === "KU16" && ku16Instance) {
+      } else if (hardwareInfo.type === "DS16" && ku16Instance) {
         // Route to KU16 initialization
         console.log("[ADAPTER] Routing to KU16 init handler");
 
