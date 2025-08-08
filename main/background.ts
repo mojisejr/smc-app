@@ -169,7 +169,9 @@ if (isProd) {
         maxSlots: 15, // KU16 specific
       });
       console.log(
-        `[KU16-MODERN] Initialization: ${ku16Initialized ? "SUCCESS" : "FAILED"}`
+        `[KU16-MODERN] Initialization: ${
+          ku16Initialized ? "SUCCESS" : "FAILED"
+        }`
       );
     } catch (error) {
       console.error("[KU16-MODERN] Initialization failed:", error.message);
@@ -183,9 +185,14 @@ if (isProd) {
         hardwareInfo.maxSlots,
         mainWindow
       );
-      console.log("[KU16-LEGACY] Legacy instance created for backward compatibility");
+      console.log(
+        "[KU16-LEGACY] Legacy instance created for backward compatibility"
+      );
     } catch (error) {
-      console.error("[KU16-LEGACY] Legacy initialization failed:", error.message);
+      console.error(
+        "[KU16-LEGACY] Legacy initialization failed:",
+        error.message
+      );
     }
   } else {
     // No hardware configured or unknown type - create KU16 fallback
@@ -210,10 +217,15 @@ if (isProd) {
         maxSlots: 15,
       });
       console.log(
-        `[KU16-MODERN-FALLBACK] Initialization: ${ku16Initialized ? "SUCCESS" : "FAILED"}`
+        `[KU16-MODERN-FALLBACK] Initialization: ${
+          ku16Initialized ? "SUCCESS" : "FAILED"
+        }`
       );
     } catch (error) {
-      console.error("[KU16-MODERN-FALLBACK] Initialization failed:", error.message);
+      console.error(
+        "[KU16-MODERN-FALLBACK] Initialization failed:",
+        error.message
+      );
     }
 
     // Legacy KU16 fallback
@@ -265,13 +277,18 @@ if (isProd) {
 
   // Universal IPC Adapters - Works with both KU16 and CU12
   console.log("[HARDWARE] Registering universal IPC adapters...");
-  registerUniversalAdapters(ku16, cu12StateManager, mainWindow, ku16StateManager);
+  registerUniversalAdapters(
+    ku16,
+    cu12StateManager,
+    mainWindow,
+    ku16StateManager
+  );
 
   // Enhanced Logging System - Replaces legacy logging
   console.log("[LOGGING] Registering enhanced logging handlers...");
   registerEnhancedLoggingHandlers();
   console.log("[LOGGING] Enhanced logging system activated");
-  
+
   // User Guide Documentation System - Modern documentation with hardware detection
   console.log("[USER-GUIDE] Registering user guide documentation handlers...");
   registerUserGuideAdapters();
