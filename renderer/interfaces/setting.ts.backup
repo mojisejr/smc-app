@@ -1,7 +1,7 @@
 export interface ISetting {
   id: number;
   // Hardware Configuration
-  hardware_type?: 'AUTO' | 'DS16' | 'DS12';
+  hardware_type?: 'AUTO' | 'KU16' | 'CU12';
   ku_port: string;
   ku_baudrate: number;
   cu_port?: string;
@@ -18,7 +18,7 @@ export interface ISetting {
 
 export interface IUpdateSetting {
   // Hardware Configuration
-  hardware_type?: 'AUTO' | 'DS16' | 'DS12';
+  hardware_type?: 'AUTO' | 'KU16' | 'CU12';
   ku_port?: string;
   ku_baudrate?: number;
   cu_port?: string;
