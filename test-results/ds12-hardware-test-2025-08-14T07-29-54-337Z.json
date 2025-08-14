@@ -1,0 +1,71 @@
+{
+  "connectionTests": [
+    {
+      "timestamp": 1755156593237,
+      "tests": [
+        {
+          "name": "connection-establishment",
+          "success": true,
+          "duration": 45,
+          "attempts": 1,
+          "message": "Connected successfully after 1 attempts"
+        },
+        {
+          "name": "connection-health",
+          "success": true,
+          "status": "healthy",
+          "queuedCommands": 0,
+          "protectionEnabled": true
+        }
+      ]
+    }
+  ],
+  "statusTests": [
+    {
+      "timestamp": 1755156593282,
+      "tests": [
+        {
+          "name": "status-check",
+          "success": true,
+          "duration": 4,
+          "slotsReceived": 0,
+          "data": []
+        }
+      ]
+    }
+  ],
+  "performanceMetrics": [
+    {
+      "timestamp": 1755156593287,
+      "metrics": [
+        {
+          "test": "status-check-benchmark",
+          "iterations": 10,
+          "averageMs": 3.6,
+          "minMs": 2,
+          "maxMs": 5,
+          "times": [
+            4,
+            3,
+            3,
+            5,
+            5,
+            5,
+            5,
+            2,
+            2,
+            2
+          ]
+        }
+      ]
+    }
+  ],
+  "errorLog": [],
+  "summary": {
+    "totalDuration": 1100,
+    "connectionEstablished": true,
+    "communicationWorking": true,
+    "readyForUIIntegration": true,
+    "errorCount": 0
+  }
+}

@@ -1,0 +1,1703 @@
+Technology Change Life
+
+KR-CU16 Communication Protocol
+Specification
+
+Shenzhen Kerong Electronic Technology Co., LTD
+Electronic R & D Department
+Saturday, April 25, 2023
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+1
+
+Technology Change Life
+
+CONTENTS
+
+Documentation Version
+Overview ...............................................................................................................................................................4
+一. Introduction to KR-CU Hardware ..........................................................................................................6
+(1). Interface specification ....................................................................................................................8
+(2). Key function description ............................................................................................................... 9
+(3).Description of the function ............................................................................................................. 9
+(4). RS485 communication wiring instructions ................................................................................. 10
+二, Installation Instruction ..................................................................................................................................10
+三. Introduction to CU16 Communication Protocol .......................................................................................... 11
+1. Hardware protocol .................................................................................................................................. 11
+2. Software communication protocol ......................................................................................................... 11
+(1). Communication protocol packet sent by the host computer to CU16 ........................................ 11
+(2). Communication 0x37 protocol packet sent by the host computer to CU16 ............................... 11
+(3). Communication 0x39 protocol packet sent by the host computer to CU16................................12
+(4). Communication protocol packet sent by the host computer to CU16.........................................13
+3. The CU 16 communication instruction sheet .........................................................................................14
+4. The CU 16 communication receiving instruction sheet.........................................................................14
+5. Instructions detailed explanation ............................................................................................................15
+(1). Get the state ................................................................................................................................. 15
+(2). Unlock instructions ......................................................................................................................15
+(3). Gets all the CU16 status instructions of the bus ..........................................................................16
+(4). Open all of the CU16 locks(Unlock instructions) .......................................................................16
+(5). Query and set the unlocking time ................................................................................................17
+(6). Query and set the bus all CU unlock time ...................................................................................18
+(7). Setting the delayed unlock time .................................................................................................. 19
+(8). Setting the Baud rate ....................................................................................................................20
+四. MCU OTA upgrade details...........................................................................................................................21
+1. Hardware protocol................................................................................................................................21
+(1) RS485 communication..................................................................................................................21
+2. MCU OTA upgrade, obtain the version number...................................................................................21
+(1) Communication protocol packet...................................................................................................22
+3. OTA upgrade, obtain version number communication instruction table..............................................22
+4. MCU OTA upgrade, obtain version number instructions detailed........................................................22
+(1) MCU OTA.....................................................................................................................................22
+(2) Get the current version number.....................................................................................................23
+五. CU16 demo software operation....................................................................................................................24
+(1). RS485 demo software operation ............................................................................................. ... 24
+(2). TCP / IP demo software operation ...............................................................................................27
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+2
+
+Technology Change Life
+
+Documentation Edition
+Time
+
+Edition
+
+Author
+
+Revised content
+
+Saturday, December 10th, 2022
+
+V1.0
+
+Chen Shiwei
+
+Establish a file
+
+Tuesday, April 25th, 2023
+
+V1.1
+
+Long Zhou
+
+Added OTA upgrade command, add
+checking version number command
+
+Friday, December 22th, 2023
+
+V1.2
+
+Long Zhou
+
+Add delayed unlock command
+
+Friday, August 23th, 2024
+
+V1.3
+
+Hu Changhu
+
+Example Modify the description of
+instruction pack details
+
+Tuesday,October 15th, 2024
+
+V1.4
+
+Hu Changhu
+
+Modified the description of the return
+value of delayed unlock command
+
+Hu Changhu
+
+Modified instruction pack frame
+description error and hardware port
+description error
+
+Wang Xi
+
+Add the delay unlock command for
+setting all KR-CU on the bus, add the
+command for setting all baud rates on
+the bus, and add the command for
+Querying all version numbers on the bus.
+
+Friday, November 22th, 2024
+
+Saturday,November 30th,2024
+
+V1.5
+
+V1.6
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+3
+
+Technology Change Life
+
+Summary
+This specification will detail the CU16 communication protocol.
+Section 1: CU16 communication hardware interface description
+Section 2: CU16 communication protocol details
+Section 3: CU16 OTA upgrade protocol details
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+4
+
+Technology Change Life
+PRODUCT INFORMATION
+
+Model
+
+KR-CU16/KR-CU
+
+Brand
+
+KERONG
+
+Main board size
+
+200*140 MM
+
+Protective box size
+
+208.8*148.8*34.5MM
+
+Substrate material
+
+FR4
+
+Copper thickness
+
+1 oz
+
+Slab thickness
+
+1.6mm
+
+Surface treatment
+
+Lead-free tin spraying, through-hole cover oil, black oil
+
+Microprocessor module
+
+R7F0C908B
+
+Connector model
+
+RJ45 and 5Pin 2.54 pitch vertical plug-in seats
+
+Standby power consumption
+
+20mA@12V
+
+Dynamic power consumption
+
+200mA~3000mA@12V (depending on the parameters of the lock)
+
+Standby current
+
+/
+
+Operating voltage
+
+8V~24V
+
+Reaction time
+
+Default 500ms, adjustable.
+
+Working temperature
+
+-25℃~65℃
+
+Working humidity
+
+10%～85%RH
+
+Communication method
+
+RS485
+
+Working life
+
+500000 times
+
+Authentication
+
+CE； FCC； RoHS
+
+Upper limit of series connection
+
+10
+
+Check whether there is a lock hook.
+
+√
+
+Whether with infrared strip detection.
+
+be
+
+Is there a lock hook?
+
+be
+
+Detection LED (external)
+Do you have infrared stripes?
+Detection LED (external)
+Is there?
+Lighting LED (external)
+Control the number of locks
+
+be
+no
+16
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+5
+
+Technology Change Life
+
+一 .Introduction to CU16 Hard ware
+Hardware parameter table
+working
+voltage
+
+Standby current
+
+Drive ability
+
+unlock time
+
+The number of serial
+
+DC voltage
+of 8~24V
+
+100mA@12V
+
+The single port
+output capacity is
+50W
+
+0~655350ms, default
+550ms (customer can
+design according to
+different locks)
+If solenoid
+lock,recommended
+user-powered
+unlocking time
+greater than
+800ms,but motor
+lock no requirement
+
+Support up to 10 CU16 in series
+(when driving the electromagnet,
+it is recommended that each
+control board be powered
+independently, and the CU line
+should not be more than 5 meters;
+When driving a motor type lock,
+an additional power supply is
+required every 10 meters)
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+6
+
+Technology Change Life
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+7
+
+Technology Change Life
+
+(1) interface specification
+1．Terminal [11,12]: power interface (2 Pin);
+2．Terminal [1 column: lock 1 # ~8 #]: driver interface (4 Pin), 2 Pin is the positive and
+negative lock end, 2 Pin is the lock hook detection switch end;
+3．Terminal [2 columns: lamp interface 1 # ~8 #]: interface (2 Pin), respectively, for the
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+8
+
+Technology Change Life
+positive and negative poles of the lamp;
+4．Terminal [3 columns: lock hook indicator lamp 1 # ~8 #]: interface (2 Pin), respectively, for
+the positive and negative poles of the indicator lamp;
+5．Terminal [7 columns: lock hook indicator 9 # ~16 #]: interface (2 Pin), respectively positive
+and negative poles of the indicator;
+6．Terminal [8 columns: lamp interface 9 # ~16 #]: interface (Pin), respectively, for the
+positive and negative poles of the lamp;
+7．Terminal [9 columns: lock 9 # ~16 #]: driver interface (4 Pin), 2 Pin is the lock positive and
+negative end, 2 Pin is the lock hook detection switch end;
+8．Terminal [21 column: infrared indicator 1 # ~8 #]: interface (2 Pin), respectively positive
+and negative indicator lamp;
+9．Terminal [22 column: infrared indicator 9 # ~16 #]: interface (2 Pin), respectively positive
+and negative electrodes of the indicator;
+10．Terminal [13,19]: RS485 communication interface (5 Pin), XH 2.54 seat;
+11．Terminal [14,18]: RS485 communication interface, RJ45 seat, also used for connecting
+multiple CU16;
+12．Terminal [16]: the transmitting end of the external infrared bar;
+13．Hub [10,20]: standby fuse seat, when the motherboard insurance is burned out, this fuse
+can be removed for use;
+14．Hub [15,17]: control board fuse, 3A power to the lock control board, 5A power to the lock;
+Address DescriptionDial code switch: CU16 address;
+Note: When connecting multiple CU16, the address of CU16 cannot be the same;
+(2) Key function description
+1．TEST: TEST test button, press TEST construction to unlock test; press 10 times, initialize
+the control board, restore to the factory setting state;
+2．RESET: RESET reset button;
+(3) Description of the function
+1．Work indicator light: when the control board works, the light is on;
+2．Lock state, indicator light: when the lock hook detection switch is on, the indicator light is
+off, when the lock hook detection switch is off, the indicator light is on;
+3．Power supply indicator light: the light is on when the control board is energized;
+4．Lock state, indicator light: when the lock hook detection switch is on, the indicator light is
+off, when the lock hook detection switch is off, the indicator light is on;
+5．Infrared indicator light: when no item is detected, the indicator light is red, when no item is
+detected, the indicator light is green.
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+9
+
+Technology Change Life
+(4) RS485 communication wiring instructions
+1．Control board A docking with RS485 communication T / R +;
+2．Control board B docking with RS485 communication T / R-;
+3．Control board Y docking with RS485 communication RXD +;
+4．Control board Z docking RS485 communication RXD-;
+5．Control board GND docking RS485 communication GND;
+
+二 Installation Instruction
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+10
+
+Technology Change Life
+
+三 CU16 communication protocol
+1. Hardware protocol
+(1) RS485 communication
+project
+
+explain
+
+Baud rate
+
+115200 or 19200 (factory default)
+
+Data bit
+
+Eight
+
+Check bit
+
+No
+
+Stop bit
+
+One
+
+2.Software communication protocol
+(1) Communication protocol packet sent by the host computer to CU16
+The Fixed length of the protocol package is 5
+The protocol package adopts the large-end mode
+The basic package format is as follows:
+explain
+
+order
+number
+
+Item
+
+1
+
+STX (1byte)
+
+Data header/frame header Fixed value：0x02
+
+2
+
+ADDR (1byte)
+
+CU16 hardware address, value range 0x00~0x9F; for example,
+when ADDR=0x00, the high four bits means control operation
+for CU16 with address 0x00, and the low four bits means
+control operation for lock with address 0x00;
+
+3
+
+CMD (1byte)
+
+For instructions, refer to the CU16 instruction sheet
+
+4
+
+ETX (1byte)
+
+Data tail / frame tail fixed value: 0x03
+
+SUM (1byte)
+
+Low bytes for the checksum of the entire instruction packet; for
+example SUM=STX+ADDR+CMD+ASK+ETX=0x125D，then
+SUM=0x5D
+
+5
+
+(2) Communication 0x37 protocol packet sent by the host computer to CU16
+The Fixed length of the protocol package is 7
+The protocol package adopts the large-end mode
+The basic package format is as follows:
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+11
+
+Technology Change Life
+Order
+number
+
+Item
+
+1
+
+STX (1byte)
+
+Data head / frame head fixed value: 0x02
+
+2
+
+ADDR (1byte)
+
+CU16 hardware address, value range 0x00~0x9F; for example,
+when ADDR = 0x00, the high four bits means control operation
+for CU16 with address 0x00, and the low four bits means
+control operation for lock with address 0x00;
+
+3
+
+CMD (1byte)
+
+For instructions, refer to the CU 16 instruction sheet
+
+4
+
+DATA (2byte)
+
+When CMD = Ox37 sets the unlocking time,DATA＝2byte，
+The value ranges from 0x0000 to 0x1770 (decimal), indicates
+0s-60s. The default value is 550ms.
+
+5
+
+ETX (1byte)
+
+Data tail / frame tail fixed value: 0x03
+
+SUM (1byte)
+
+Low bytes for the checksum of the entire instruction packet; for
+example, SUM = STX + ADDR + CMD + ETX + DATA =
+0x125 D, then SUM = 0x5D
+
+6
+
+Explain
+
+(3) Communication 0x39 protocol packet sent by the host computer to CU16
+The Fixed length of the protocol package is 6
+The protocol package adopts the large-end mode
+The basic package format is as follows:
+Order
+number
+
+Item
+
+1
+
+STX (1byte)
+
+Data head / frame head fixed value: 0x02
+
+2
+
+ADDR (1byte)
+
+CU16 hardware address, value range 0x00~0x9F; for example,
+when ADDR = 0x00, the high four bits means control operation
+for CU16 with address 0x00, and the low four bits means
+control operation for lock with address 0x00;
+
+3
+
+CMD (1byte)
+
+For instructions, refer to the CU 16 instruction sheet
+
+4
+
+DATA (1byte)
+
+When CMD = Ox39 sets the unlocking time,DATA＝1byte，
+The value ranges from 0x00 to 0xFA (decimal),indicates
+0s-250s. The default value is 0s.
+When CMD = Ox39 sets baud rate,DATA=1byte,the value
+ranges is 0：9600、 1：19200、2：57600、3：115200, The default
+value is 3:115200 or 0:9600.
+
+5
+
+ETX (1byte)
+
+Data tail / frame tail fixed value: 0x03
+
+SUM (1byte)
+
+Low bytes for the checksum of the entire instruction packet; for
+example, SUM = STX + ADDR + CMD + ETX + DATA =
+0x125 D, then SUM = 0x5D
+
+6
+
+Explain
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+12
+
+Technology Change Life
+
+(4) Communication protocol packet sent by the host computer to CU16
+The Fixed length of the protocol package is 9
+The protocol package adopts the large-end mode
+The basic package format is as follows:
+Order
+number
+
+Item
+
+1
+
+STX (1byte)
+
+Data head / frame head fixed value: 0x02
+
+2
+
+ADDR (1byte)
+
+CU16 hardware address, value range 0x00~0x9F; for example,
+when ADDR = 0x00, the high four bits means control operation
+for CU16 with address 0x00, and the low four bits means
+control operation for lock with address 0x00;
+
+3
+
+CMD (1byte)
+
+For instructions, refer to the CU 16 instruction sheet
+
+DATA1 (1byte)
+
+It indicates the lock state of lock No.1-8 on CU16, where
+bit0-bit7 corresponds to the lock state of lock No.1-8; for
+example, bit0=0 indicates the lock state of lock no. 1; bit0=1
+indicates the lock state of lock No.1 is locked; Note that the
+corresponding relationship between bit value and the lock state
+may correspond in reverse (depending on the lock switch of the
+logistics cabinet lock is normally open (NO) or normally closed
+(NC)
+
+DATA2 (1byte)
+
+It indicates the lock status of lock No.9-16 on CU16, where
+bit0-bit-bit7 corresponds to the lock status of lock No.9-16; for
+example, bit0=0 indicates the lock status of lock No.9; bit0=1
+indicates the lock status of lock No.9; Note that the bit value and
+the lock status may correspond in reverse (depending on the
+lock switch of the logistics cabinet lock is normally open (NO)
+or normally closed (NC))
+
+DATA3 (1byte)
+
+When CMD = 0x35, 0x36, 0x39, it indicates the infrared item
+detection status of lock No.1-8 on CU16, where bits 0-bits 7
+correspond to the infrared item detection status of lock No.1-8
+respectively. For example, bit0=0 indicates that lock No. 1 is in
+no item state. bit0=1, indicating that lock No. 1 is in the state of
+possession;
+When CMD = 0x38, this byte indicates that the unlocking time
+is eight bits higher, and the value ranges from 0x00 to 0x17.
+
+DATA4 (1byte)
+
+When CMD = 0x35, 0x36, 0x39, it indicates the infrared item
+detection status of lock No.9-16 on CU16, where bits 0-bits 7
+correspond to the infrared item detection status of lock No.9-16
+
+4
+
+5
+
+6
+
+7
+
+Explain
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+13
+
+Technology Change Life
+respectively. For example, bit0=0 indicates that lock No. 9 is in
+7no item state. bit0=1, indicating that lock No. 9 is in the state
+of possession;
+When CMD = 0x38, this byte indicates that the unlocking time
+is eight bits higher, and the value ranges from 0x00 to 0xFF.
+When CMD = Ox40 this byte indicates baud rate, the value
+ranges is 0：9600、 1：19200、2：57600、3：115200, the default
+value is 3:115200 or 0:9600.
+8
+9
+
+ETX (1byte)
+SUM (1byte)
+
+Data tail / frame tail fixed value: 0x03
+Low bytes for the checksum of the entire instruction packet; for
+example, SUM = STX + ADDR + CMD + ETX + DATA =
+0x125 D, then SUM = 0x5D
+
+3.The CU 16 communication sending instruction sheet
+Order
+number
+
+Instruct
+
+Explain
+
+Code
+
+Communication command (Host computer <——> CU16)
+1
+
+Obtain a single state
+
+0x30
+
+Get the status of the lock
+
+2
+
+Unlock
+
+0x31
+
+Unlock command
+
+3
+
+Gets all of the CU states
+
+0x32
+
+Gets all CU states on the R S485 bus
+
+4
+
+Unlock all of the CU locks
+
+0x33
+
+Unlock command
+
+5
+
+Set / query the unlocking time
+
+0x37
+
+Set up / query the unlocking time
+
+6
+
+Set/query delay unlock duration
+
+0x39
+
+Set/query delay unlock duration
+
+7
+
+Set Baud Rate
+
+0x40
+
+Set Baud Rate
+
+remarks
+
+4.The CU 16 communication receiving instruction sheet
+Order
+number
+
+Instruct
+
+Explain
+
+Code
+
+Communication command (Host computer <——> CU16)
+1
+
+Return data
+
+0x35
+
+Returns the lock hook detection and infrared
+detection data instructions for a single CU
+
+2
+
+Return data
+
+0x36
+
+Return the lock hook detection and infrared
+detection data command of all CU of the bus
+
+3
+
+Return data
+
+0x38
+
+Return to unlock power-on time and lock
+hook detection data Command
+
+4
+
+Return data
+
+0x39
+
+Returns the delay unlock time and lock hook
+detection data Command
+
+5
+
+Return data
+
+0x40
+
+Returns hook detection and baud rate
+
+remarks
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+14
+
+Technology Change Life
+
+5.Instructions detailed explanation
+Introduce the meaning of instructions in detail to help customers quickly understand the usage of
+instructions;
+(1) Get the status
+A. instruction code:
+Code: 0x30
+B. command function
+1、Obtain the lock hook and infrared bar status of a single CU16;
+C. Refer to communication routine:
+1. obtain the status of the CU16 of the specified address (the following routine is to obtain the status of the CU16
+with the address 0x00):
+Downlink communication command (upper computer ——> CU16): 02 00 30 03 35
+Uplink communication command (CU16 ——> upper computer): RX: 02 00 35 01 00 01 00 03 3C
+Example analysis:
+1、 Routine means the address for 0x00 CU16 lock hook and infrared bar status, 01 00 said to the lock hook status data,
+learned from the data: Ox01 lock hook status, the rest of the lock hook, including 01 00 said to the infrared sensor status data, learned
+from the data: have detected in the Ox01 locker, not detected in the rest of the locks.
+
+(2) Unlock instructions
+A. instruction code:
+Instructions: 0x31
+B. command function
+1、Open the specified lock of CU16 according to the specified parameters;
+C. Format of the data DATA
+No DATA data were available
+D. Refer to communication routine:
+1. Open a specified lock on CU16 of the specified address (the following routine is opening the third lock of CU16
+with address 0x00):
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+15
+
+Technology Change Life
+Downlink communication command (upper computer ——> CU16): 02 02 31 03 38
+E. Example analysis:
+1、In the routine, 0 means the CU16 with address 0x00, 2 opens the CU16 third lock; (0x00~0x0F) represents the
+number 1 to 16 locks of the control board
+(3) Gets all the CU status instructions of the bus
+A. instruction code:
+Instructions: 0x32
+B. command function
+1. Obtain the status of all CU16s on the RS485 bus
+C. Refer to communication routine:
+Downlink communication command (upper computer ——> CU16): 02 F0 32 03 27
+Uplink communication command (CU16 ——> upper computer):02 00 36 00 03 01 00 03 3F
+02 10 36 01 00 00 08 03 54
+
+Example analysis:
+1. The first routine means to obtain the lock hook and infrared bar status of CU16 with the address 0x00, where 00
+03 01 00means to obtain the lock hook status data. It is learned from the data: No. 9 and No. 10 are the two locks.
+The hook is in the locked state, and the remaining 14 locks are in the unlocked state; 01 00、00 08 00indicates that
+the infrared strip detection status data is obtained. From the data, it is understood that: No. 1 infrared strip detects
+something, and the remaining 15 infrared strips are not locked. Item detected; We know from the data that: No. 12
+infrared strip detected the presence of an item, and the remaining 15 infrared strips did not detect the item;
+
+(4) Unlock instructions(all locks)
+A. instruction code:
+Instructions: 0x33
+B. command function
+1. Open all the locks on the CU16 board one by one
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+16
+
+Technology Change Life
+C. Refer to communication routine:
+1. Open the 16 locks of the CU16 at the specified address (the following routine opens the 16 locks of the CU16 at
+address 0x00):
+Downlink communication command (upper computer ——> CU16): 02 00 33 03 38
+Uplink communication command (CU16 ——> upper computer):02 00 35 0F 00 01 00 03 4A
+D.Example analysis:
+1. The routine indicates that in order to open the 0x00 address CU on the 16 locks, and access to the address
+of 0x00 CU16 lock hooks and infrared strip status, which 0F 00 that access to the lock hook status data, from
+the data that: 1, 2, 3, 4 of the four locks are lock hooks on the lock state, the remaining 12 locks are lock
+hooks are not on the lock state; which 01 00 that access to the infrared The 01 00 means that the infrared strip
+detection status data is obtained, and we know from the data that: No. 1 infrared strip has detected an item,
+and the remaining 15 infrared strips have not detected an item;
+(5) Query and set the unlocking time
+A. instruction code:
+Instructions: 0x37
+B.command function
+1. Query and set the unlock time of CU16, the value range of the unlock time parameter is 0-655350ms (decimal),
+and the initialisation default value is 55 (decimal), which means 550ms;
+C. Format of the data DATA
+U16 OpenLockTIme; / / unlocking time value range U16 Ox0000~0x1770 (decimal) represents 0s-60s, the initial
+default value is 550ms, indicates the unlocking time is 0x 37 * 10ms=550ms;
+Refer to communication routine:
+query:
+1. Query the unlocking time of the specified address CU16 (the following routine is the unlocking time of the CU16
+with the query address of 0x00):
+Downlink communication command (upper computer ——> CU16): 02 00 37 03 3C
+Uplink communication command (CU16 ——> upper computer):02 00 38 0F 00 00 37 03 83
+set up:
+3. Set the unlocking time of the specified address CU16 (the following routine is setting the unlocking time of the
+CU 16 with the address 0x00):
+Downlink communication command (host computer ——> CU16): 02 00 37 00 64 03 A0
+Uplink communication command (CU16 ——> upper computer): 02 00 38 00 00 00 64 03 A1
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+17
+
+Technology Change Life
+E.Example analysis:
+1. The first routine that query address 0x00 CU16 open time and lock hook state, where 0F 00 that get to the lock
+hook state data, from the data that: 1, 2, 3, 4 the four locks is the lock hook locked state, the rest of the 12 locks is
+the lock hook is not locked state; 00 37 that the open time of 0x37 * 10 = 550ms, from the data that: the unlock
+time of address 0x00 is 0x0037*10=550ms;
+2, the second routine indicates to set the opening time and lock hook status of CU16 with address 0x00, where 00
+00 indicates to get the lock hook status data, and learn from the data that: 16 locks are lock hook unlocked status;
+00 64 indicates to set the opening time of CU with address 0x00, and learn from the data that: the opening time of
+CU with address 0x00 is 0x0064*10=1000ms; 00 64 indicates to set the opening time of CU with address 0x00,
+and learn from the data that: the opening time of address 0x00 is 0x0064*10=1000ms;
+Note: The default unlock time after initialization is 0x0037x10ms = 550ms, pay special attention to send the
+command to set the unlock time, the CU16 will enter the data saving task, at this time it is recommended to wait for
+more than 500ms, and then send the command.
+(6). Query and set the bus all CU unlock time
+A. instruction code:
+Instructions: 0x37
+B.command function
+1. Query, set the CU16 unlock time, unlock time parameter value range 0-655350ms (decimal), the initial default
+value of 55 (decimal), that 550ms
+C. Format of the data DATA
+U16 OpenLockTIme; / / unlocking time value range 0x0000~0x1770 (decimal) represents 0s-60s, the initial default
+value is 550ms, indicates the unlocking time is 0x 37 * 10ms=550ms;
+Refer to communication routine:
+query:
+1. Query the unlocking time of the specified address CU16 (the following routine is the unlocking time of the CU16
+with the query address of 0x00):
+Downlink communication command (upper computer ——> CU16): 02 F0 37 03 2C
+Uplink communication command (CU16 ——> upper computer):02 00 38 0F 00 00 37 03 83
+02 10 38 00 00 00 37 03 84
+set up:
+3. Set the unlocking time of the specified address CU16 (the following routine is setting the unlocking time of the
+CU 16 with the address 0x00):
+Downlink communication command (host computer ——> CU16): 02 F0 37 00 64 03 90
+Uplink communication command (CU16 ——> upper computer): 02 00 38 0F 00 00 64 03 4C
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+18
+
+Technology Change Life
+02 10 38 00 00 00 64 03 4D
+
+E.Example analysis:
+1. The first routine to get the address of 0x00 CU16 unlock time and lock hook state, where 0F 00 00 00 said to get
+the lock hook state data, from the data to understand: 1, 2, 3, 4 of the four locks is the lock hook locked state, the
+remaining 12 locks is the lock hook is not locked state; 00 37 said the unlocking time of 0x37 * 10 = 550ms, from
+the data to understand: Address 0x00 0x01 unlock time is 0x0037*10=550ms;
+2. The second routine to set unlock time of all CU16 on the bus, where 0F 00 said to get the lock hook state data,
+from the data to understand: 1, 2, 3, 4 of the four locks is the lock hook locked state, the remaining 12 locks is the
+lock hook is not locked state; 00 00 indicates 16 locks of address 0x01 is the lock hook is not locked state, 00 64
+said the unlocking time of 0x64 * 10 = 1000ms;
+Note: The default unlocking time after initialization is 0x 0037*10ms = 550ms. Special CU16 will enter the data
+saving task after sending the command to set the unlocking time. At this time, it is recommended to wait for more
+than 500ms before sending the command.
+(7). Setting the delayed unlock time
+A. instruction code:
+Instructions: 0x39
+B.command function
+1. Set the unlock time of CU16, the value range of the unlock time parameter is 0-250s (decimal), and the
+initialisation default value is 0S;
+C. Format of the data DATA
+u8 DelayOpenLockTIme; / / Delayed unlock time Range 0x00~0xFA,indicates delay time 0~250s, factory default
+delay unlocking time 0s;
+Refer to communication routine:
+D.set up:
+1. Query the delayed unlocking time of the CU16 (the following routine is the delayed unlocking time of the CU16
+with the query address of 0x00):
+Downlink communication command (upper computer ——> CU16): 02 00 39 01 03 3F
+Uplink communication command (CU16 ——> upper computer): 02 00 39 01 00 00 01 03 40
+2. Query the delayed unlocking time of the CU16 on the bus(the following routine is the delayed unlocking time of
+the CU16 with the query address of 0x00):
+Downlink communication command (upper computer ——> CU16): 02 FO 39 01 03 2F
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+19
+
+Technology Change Life
+Uplink communication command (CU16 ——> upper computer): 02 00 39 01 00 00 01 03 40 02 10
+39 01 00 00 01 03 50 02 20 39 01 00 00 01 03 60 02 30 39 01 00 00 01 03 70
+3. Set the unlocking time of the specified address CU16 (the following routine is setting the unlocking time of the
+CU 16 with the address 0x00):
+Downlink communication command (host computer ——> CU16): 02 F0 37 00 64 03 90
+Uplink communication command (CU16 ——> upper computer): 02 00 38 0F 00 00 64 03 B0
+02 10 38 00 00 00 64 03 B1
+
+E.Example analysis:
+1. the first routine to get the address of 0x00 CU16 unlock time and lock hook state, where 01 said to get the lock
+hook state data, 01 00 indicates that the lock check status data has been obtained. From the data to understand: 1
+locks is the lock hook locked state, the remaining 15 locks is the lock hook is not locked state; 00 01 indicates that
+articles are detected in Cabinet 9 of infrared articles, and no articles are detected in other lockers. If the delayed
+unlocking time is set to be greater than 250s, the delayed unlocking time will not change.
+2.The second routine indicates that the delayed unlocking time of all CU16 on the bus is set, where 01 indicates the
+set delayed unlocking time and 01 00 indicates that the lock hook status data is obtained. It is learned from the data
+that the lock hook No. 1 of CU with addresses 0x00 0x01 0x02 0x03 is in the locked state, and the remaining 15
+locks are in the unlocked state. 00 01 means infrared, it is learned from the data that items are detected in cabinet 9
+of CU with addresses of 0x00 0x01 0x02 0x03, and no items are detected in other lockers;
+Note: If the delay unlocking time is greater than 250s, the delay unlocking time will not change.
+
+(8). Set the baud rate
+A. instruction code:
+Instructions: 0x40
+B.command function
+1. Set the baud rate of CU16;
+C. Format of the data DATA
+u8 BaudrateFlag;
+
+/ / 0:9600、 1:19200、2:57600、3:115200(default, others are not currently supported);
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+20
+
+Technology Change Life
+Refer to communication routine:
+D.set up:
+1. Set the baud rate of the CU16 (the following routine is the baud rate of the CU16):
+Downlink communication command (upper computer ——> CU16): 02 00 40 01 03 46
+Uplink communication command (CU16 ——> upper computer): 02 00 40 01 00 00 01 03 47
+2. Set the baud rate of the CU16 on the bus(the following routine is the baud rate of the CU16):
+Downlink communication command (upper computer ——> CU16): 02 F0 40 00 03 35
+Uplink communication command (CU16 ——> upper computer):02 00 40 00 00 00 00 03 45 02 10 40
+00 00 00 00 03 55 02 20 40 00 00 00 00 03 65
+E.Example analysis:
+1.The first routine to get the address of 0x00 CU16 baud rate , where 01 said baud rate, 01 00 indicates that the lock
+check status data has been obtained. From the data to understand: 1 locks is the lock hook locked state, the
+remaining 15 locks is the lock hook is not locked state; 01 indicates the set baud rate, and the baud rate is 19200.
+2.The first routine to get the address of 0x00 CU16 baud rate , where 00 said baud rate, 00 00 indicates that the lock
+check status data has been obtained. From the data to understand: the16 locks with addresses 0x00、0x01、0x04 is
+the lock hook is not locked state; 00 indicates the set baud rate, and the baud rate is 9600.
+
+四. MCU OTA upgrade details
+1. Hardware protocol
+(1) RS485 communication
+Item
+
+Description
+
+Baud rate
+
+115200 （defaulted）
+
+Data bits
+
+8 bits
+
+Check bit
+
+no
+
+Stop bit
+
+1 bit
+
+Note: When the CU enters the upgrade state, set the baud rate to 115200.
+2. MCU OTA upgrade, obtain the version number
+The maximum length of a protocol packet is 10
+The minimum length of a protocol packet is 6
+Protocol packets use the big-end mode
+Protocol packet format: The instruction packet format is the same as the reply packet format. The basic package
+format is as follows:
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+21
+
+Technology Change Life
+Number
+
+Item
+
+Description
+
+1
+
+STX（1byte）
+
+Data header/frame header, Fixed value：0xF5
+
+2
+
+CMD（1byte）
+
+For instructions, see Communication instruction table
+
+3
+
+ADDR（1byte）
+
+CU16 Hardware address. The value ranges from 0x00 to 0x10.
+For example, if ADDR=0x00, 00 indicates that the CU16 at
+address 0x00 is controlled, and if ADDR=0x01 indicates that the
+CU16 at address 0x01 is controlled
+
+4
+
+DATALEN（1byte）
+
+5
+
+ETX（1byte）
+
+Data tail/frame tail, Fixed value：0x5F
+
+6
+
+SUM（1byte）
+
+Low bytes of the checksum of the entire instruction pack, such
+as all data sum 0x125D, sum=0x5D
+
+...
+6+DATALE
+N
+
+DATA（DATALEN
+bytes）
+
+The length of data
+
+Data, If the data length DATALEN is zero, no data is available.
+Data formats vary according to commands.
+
+3. OTA upgrade, obtain version number communication instruction table
+(1) Communication protocol packet
+Numbe
+r
+
+Item
+
+Comma
+nd
+
+Description
+
+Command（Upper PC<——>CU）
+1
+
+MCU OTA
+
+0xB5
+
+Enter OTA upgrade mode and clear the
+application
+
+2
+
+Obtain the version number
+
+0xB6
+
+Obtain the current software version and
+hardware version
+
+4. MCU OTA upgrade, obtain version number instructions detailed
+(1) MCU OTA
+a) Instruction code: Instruction: 0xB5
+b) Instruction function 1. After sending this command, the CU control board enters the OTA upgrade state;
+c) DATA format
+char OTA_flag[4];
+//OTA upgrade code (numeric ASCII value)
+d) Reference communication routine:
+1. let the CU at the specified address enter the OTA upgrade state (the following routine is to let the CU at the
+address 0x00 enter the upgrade state) :
+downlink communication command (PC -- &gt; CU) : F5 B5 00 04 5F E7 35 36 37 38
+Uplink Communication command (CU -- &gt; Host computer) : F5 B5 00 00 5F 09
+2. let any address CU in the bus into the OTA upgrade state (the following routine is to let a single CU at any
+address currently connected into the upgrade state) :
+downlink communication command (host computer -- &gt; CU) : F5 B5 64 04 5F 4B 35 36 37 38
+Uplink Communication command (CU -- &gt; Host computer) : F5 B5 00 00 5F 09
+F5 B5 00 00 5F 09 F5 B5 01 00 5F 0A F5 B5 02 00 5F 0B
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+22
+
+Technology Change Life
+e) routine parsing:
+1. where 00 means open the address of the CU 0x00, the default is the single CU of any address currently
+connected; 35 36 37 38 Indicates the OTA upgrade code, which is a character string 5678.
+2.where 64 means open the address of all CU on the bus, the default is the single CU of any address currently
+connected; 35 36 37 38 Indicates the OTA upgrade code, which is a character string 5678.
+00 01 02 Indicates the CU that has entered the upgrade state. It is learned from the data that the CU with
+addresses 0x00 0x01 0x02 has entered the OTA upgrade state;
+Noticed: The MCU OTA command should be used with caution. After sending this command, the MCU original
+application will be cleared and enter the OTA upgrade state; XModem protocol is adopted for file upgrade.
+(2) Get the current version number
+a) Instruction code:
+Instruction: 0xB6
+b) Command function
+Obtain the current software version and hardware version
+c) Format of DATA
+/////////////////// version /////////////////////
+struct
+{
+u8 softversion;
+u8 hardversion;
+}version;
+d) Reference communication routine:
+1. get the version number of the CU at the specified address (the following routine is to get the version number of
+the CU at address 0x00) :
+Downlink communication command (PC -- &gt; CU) : F5 B6 00 00 5F 0A
+Uplink communication command (CU -- &gt; PC) : F5 B6 00 02 5F 0E 01 01
+2. get the version number of the CU on the bus (the following routine is to get the version number of the CU at
+address 0x00) :
+Downlink communication command (PC -- &gt; CU) : F5 B6 64 00 5F 6E
+Uplink communication command (CU -- &gt; PC) :F5 B6 02 02 5F 13 04 01 F5 B6 05 02 5F 16 04
+01 F5 B6 07 02 5F 18 04 01
+e) Routine analysis:
+First Routine:
+1. 00 indicates that the CU at address 0x00 is obtained;
+2. 01 indicates that the current software version is 1.
+3. 01 indicates that the current hardware version is 1.
+Routine number two：
+1. 64 indicates the version number of all CU on the bus;
+2. 04 indicates that the current software version is 1.
+3. 01 indicates that the current hardware version is 1.
+It is learned from the data that the software version number of CU with addresses 0x02 0x05 0x07 is 4 and the
+hardware version number is 1.
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+23
+
+Technology Change Life
+
+五. CU16 demo software operation
+(1) The RS485 communication operation
+1. Connect RS485, CU 16 and PC correctly, and the wiring diagram is as follows:
+
+2. Check the PC port number used by RS485, right-click "My Computer", select "Management" to open, and enter
+the computer management, select Device Manager, and select Port (COM and LPT) in the right box to view the
+port number used by RS485, as detailed below:
+
+3.
+
+Test method 1: open RS485 test software, select the query, as above COM4, port rate
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+24
+
+Technology Change Life
+selection: 19200, check bit: None, data bit: 8, stop bit: 1, as below:
+
+4.
+
+Test method 2: Open the "CommTone Serial Port Debug" assistant for test operation. Note that
+
+the port rate should select 19200, and the sending data format is hex (namely HEX), as shown in the figure below:
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+25
+
+Technology Change Life
+
+5. According to CU 16 communication protocol, test, choose hexadecimal, namely "HEX"
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+26
+
+Technology Change Life
+(2) TCP / IP communication operation
+1. When connecting BU, CU 16 and PC correctly, pay attention to the BU connection, it should be a router, not a
+switch,
+The wiring diagram is as below:
+
+2.Set the IP address of the BU, note that it can not be the same as the PC IP address, that is, the last IP address is
+different, such as the PC.
+The IP address is 192.168.0.100, then the address of BU can be set to 192.168.0.158, and the last number is not the
+same.
+The specific operations are performed as follows:
+
+1
+
+Open the BU setting software ZHetCom Utility, as shown below:
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+27
+
+Technology Change Life
+
+Step 1: "Search <Search>" BU module information, Step 2: double-click the searched BU module, Step 3: to set the
+IP address of BU, Step 4: Enter the password "88888" 5 submit export, set success will be a success prompt
+Note: After the successful modification, the BU needs to be initialized
+2
+
+View the BU working port, as shown below:
+
+New-style BU Settings operation(need to check with our sales which
+BU you are using)
+1. Open the manned BU setting software, and the operation is shown in the figure below:
+Step 1. Click on the Search
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+28
+
+Technology Change Life
+
+Step 2. Double-click the IP address of the searched BU module
+
+Step 3. Click OK to allow the addition of a temporary IP
+
+Step 4. Click OK to allow the BU to restart after adding a temporary IP
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+29
+
+Technology Change Life
+
+Step 5. Click to log in
+
+Step 6. Switch to English
+
+Step 7. Here, the page to modify the BU module IP address, the gateway;
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+30
+
+Technology Change Life
+
+Step 8. Click Save after the change is completed;
+
+Step 9. Then restart the module and let the change take effect
+
+Step 10. Click yes;
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+31
+
+Technology Change Life
+
+Step 11. Modify the port rate; double-click to search for the BU module IP
+
+Step 12. Here, the page changes the port rate of BU and CU control board, and the working port of BU;
+
+Step 13. Click Save Settings;
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+32
+
+Technology Change Life
+
+Step 14. Click the restart module and click Yes;
+
+Step 15. Double-click to search for the changed BU module IP, click on the two pages, and see whether the change
+takes effect;
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+33
+
+Technology Change Life
+
+Test Method 1: After BU setting, open TCP test software "TCP &
+UDPDebug" and then "Create connection", type: TCP, Target IP: set BU address (e. g.
+192.168.0.158), port: query BU working port (e. g. 5000), and then click "Create" as follows:
+3
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+34
+
+Technology Change Life
+
+According to CU 16 communication protocol, note headecimal
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+35
+
+Technology Change Life
+
+4
+
+Test Method 2: After BU setting, open TCP test software, Target IP: set
+
+BU address (e. g. 192.168.0.158), port: query BU working port (e. g. 5000), and then click "Create"
+as follows:
+
+KERONG INDUSTRY (HK) CO., LIMITED
+
+Add: 2nd Floor, 3rd Building, 68# Tongli Road, Tongle Community, Baolong Street, Longgang District, Shenzhen,
+Guangdong, China, 518116
+Tel: +0086-755-28396063/83118766 Fax: +0086-755-83117533
+400 830 9229
+Website:www.kerong.hk
+http://szkerong.en.alibaba.com
+E-mail: kr@kerong.hk
+
+36
+
+

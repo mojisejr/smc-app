@@ -10,7 +10,15 @@
     "build": "nextron build",
     "build:linux": "nextron build --linux",
     "build:win63": "nextron build --win --x64",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "tscript:ds12": "npx ts-node scripts/test-ds12-hardware.js /dev/tty.useserial-AM10MY6R2 0x00",
+    "test": "jest",
+    "test:ds12": "jest tests/controllers/DS12Controller.test.ts",
+    "test:integration": "jest tests/integration/",
+    "test:hardware": "npx ts-node scripts/test-ds12-hardware.ts",
+    "test:hardware:js": "node scripts/test-ds12-hardware.js",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "build": {
     "linux": {
@@ -56,17 +64,21 @@
     "typescript": "^5.1.6"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.0",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.2.5",
     "autoprefixer": "^10.4.7",
     "electron": "^21.3.3",
     "electron-builder": "^23.6.0",
+    "jest": "^29.7.0",
     "next": "^12.3.4",
     "nextron": "^8.5.0",
     "postcss": "^8.4.13",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwindcss": "^3.1.8"
+    "tailwindcss": "^3.1.8",
+    "ts-jest": "^29.1.0"
   }
 }
