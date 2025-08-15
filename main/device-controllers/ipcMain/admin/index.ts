@@ -26,11 +26,11 @@
  */
 
 // Admin operation handlers
-export { deactivateHandler } from './deactivate';
-export { deactivateAllHandler } from './deactivateAll';
-export { deactivateAdminHandler } from './deactivate-admin';
-export { reactivateAdminHandler } from './reactivate-admin';
-export { reactiveAllHandler } from './reactiveAll';
+import { deactivateHandler } from './deactivate';
+import { deactivateAllHandler } from './deactivateAll';
+import { deactivateAdminHandler } from './deactivate-admin';
+import { reactivateAdminHandler } from './reactivate-admin';
+import { reactiveAllHandler } from './reactiveAll';
 
 /**
  * Register all admin IPC handlers
@@ -39,10 +39,19 @@ export { reactiveAllHandler } from './reactiveAll';
  * import { registerAdminHandlers } from './admin';
  * registerAdminHandlers();
  */
-export const registerAdminHandlers = () => {
+export function registerAdminHandlers(): void {
   deactivateHandler();
   deactivateAllHandler();
   deactivateAdminHandler();
   reactivateAdminHandler();
   reactiveAllHandler();
+}
+
+// Re-export for external use if needed
+export { 
+  deactivateHandler,
+  deactivateAllHandler, 
+  deactivateAdminHandler,
+  reactivateAdminHandler,
+  reactiveAllHandler
 };

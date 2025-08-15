@@ -1,7 +1,6 @@
 import { Log } from "../../db/model/logs.model";
 import { DispensingLog } from "../../db/model/dispensing-logs.model";
-import { dialog, ipcMain } from "electron";
-import { KU16 } from "../ku16";
+import { dialog, ipcMain, BrowserWindow, IpcMainEvent } from "electron";
 import { User } from "../../db/model/user.model";
 import fs from "fs";
 import { Setting } from "../../db/model/setting.model";
@@ -46,23 +45,28 @@ export const getDispensingLogs = async () => {
   });
 };
 
-export const LoggingHandler = (ku16: KU16) => {
-  ipcMain.handle("get_logs", async () => {
+export const LoggingHandler = () => {
+  ipcMain.handle("get_logs", async (event: IpcMainEvent) => {
     const data = await getLogs();
     const logs = data.map((log) => log.dataValues);
-    ku16.win.webContents.send("retrive_logs", logs);
+    
+    // Use BrowserWindow from IPC event for Phase 4.2 pattern
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) {
+      win.webContents.send("retrive_logs", logs);
+    }
   });
 };
 
-export const exportLogsHandler = (ku16: KU16) => {
-  ipcMain.handle("export_logs", async () => {
+export const exportLogsHandler = () => {
+  ipcMain.handle("export_logs", async (event: IpcMainEvent) => {
     const filename = await exportLogs();
     return filename.csvPath;
   });
 };
 
-export const logDispensingHanlder = (ku16: KU16) => {
-  ipcMain.handle("get_dispensing_logs", async () => {
+export const logDispensingHanlder = () => {
+  ipcMain.handle("get_dispensing_logs", async (event: IpcMainEvent) => {
     const data = await getDispensingLogs();
     const logs = data.map((log) => {
       return {

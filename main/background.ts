@@ -1,10 +1,9 @@
-import { BrowserWindow, app, dialog } from "electron";
+import { BrowserWindow, app } from "electron";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
 
-// Import database and KU16 related modules
+// Import database and DS12 controller modules
 import { sequelize } from "../db/sequelize";
-import { KU16 } from "./ku16";
 import { BuildTimeController } from "./ku-controllers/BuildTimeController";
 
 // Import IPC handlers for various functionalities
@@ -68,16 +67,14 @@ if (isProd) {
     autoHideMenuBar: true,
   });
 
-  let dbConnection = false;
-
   // Initialize database connection
   const sql = await sequelize.sync();
 
   // Get application settings
   const settings = await getSetting();
 
-  if (settings && sql) {
-    dbConnection = true;
+  if (!settings || !sql) {
+    throw new Error("Failed to initialize database or load settings");
   }
 
   // Initialize Indicator device with settings
@@ -88,47 +85,26 @@ if (isProd) {
     mainWindow
   );
 
-  // PHASE 4.1: Simple Fallback Strategy - Try DS12 first, fallback to KU16
-  let ku16 = null;
-  let usingDS12 = false;
-
-  try {
-    // Try DS12Controller first (Phase 4.1 preferred)
-    console.log("Phase 4.1: Attempting DS12Controller initialization...");
+  // PHASE 4.2: DS12-Only Implementation - No fallback strategy
+  console.log("Phase 4.2: Initializing DS12Controller (DS12-only mode)...");
+  
+  const ds12Initialized = await BuildTimeController.initialize(
+    mainWindow,
+    settings.ku_port,
+    settings.ku_baudrate
+  );
+  
+  if (ds12Initialized) {
+    console.log("✅ Using DS12Controller (Phase 4.2 DS12-only mode)");
     
-    const ds12Initialized = await BuildTimeController.initialize(
-      mainWindow,
-      settings.ku_port,
-      settings.ku_baudrate
-    );
-    
-    if (ds12Initialized) {
-      console.log("✅ Using DS12Controller (Phase 4.1)");
-      usingDS12 = true;
-      
-      // Start receiving data from DS12Controller
-      const controller = BuildTimeController.getCurrentController();
-      if (controller) {
-        controller.receive();
-      }
+    // Start receiving data from DS12Controller
+    const controller = BuildTimeController.getCurrentController();
+    if (controller) {
+      controller.receive();
     }
-    
-  } catch (error) {
-    console.log(`⚠️ DS12Controller initialization failed: ${error.message}`);
-    console.log("🔄 Falling back to KU16 controller...");
-  }
-
-  // Fallback to KU16 if DS12 initialization failed
-  if (!usingDS12) {
-    ku16 = new KU16(
-      settings.ku_port,
-      settings.ku_baudrate,
-      settings.available_slots,
-      mainWindow
-    );
-    
-    ku16.receive();
-    console.log("✅ Using KU16Controller (fallback)");
+  } else {
+    console.error("❌ DS12Controller initialization failed - no fallback available");
+    throw new Error("Failed to initialize DS12Controller. Please check device connection and configuration.");
   }
 
   // Initialize authentication system
@@ -148,7 +124,7 @@ if (isProd) {
   // Settings related handlers
   getSettingHandler(mainWindow);
   getUserHandler(mainWindow);
-  updateSettingHandler(mainWindow, ku16);
+  updateSettingHandler(mainWindow);
   getAllSlotsHandler();
   createNewUserHandler();
   deleteUserHandler();
@@ -159,10 +135,10 @@ if (isProd) {
   loginRequestHandler(mainWindow, auth);
   logoutRequestHandler(auth);
 
-  // Logging related handlers (still using KU16 for now - to be migrated in future phase)
-  logDispensingHanlder(ku16);
-  LoggingHandler(ku16);
-  exportLogsHandler(ku16);
+  // Logging related handlers (Phase 4.2: migrated to DS12-only mode)
+  logDispensingHanlder();
+  LoggingHandler();
+  exportLogsHandler();
 
   // Load the application UI based on environment
   if (isProd) {
