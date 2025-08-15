@@ -1,8 +1,26 @@
 # Phase 4: IPC Handlers Refactoring with Build-Time Configuration
 
-**Status**: ⏸️ **PENDING**  
+**Status**: 🚧 **IN PROGRESS** (Task 4.1 Partially Complete)  
 **Duration**: 2-3 days  
 **Priority**: High
+
+## Current Implementation Status
+
+**Overall Progress**: ~25% Complete (Task 4.1 started, others pending)
+
+### ✅ **Completed Tasks**:
+- **Task 4.1 (Partial)**: BuildTimeController implementation with singleton pattern and medical device compliance
+  - ✅ Created `/main/ku-controllers/BuildTimeController.ts` with comprehensive medical device patterns
+  - ✅ Implemented singleton pattern with proper lifecycle management
+  - ✅ DS12Controller integration working through BuildTimeController
+  - ❌ BuildConstants.ts not yet implemented (missing build-time configuration)
+
+### 🔴 **Not Started (Pending)**:
+- **Task 4.2**: Refactor IPC Handlers - `/main/device-controllers/ipcMain/` directory doesn't exist
+- **Task 4.3**: Core Device Operations refactoring - Legacy `/main/ku16/ipcMain/` still in use
+- **Task 4.4**: Build Configuration Management - No `/config/` directory or build scripts
+- **Task 4.5**: Error Handling and Validation - Not implemented
+- **Task 4.6**: TypeScript Test Scripts - Test framework not implemented
 
 ## Objective
 
@@ -12,7 +30,39 @@ Refactor existing legacy IPC handlers to use DS12Controller with build-time devi
 - **Build-Time Selection**: Device type configured at compilation, not runtime
 - **Preserve DS12Controller**: Use existing `/main/ku-controllers/ds12/DS12Controller.ts` unchanged
 - **Eliminate Device Switching**: No UI controls or runtime device type management
+- **Complete Migration**: No backward compatibility with KU16 after Phase 4
 - **TypeScript Test Scripts**: Replace Jest with custom TypeScript test scripts
+
+## ⚠️ **Breaking Changes After Phase 4**
+
+**Phase 4 completion will eliminate ALL backward compatibility with KU16:**
+
+### 🗑️ **Files to be REMOVED after Phase 4:**
+```bash
+/main/ku16/                     ❌ Entire directory deleted
+├── index.ts                    ❌ KU16 class completely removed
+└── ipcMain/                    ❌ All legacy handlers deleted
+    ├── unlock.ts               ❌ No KU16 fallback
+    ├── dispensing.ts           ❌ No runtime device detection
+    └── init.ts                 ❌ No legacy initialization
+```
+
+### ✅ **New Architecture (Required after Phase 4):**
+```bash
+/main/device-controllers/       ✅ Mandatory new structure  
+└── ipcMain/                    ✅ Refactored handlers only
+    ├── unlock.ts               ✅ BuildTimeController only
+    ├── dispensing.ts           ✅ No KU16 compatibility
+    └── init.ts                 ✅ Build-time device type
+```
+
+### 🚨 **Build Requirements (No fallback):**
+```bash
+# After Phase 4 - MANDATORY device type specification
+npm run dev:ds12              ✅ Required for DS12 builds
+npm run dev:ds16              ✅ Required for DS16 builds  
+npm run dev                   ❌ Will FAIL (no device type)
+```
 
 ## Prerequisites
 
@@ -81,16 +131,33 @@ Refactor existing legacy IPC handlers to use DS12Controller with build-time devi
 
 **Estimate**: 2-3 hours  
 **Priority**: Critical  
-**Status**: ⏸️ Pending
+**Status**: 🚧 **IN PROGRESS** (75% Complete)
 
 #### Subtasks:
 
-- [ ] Create `/main/ku-controllers/BuildTimeController.ts`
-- [ ] Implement static DS12Controller instantiation
-- [ ] Add build configuration constants integration
-- [ ] Create singleton pattern for controller instance
-- [ ] Implement controller lifecycle management
-- [ ] Add build-time device type validation
+- [x] **COMPLETED**: Create `/main/ku-controllers/BuildTimeController.ts`
+- [x] **COMPLETED**: Implement static DS12Controller instantiation  
+- [ ] **PENDING**: Add build configuration constants integration (Missing BuildConstants.ts)
+- [x] **COMPLETED**: Create singleton pattern for controller instance
+- [x] **COMPLETED**: Implement controller lifecycle management with medical device compliance
+- [ ] **PENDING**: Add build-time device type validation (depends on BuildConstants.ts)
+
+#### ✅ **What's Working Now**:
+```typescript
+// Current BuildTimeController.ts provides:
+const controller = BuildTimeController.getCurrentController();
+await controller.sendUnlock(payload);          // ✅ Working
+await controller.dispense(payload);             // ✅ Working  
+const isConnected = controller.isConnected();   // ✅ Working
+await BuildTimeController.cleanup();            // ✅ Working
+```
+
+#### ❌ **Still Missing for Task 4.1**:
+```typescript
+// Missing BuildConstants integration:
+import { BuildConstants } from '../../config/constants/BuildConstants';  // ❌ File doesn't exist
+if (BuildConstants.DEVICE_TYPE !== 'DS12') { ... }  // ❌ Not implemented
+```
 
 #### Success Criteria:
 
@@ -841,14 +908,34 @@ Upon completion of Phase 4, the following will be ready for Phase 5:
 
 ## File Locations
 
-| Component            | File Path                                   | Status     |
-| -------------------- | ------------------------------------------- | ---------- |
-| BuildTimeController  | `/main/ku-controllers/BuildTimeController.ts` | ⏸️ Pending |
-| DS12Controller       | `/main/ku-controllers/ds12/DS12Controller.ts` | ✅ Complete |
-| IPC Handlers         | `/main/device-controllers/ipcMain/`         | ⏸️ Pending |
-| Build Constants      | `/config/constants/BuildConstants.ts`      | ⏸️ Pending |
-| Test Framework       | `/scripts/test-framework/TestRunner.ts`    | ⏸️ Pending |
-| DS12 Tests           | `/scripts/test-ds12-integration.ts`        | ⏸️ Pending |
+| Component            | File Path                                   | Status     | Notes |
+| -------------------- | ------------------------------------------- | ---------- | ----- |
+| BuildTimeController  | `/main/ku-controllers/BuildTimeController.ts` | 🚧 75% Complete | ✅ Implemented, ❌ Missing BuildConstants |
+| DS12Controller       | `/main/ku-controllers/ds12/DS12Controller.ts` | ✅ Complete | Fully functional |
+| IPC Handlers         | `/main/device-controllers/ipcMain/`         | ❌ Not Started | Directory doesn't exist |
+| Build Constants      | `/config/constants/BuildConstants.ts`      | ❌ Not Started | Critical missing component |
+| Build Scripts        | `package.json` (build:ds12, dev:ds12)      | ❌ Not Started | No device-specific scripts |
+| Test Framework       | `/scripts/test-framework/TestRunner.ts`    | ❌ Not Started | Custom framework not implemented |
+| DS12 Tests           | `/scripts/test-ds12-integration.ts`        | ❌ Not Started | Some test files exist, wrong structure |
+
+## 📊 **Actual vs Planned Progress**
+
+### **Current Reality** (After codebase inspection):
+```bash
+# What EXISTS in codebase:
+✅ /main/ku-controllers/BuildTimeController.ts    # 320 lines, comprehensive
+✅ /main/ku16/ipcMain/                            # Legacy handlers (to be replaced)
+✅ Some test scripts in /scripts/                 # Basic DS12 hardware tests
+❌ /config/                                       # Directory missing entirely
+❌ /main/device-controllers/                      # Directory missing entirely
+❌ Build scripts for DS12/DS16                   # Not in package.json
+```
+
+### **Phase 4 Reality Check**:
+- **Estimated Progress**: ~25% complete (not 75% as originally documented)
+- **Critical Blocker**: BuildConstants.ts and build configuration missing
+- **Legacy Dependencies**: Still relies on KU16 handlers for actual functionality
+- **Migration Gap**: No bridge between current BuildTimeController and IPC usage
 
 ---
 

@@ -1,12 +1,17 @@
-import { ipcMain } from "electron";
-import { KU16 } from "..";
-import { User } from "../../../db/model/user.model";
-import { logDispensing, logger } from "../../logger";
-import { BuildTimeController } from "../../ku-controllers/BuildTimeController";
+import { ipcMain, IpcMainEvent, BrowserWindow } from "electron";
+import { User } from "../../../../db/model/user.model";
+import { logDispensing, logger } from "../../../logger";
+import { BuildTimeController } from "../../../ku-controllers/BuildTimeController";
 
-export const forceResetHanlder = (ku16: KU16) => {
-  ipcMain.handle("force-reset", async (_event, payload) => {
-    // MIGRATION: Use BuildTimeController instead of KU16
+export const forceResetHandler = () => {
+  ipcMain.handle("force-reset", async (event: IpcMainEvent, payload) => {
+    // Get BrowserWindow from IPC event instead of using KU16 reference
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) {
+      throw new Error("Could not find BrowserWindow from IPC event");
+    }
+
+    // Use BuildTimeController instead of KU16
     // Maintain exact same functionality, error messages, and timing patterns
     const controller = BuildTimeController.getCurrentController();
     
@@ -31,12 +36,12 @@ export const forceResetHanlder = (ku16: KU16) => {
       userName = user.dataValues.name;
       userId = user.dataValues.id;
 
-      // MIGRATION: Check controller connection before operation
+      // Check controller connection before operation
       if (!controller || !controller.isConnected()) {
         throw new Error("ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้");
       }
 
-      // MIGRATION: Use controller.resetSlot() instead of ku16.resetSlot()
+      // Use controller.resetSlot() instead of ku16.resetSlot()
       // DS12Controller implements resetSlot() with same signature and enhanced security
       await controller.resetSlot(payload.slotId, payload.passkey);
       
@@ -56,11 +61,12 @@ export const forceResetHanlder = (ku16: KU16) => {
       // PRESERVE: Same timing pattern - 1 second sleep then check state
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // MIGRATION: Use controller.sendCheckState() instead of ku16.sendCheckState()
+      // Use controller.sendCheckState() instead of ku16.sendCheckState()
       await controller.sendCheckState();
     } catch (error) {
       // PRESERVE: Same IPC error event and Thai language message
-      ku16.win.webContents.send("force-reset-error", {
+      // Use BrowserWindow from event instead of ku16.win
+      win.webContents.send("force-reset-error", {
         message: "ล้างช่องไม่สำเร็จกรุณาลองใหม่อีกครั้ง",
       });
       

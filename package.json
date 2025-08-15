@@ -7,9 +7,20 @@
   "main": "app/background.js",
   "scripts": {
     "dev": "nextron",
+    "dev:ds12": "cross-env DEVICE_TYPE=DS12 nextron",
+    "dev:ds16": "cross-env DEVICE_TYPE=DS16 nextron",
     "build": "nextron build",
+    "build:ds12": "cross-env DEVICE_TYPE=DS12 nextron build --publish=never",
+    "build:ds12:linux": "cross-env DEVICE_TYPE=DS12 nextron build --linux --publish=never",
+    "build:ds12:win": "cross-env DEVICE_TYPE=DS12 nextron build --win --x64 --publish=never",
+    "build:ds16": "cross-env DEVICE_TYPE=DS16 nextron build --publish=never",
+    "build:ds16:linux": "cross-env DEVICE_TYPE=DS16 nextron build --linux --publish=never",
+    "build:ds16:win": "cross-env DEVICE_TYPE=DS16 nextron build --win --x64 --publish=never",
     "build:linux": "nextron build --linux",
     "build:win63": "nextron build --win --x64",
+    "config:validate": "npx ts-node scripts/validate-build-config.ts",
+    "config:ds12": "cp config/build/ds12.env .env && echo 'DS12 configuration loaded'",
+    "config:ds16": "cp config/build/ds16.env .env && echo 'DS16 configuration loaded'",
     "postinstall": "electron-builder install-app-deps",
     "tscript:ds12": "npx ts-node scripts/test-ds12-hardware.js /dev/tty.useserial-AM10MY6R2 0x00",
     "test": "jest",
@@ -18,7 +29,10 @@
     "test:hardware": "npx ts-node scripts/test-ds12-hardware.ts",
     "test:hardware:js": "node scripts/test-ds12-hardware.js",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:manual": "npx ts-node scripts/phase4-1-validation/manual-test.ts",
+    "validate:phase4-1": "npx ts-node scripts/phase4-1-validation/validate-implementation.ts",
+    "validate:build-time": "npx ts-node scripts/phase4-1-validation/validate-build-time-config.ts"
   },
   "build": {
     "linux": {
@@ -70,6 +84,7 @@
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.2.5",
     "autoprefixer": "^10.4.7",
+    "cross-env": "^7.0.3",
     "electron": "^21.3.3",
     "electron-builder": "^23.6.0",
     "jest": "^29.7.0",

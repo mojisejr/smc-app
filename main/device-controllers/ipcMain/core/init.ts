@@ -1,11 +1,16 @@
-import { BrowserWindow, ipcMain, dialog } from "electron";
-import { KU16 } from "..";
-import { logger } from "../../logger";
-import { BuildTimeController } from "../../ku-controllers/BuildTimeController";
+import { BrowserWindow, ipcMain, IpcMainEvent } from "electron";
+import { logger } from "../../../logger";
+import { BuildTimeController } from "../../../ku-controllers/BuildTimeController";
 
-export const initHandler = (ku16: KU16, win: BrowserWindow) => {
-  ipcMain.handle("init", async () => {
-    // MIGRATION: Use BuildTimeController instead of KU16
+export const initHandler = () => {
+  ipcMain.handle("init", async (event: IpcMainEvent) => {
+    // Get BrowserWindow from IPC event instead of using KU16 reference
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) {
+      throw new Error("Could not find BrowserWindow from IPC event");
+    }
+
+    // Use BuildTimeController instead of KU16
     // Maintain exact same functionality and error messages for zero regression
     const controller = BuildTimeController.getCurrentController();
     
@@ -28,7 +33,7 @@ export const initHandler = (ku16: KU16, win: BrowserWindow) => {
       return;
     }
     
-    // MIGRATION: Use controller.sendCheckState() instead of ku16.sendCheckState()
+    // Use controller.sendCheckState() instead of ku16.sendCheckState()
     // DS12Controller implements sendCheckState() method with same signature
     await controller.sendCheckState();
   });
