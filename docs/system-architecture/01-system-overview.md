@@ -74,18 +74,19 @@ KU12    →       CU12         →        DS12
 ```
 
 ### Current Hardware Support
-- **DS16**: 16-slot device (evolved from CU16/KU16 protocols)
-- **DS12**: 12-slot device (evolved from CU12 protocols)  
-- **Legacy**: `/main/ku16/` folder contains tightly-coupled CU16 implementation
-- **New Architecture**: `/main/ku-controllers/` with abstract base class and protocol parsers
+- **DS12**: 12-slot device - **PRODUCTION READY** with BuildTimeController
+- **DS16**: 16-slot device - **CONFIGURATION READY** for future deployment
+- **Legacy**: `/main/ku16/` folder preserved for reference (no longer in use)
+- **Production Architecture**: BuildTimeController with protocol abstraction in production
 
 ## Critical System Components
 
 ### 1. Hardware Communication Layer
-- **File**: `/main/ku16/index.ts` (legacy KU16 class)
-- **File**: `/main/ku-controllers/base/KuControlleBase.ts` (new abstract base)
-- **File**: `/main/ku-controllers/protocols/parsers/DS12ProtocolParser.ts`
-- **Protocols**: RS485 serial communication with checksum validation
+- **Production**: BuildTimeController with DS12 protocol implementation
+- **Reference**: `/main/ku16/index.ts` (legacy KU16 class, preserved for reference)
+- **Architecture**: `/main/ku-controllers/base/KuControllerBase.ts` (abstract base)
+- **Protocols**: DS12 production-ready, DS16 configuration-ready
+- **Communication**: RS485 serial communication with checksum validation
 
 ### 2. Database Schema
 ```sql

@@ -1792,7 +1792,7 @@ export class DS12Controller extends KuControllerBase {
         hn: completedSlot.hn,
         dispensing: false, // Dispensing complete
         unlocking: false, // All operations complete
-        reset: false,
+        reset: true, // Trigger clearOrContinue dialog for medication decision
         completed: true, // Mark as successfully completed
       });
 

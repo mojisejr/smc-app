@@ -19,7 +19,7 @@ This document maps the complete data flow patterns within the Smart Medication C
                         ▲ IPC Events ▼ IPC Calls
 ┌─────────────────────────────────────────────────────────────────┐
 │                  BUSINESS LOGIC LAYER (Main)                   │
-│ • Runtime State (KU16 class properties)                        │
+│ • Runtime State (BuildTimeController properties)               │
 │ • Session State (Authentication, device connections)           │
 │ • Operation State (opening, dispensing, waitFor flags)         │
 │ • Cache State (slot states, user sessions)                     │
@@ -37,7 +37,7 @@ This document maps the complete data flow patterns within the Smart Medication C
 ### State Synchronization Challenges
 
 **1. State Redundancy Issues**:
-- Same slot state exists in: Database → KU16 class → React hooks → Component state
+- Same slot state exists in: Database → BuildTimeController → React hooks → Component state
 - Risk of inconsistency during concurrent operations
 - Need for atomic state updates across layers
 
@@ -66,7 +66,7 @@ sequenceDiagram
     UI->>IPC: Component mount → useKuStates.get()
     IPC->>Main: ipcRenderer.invoke("init")
     Main->>DB: Load settings & slot states
-    Main->>HW: Initialize KU16 connection
+    Main->>HW: Initialize BuildTimeController connection
     HW-->>Main: Hardware connection status
     Main->>DB: Sync hardware states with database
     Main-->>IPC: emit "init-res" with slot array
@@ -77,14 +77,14 @@ sequenceDiagram
 **Critical Files**:
 - **Entry**: `/renderer/hooks/useKuStates.ts` → `get()` function
 - **Handler**: `/main/ku16/ipcMain/init.ts`
-- **Hardware**: `/main/ku16/index.ts` → `sendCheckState()`
+- **Hardware**: BuildTimeController → `sendCheckState()`
 - **Database**: Sequelize models via `/db/sequelize.ts`
 
 **State Dependencies**:
 ```typescript
 // Database State → Runtime State → UI State
 const databaseSlots = await Slot.findAll();          // Database layer
-ku16.updateInternalState(databaseSlots);             // Business logic layer
+controller.updateInternalState(databaseSlots);       // Business logic layer
 mainWindow.webContents.send('init-res', slotArray); // UI layer
 ```
 
@@ -131,7 +131,7 @@ sequenceDiagram
     participant IPC as IPC Handler
     participant Auth as Authentication
     participant Log as Logging System
-    participant HW as KU16 Hardware
+    participant HW as Hardware Device
     participant DB as Database
     participant UI as React UI
 
@@ -140,10 +140,10 @@ sequenceDiagram
     
     alt User Found
         IPC->>Log: Log unlock attempt
-        IPC->>HW: ku16.sendUnlock(payload)
+        IPC->>HW: controller.sendUnlock(payload)
         HW-->>HW: Send hardware unlock command
         IPC->>DB: Log successful unlock
-        IPC->>HW: ku16.sendCheckState() (after 1s delay)
+        IPC->>HW: controller.sendCheckState() (after 1s delay)
         HW-->>UI: Hardware state change → "unlocking" event
     else User Not Found
         IPC->>Log: Log failed attempt
@@ -160,7 +160,7 @@ try {
     throw new Error("ไม่พบผู้ใช้งาน");
   }
   
-  await ku16.sendUnlock(payload);
+  await controller.sendUnlock(payload);
   await logDispensing({
     userId: userId,
     hn: payload.hn,
@@ -170,7 +170,7 @@ try {
   });
 } catch (error) {
   // Error logging and UI notification
-  ku16.win.webContents.send("unlock-error", {
+  controller.win.webContents.send("unlock-error", {
     message: "ปลดล็อกไม่สำเร็จกรุณาตรวจสอบรหัสผู้ใช้งานอีกครั้ง"
   });
 }
@@ -181,15 +181,15 @@ try {
 ```mermaid
 sequenceDiagram
     participant HW as Hardware Device
-    participant KU16 as KU16 Class
+    participant CTRL as BuildTimeController
     participant DB as Database
     participant UI as React UI
     participant Modal as LockWait Dialog
 
-    HW-->>KU16: Serial response (unlock confirmation)
-    KU16->>KU16: receivedUnlockState(data)
-    KU16->>DB: Update slot state (opening: true)
-    KU16-->>UI: emit "unlocking" event
+    HW-->>CTRL: Serial response (unlock confirmation)
+    CTRL->>CTRL: receivedUnlockState(data)
+    CTRL->>DB: Update slot state (opening: true)
+    CTRL-->>UI: emit "unlocking" event
     UI->>Modal: Show lockWait dialog
     
     Note over Modal: User manually loads medication
@@ -197,9 +197,9 @@ sequenceDiagram
     
     Modal->>UI: User clicks "ปิดช่องเรียบร้อย"
     UI->>IPC: invoke "check-locked-back"
-    IPC->>KU16: Verify slot is locked
-    KU16->>DB: Update slot state (occupied: true, opening: false)
-    KU16-->>UI: emit state update
+    IPC->>CTRL: Verify slot is locked
+    CTRL->>DB: Update slot state (occupied: true, opening: false)
+    CTRL-->>UI: emit state update
     UI->>Modal: Close dialog, update slot display
 ```
 
@@ -243,7 +243,7 @@ const DispenseSlot = ({ slotNo, hn, onClose }) => {
 sequenceDiagram
     participant IPC as Dispense Handler
     participant Auth as User Validation
-    participant HW as KU16 Hardware
+    participant HW as Hardware Device
     participant DB as Database
     participant UI as React UI
     participant Modal as DispensingWait Dialog
@@ -252,7 +252,7 @@ sequenceDiagram
     Auth-->>IPC: User authentication result
     
     alt Authentication Success
-        IPC->>HW: ku16.dispense(payload)
+        IPC->>HW: controller.dispense(payload)
         HW-->>HW: Send unlock command to hardware
         HW-->>UI: emit "dispensing" event
         UI->>Modal: Show dispensingWait dialog
@@ -358,14 +358,14 @@ export const useIndicator = () => {
 ```mermaid
 sequenceDiagram
     participant Timer as Periodic Check
-    participant KU16 as Hardware Controller
+    participant CTRL as BuildTimeController
     participant Parse as State Parser
     participant DB as Database
     participant UI as React Components
 
     loop Every 10 seconds
-        Timer->>KU16: sendCheckState()
-        KU16-->>Parse: Receive binary hardware response
+        Timer->>CTRL: sendCheckState()
+        CTRL-->>Parse: Receive binary hardware response
         Parse->>Parse: slotBinParser(binArr, availableSlot)
         Parse->>DB: Sync states with database
         Parse-->>UI: emit "state-updated" event
@@ -454,7 +454,7 @@ export const atomicSlotUpdate = async (slotId: number, operation: string, data: 
     await transaction.commit();
     
     // 4. Update runtime state
-    ku16.updateSlotState(slotId, data);
+    controller.updateSlotState(slotId, data);
     
     // 5. Notify UI
     mainWindow.webContents.send('slot-updated', { slotId, data });
@@ -522,7 +522,7 @@ Hardware Error → Business Logic Error → IPC Error Response → UI Error Disp
 **Example Implementation**:
 ```typescript
 // Hardware layer
-class KU16 {
+class BuildTimeController {
   async sendUnlock(data) {
     try {
       const response = await this.serialPort.write(command);
@@ -538,7 +538,7 @@ class KU16 {
 // Business logic layer  
 export const unlockHandler = async (payload) => {
   try {
-    await ku16.sendUnlock(payload);
+    await controller.sendUnlock(payload);
   } catch (error) {
     if (error instanceof HardwareError) {
       throw new BusinessLogicError('Hardware unlock failed', error);
@@ -608,9 +608,9 @@ export const auditableOperation = async (operation: string, data: any, handler: 
 
 ## Migration Impact on Data Flow
 
-### Current State (Legacy KU16)
+### Current State (Production BuildTimeController)
 ```
-UI → IPC → KU16 Class → Serial Port → Hardware
+UI → IPC → BuildTimeController → Protocol Parser → Serial Port → Hardware
 ```
 
 ### Target State (Abstract Controllers)
@@ -623,7 +623,7 @@ UI → IPC → ControllerFactory → DS12/DS16Controller → ProtocolParser → 
 1. **Phase 1**: Maintain existing IPC interfaces
 2. **Phase 2**: Add controller factory behind existing interfaces
 3. **Phase 3**: Gradually migrate IPC handlers to new controllers
-4. **Phase 4**: Remove legacy KU16 implementation
+4. **Phase 4**: BuildTimeController production deployment (COMPLETED)
 
 **Backward Compatibility Pattern**:
 ```typescript

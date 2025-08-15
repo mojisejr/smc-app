@@ -87,24 +87,28 @@ if (isProd) {
 
   // PHASE 4.2: DS12-Only Implementation - No fallback strategy
   console.log("Phase 4.2: Initializing DS12Controller (DS12-only mode)...");
-  
+
   const ds12Initialized = await BuildTimeController.initialize(
     mainWindow,
     settings.ku_port,
     settings.ku_baudrate
   );
-  
+
   if (ds12Initialized) {
     console.log("✅ Using DS12Controller (Phase 4.2 DS12-only mode)");
-    
+
     // Start receiving data from DS12Controller
     const controller = BuildTimeController.getCurrentController();
     if (controller) {
       controller.receive();
     }
   } else {
-    console.error("❌ DS12Controller initialization failed - no fallback available");
-    throw new Error("Failed to initialize DS12Controller. Please check device connection and configuration.");
+    console.error(
+      "❌ DS12Controller initialization failed - no fallback available"
+    );
+    throw new Error(
+      "Failed to initialize DS12Controller. Please check device connection and configuration."
+    );
   }
 
   // Initialize authentication system
@@ -146,7 +150,7 @@ if (isProd) {
   } else {
     const port = process.argv[2];
     await mainWindow.loadURL(`http://localhost:${port}/home`);
-    // mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
   }
 })();
 
@@ -155,14 +159,14 @@ app.on("window-all-closed", async () => {
   // PHASE 4.1: Graceful shutdown with BuildTimeController cleanup
   try {
     console.log("Application shutdown initiated - cleaning up controllers");
-    
+
     // Cleanup BuildTimeController gracefully
     await BuildTimeController.cleanup();
-    
+
     console.log("Controller cleanup completed successfully");
   } catch (error) {
     console.error("Error during controller cleanup:", error);
-    
+
     // Emergency cleanup if graceful cleanup fails
     await BuildTimeController.emergencyCleanup("Application shutdown error");
   } finally {

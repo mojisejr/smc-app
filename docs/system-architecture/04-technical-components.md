@@ -30,7 +30,7 @@ This document provides comprehensive mapping of technical components, their rela
 ┌─────────────────────────────────────────────────────────────────┐
 │                        BUSINESS LOGIC LAYER                    │
 ├─────────────────────────────────────────────────────────────────┤
-│ • Hardware Controllers (KU16, DS12, DS16)                     │
+│ • Hardware Controllers (BuildTimeController - DS12/DS16)      │
 │ • Authentication Services                                      │
 │ • Database Operations (Sequelize ORM)                         │
 │ • Audit Logging & Compliance                                  │
@@ -65,20 +65,20 @@ This document provides comprehensive mapping of technical components, their rela
 **Purpose**: Electron main process initialization and orchestration
 **Critical Dependencies**:
 - Database initialization via Sequelize
-- Hardware controller instantiation (KU16, IndicatorDevice) 
+- Hardware controller instantiation (BuildTimeController, IndicatorDevice) 
 - IPC handler registration
 - Authentication system setup
 
 **Architecture Pattern**: Dependency Injection
 ```typescript
-// Main components initialized with dependencies
-const ku16 = new KU16(settings.ku_port, settings.ku_baudrate, settings.available_slots, mainWindow);
+// Main components initialized with build-time configuration
+const controller = new BuildTimeController(settings, mainWindow);
 const indicator = new IndicatorDevice(settings.indi_port, settings.indi_baudrate, mainWindow);
 const auth = new Authentication();
 
-// IPC handlers receive dependencies
-unlockHandler(ku16);
-dispenseHandler(ku16);
+// IPC handlers receive controller abstraction
+unlockHandler(controller);
+dispenseHandler(controller);
 loginRequestHandler(mainWindow, auth);
 ```
 
@@ -86,12 +86,12 @@ loginRequestHandler(mainWindow, auth);
 
 ### 2. Hardware Communication Architecture
 
-#### Legacy Implementation: `/main/ku16/index.ts`
-**Device Support**: CU16/KU16 protocol (16-slot)
-**Architecture**: Monolithic class with embedded protocol parsing
+#### Production Implementation: BuildTimeController
+**Device Support**: DS12 (production), DS16 (configuration-ready)
+**Architecture**: Build-time protocol selection with abstract base
 **Critical Methods**:
 ```typescript
-class KU16 {
+class BuildTimeController {
   sendCheckState(): void                    // Hardware status request
   receivedCheckState(data: number[]): void  // Parse binary response  
   receivedUnlockState(data: number[]): void // Handle unlock confirmation
@@ -385,14 +385,14 @@ export const useKuStates = () => {
 
 #### State Synchronization Flow
 ```
-Hardware Change → KU16 Class → Database Update → IPC Event → React Hook → UI Update
+Hardware Change → BuildTimeController → Database Update → IPC Event → React Hook → UI Update
 ```
 
 **Example - Slot Unlock Process**:
 1. User clicks slot → `inputSlot.tsx` dialog
 2. User enters data → IPC `unlock-req` event
 3. Main process validates → `unlock.ts` handler
-4. Hardware command sent → `KU16.sendUnlock()`
+4. Hardware command sent → `controller.sendUnlock()`
 5. Database updated → `Slot.update({ opening: true })`
 6. UI updated → `unlocking` IPC event → `lockWait.tsx` dialog
 7. User confirms closure → IPC `check-locked-back` event
@@ -426,8 +426,8 @@ await logDispensing({
 ### Critical Dependencies
 
 **Hardware Layer Dependencies**:
-- KU16 → Serial Port Communication
-- KU16 → Command Parser Utilities
+- BuildTimeController → Serial Port Communication
+- BuildTimeController → Protocol Parser Abstraction
 - DS12Controller → DS12ProtocolParser (planned)
 - DS16Controller → DS16ProtocolParser (planned)
 
@@ -462,7 +462,7 @@ await logDispensing({
 **Phase 3: Configuration Management**
 - Add device type selection in settings
 - Update database schema for device configuration
-- Implement runtime device switching
+- BuildTimeController provides protocol abstraction
 
 **Phase 4: UI Integration**
 - Update slot components for variable slot counts
@@ -470,7 +470,7 @@ await logDispensing({
 - Add device type indicators in management interface
 
 **Phase 5: Legacy Migration**
-- Create compatibility layer for existing KU16 code
+- BuildTimeController maintains interface compatibility
 - Gradual migration of IPC handlers
 - Remove legacy implementation after validation
 

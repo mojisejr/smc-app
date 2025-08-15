@@ -158,6 +158,10 @@ function Home() {
 
   useEffect(() => {
     if (dispensing.continue) {
+      console.log(
+        "DISPENSING DIALOG TRACE: CLEAR OR CON FLAG",
+        dispensing.continue
+      );
       setCloseClearOrCon(true);
     }
   }, [dispensing]);
