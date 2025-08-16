@@ -74,6 +74,9 @@ export class DS12Controller extends KuControllerBase {
   private maxConnectionAttempts: number = 3;
   private connectionTimeout: number = 5000; // 5 second timeout for medical device safety
   private reconnectDelay: number = 1000; // 1 second base delay for exponential backoff
+
+  // Operation type tracking for proper dialog routing
+  private currentOperationType: 'unlock' | 'dispense' | null = null;
   private hardwareProtectionEnabled: boolean = true; // Enable safe hardware interaction
 
   // Command queue for sequential operations (prevents command conflicts)
@@ -84,6 +87,13 @@ export class DS12Controller extends KuControllerBase {
   }> = [];
   private processingCommand: boolean = false;
   private maxCommandRetries: number = 2;
+
+  // Dispensing context for tracking ongoing dispensing operations
+  private dispensingContext: {
+    slotId?: number;
+    hn?: string;
+    timestamp?: number;
+  } = {};
 
   /**
    * Initialize DS12Controller with BrowserWindow for IPC communication
@@ -118,6 +128,34 @@ export class DS12Controller extends KuControllerBase {
     // STATE MANAGEMENT: Ensure clean initial state
     // Critical for medical devices to start in known, safe state
     this.resetAllStates();
+  }
+
+  /**
+   * Set dispensing context for tracking ongoing dispensing operations
+   *
+   * This method stores the slot ID and HN for use when hardware responds
+   * to check-locked-back commands during dispensing workflow.
+   *
+   * @param context - Dispensing context with slotId and hn
+   */
+  setDispensingContext(context: {
+    slotId?: number;
+    hn?: string;
+    timestamp?: number;
+  }) {
+    this.dispensingContext = {
+      ...context,
+      timestamp: context.timestamp || Date.now(),
+    };
+    console.log("DS12 DEBUG: Dispensing context set:", this.dispensingContext);
+  }
+
+  /**
+   * Clear dispensing context after operation completion
+   */
+  clearDispensingContext() {
+    this.dispensingContext = {};
+    console.log("DS12 DEBUG: Dispensing context cleared");
   }
 
   /**
@@ -507,6 +545,7 @@ export class DS12Controller extends KuControllerBase {
 
       // STATE UPDATE: Track opening operation
       this.setOpening(true);
+      this.currentOperationType = 'unlock'; // Track operation type for proper dialog routing
       this.openingSlot = inputSlot;
 
       // MEDICAL AUDIT: Log unlock operation
@@ -642,6 +681,7 @@ export class DS12Controller extends KuControllerBase {
       // STATE UPDATE: Set both opening and dispensing flags
       this.setOpening(true);
       this.setDispensing(true);
+      this.currentOperationType = 'dispense'; // Track operation type for proper dialog routing
       this.openingSlot = inputSlot;
 
       // MEDICAL AUDIT: Log dispense operation
@@ -920,6 +960,15 @@ export class DS12Controller extends KuControllerBase {
           deviceType: this.deviceType,
           message: "DS12 status response parsing failed",
         });
+
+        // Send error event to UI if this was from a check-locked-back operation
+        if (this.dispensingContext.slotId) {
+          this.emitToUI("locked-back-error", {
+            slotId: this.dispensingContext.slotId,
+            error: parseResult.error?.message || "Hardware communication error",
+          });
+        }
+
         return;
       }
 
@@ -1041,6 +1090,96 @@ export class DS12Controller extends KuControllerBase {
         error: error instanceof Error ? error.message : "Unknown error",
         rawData: data.toString(),
         message: `DS12 unlock response processing exception: ${error}`,
+      });
+    }
+  }
+
+  /**
+   * Handle dispense unlock response from DS12 hardware
+   * 
+   * This method specifically handles unlock responses for dispense operations
+   * (patient medication pickup), separate from unlock operations for medication loading.
+   * 
+   * KEY DIFFERENCES FROM receivedUnlockState():
+   * - Emits "dispensing" event instead of "unlocking" event
+   * - Sets waitForDispenseLockedBack instead of waitForLockedBack
+   * - Different logging for audit trail clarity
+   * 
+   * @param data - Binary array from DS12 unlock response
+   */
+  private async handleDispenseUnlockResponse(data: number[]): Promise<void> {
+    try {
+      // PROTOCOL PARSING: Use DS12ProtocolParser for unlock response (same as unlock)
+      const parseResult = this.protocolParser.parseUnlockResponse(data);
+
+      if (!parseResult.success) {
+        await this.logOperation("dispense-unlock-response-error", {
+          slotId: this.openingSlot?.slotId || 0,
+          hn: this.openingSlot?.hn || "",
+          error: parseResult.error?.message || "Parse failed",
+          rawData: data.toString(),
+          message: "DS12 dispense unlock response parsing failed",
+        });
+        return;
+      }
+
+      // UNLOCK VALIDATION: Check if unlock was successful
+      const unlockSuccessful = parseResult.data!;
+
+      if (!unlockSuccessful) {
+        await this.logOperation("dispense-unlock-hardware-failed", {
+          slotId: this.openingSlot?.slotId || 0,
+          hn: this.openingSlot?.hn || "",
+          rawData: data.toString(),
+          message: "DS12 dispense unlock failed at hardware level",
+        });
+        return;
+      }
+
+      // VALIDATION: Ensure we have valid opening slot data
+      if (!this.openingSlot) {
+        await this.logOperation("dispense-unlock-state-error", {
+          error: "No opening slot data",
+          rawData: data.toString(),
+          message: "DS12 dispense unlock response received but no opening slot tracked",
+        });
+        return;
+      }
+
+      // STATE UPDATE: Set wait flag for dispense locked back detection
+      this.setWaitForDispenseLockedBack(true);
+
+      // DATABASE UPDATE: Update slot with opening state for dispense operation
+      await Slot.update(
+        {
+          ...this.openingSlot,
+          opening: true,
+          occupied: true, // Keep occupied=true for dispense (medication still in slot until removed)
+        },
+        { where: { slotId: this.openingSlot.slotId } }
+      );
+
+      // UI NOTIFICATION: Send dispensing status to renderer (triggers dispensingWait.tsx)
+      this.emitToUI("dispensing", {
+        ...this.openingSlot,
+        dispensing: true,
+      });
+
+      // MEDICAL AUDIT: Log successful dispense unlock
+      await this.logOperation("dispense-unlock-success", {
+        slotId: this.openingSlot.slotId,
+        hn: this.openingSlot.hn,
+        rawData: data.toString(),
+        message: `DS12 slot ${this.openingSlot.slotId} unlocked successfully for dispensing`,
+      });
+    } catch (error) {
+      // EXCEPTION HANDLING: Log unexpected errors
+      await this.logOperation("dispense-unlock-response-exception", {
+        slotId: this.openingSlot?.slotId || 0,
+        hn: this.openingSlot?.hn || "",
+        error: error instanceof Error ? error.message : "Unknown error",
+        rawData: data.toString(),
+        message: `DS12 dispense unlock response processing exception: ${error}`,
       });
     }
   }
@@ -1232,8 +1371,14 @@ export class DS12Controller extends KuControllerBase {
           await this.receivedCheckState(completePacket);
         }
       } else if (command === CommandType.DS12_UNLOCK_SLOT) {
-        // UNLOCK RESPONSE HANDLING
-        await this.receivedUnlockState(completePacket);
+        // UNLOCK RESPONSE HANDLING - Route based on operation type
+        if (this.currentOperationType === 'dispense') {
+          // Route dispense unlock responses to separate handler for proper dialog routing
+          await this.handleDispenseUnlockResponse(completePacket);
+        } else {
+          // Route regular unlock responses to original handler
+          await this.receivedUnlockState(completePacket);
+        }
       } else {
         // UNKNOWN COMMAND: Log for debugging
         await this.logOperation("unknown-command", {
@@ -1498,6 +1643,7 @@ export class DS12Controller extends KuControllerBase {
       // STATE RESET: Clear operation flags and opening slot data
       this.setWaitForLockedBack(false);
       this.setOpening(false);
+      this.currentOperationType = null; // Reset operation type after completion
       const completedSlot = { ...this.openingSlot }; // Preserve for logging and UI
       this.openingSlot = null;
 
@@ -1699,13 +1845,32 @@ export class DS12Controller extends KuControllerBase {
    */
   private async receivedDispenseLockedBackState(data: number[]): Promise<void> {
     try {
-      // VALIDATION: Ensure we have valid opening slot data
-      if (!this.openingSlot) {
+      // VALIDATION: Try to get slot data from either openingSlot or dispensingContext
+      let currentSlot = this.openingSlot;
+
+      if (
+        !currentSlot &&
+        this.dispensingContext.slotId &&
+        this.dispensingContext.hn
+      ) {
+        // Use dispensing context if available (for check-locked-back initiated operations)
+        currentSlot = {
+          slotId: this.dispensingContext.slotId,
+          hn: this.dispensingContext.hn,
+          timestamp: this.dispensingContext.timestamp || Date.now(),
+        };
+        console.log(
+          "DS12 DEBUG: Using dispensing context for locked-back state check:",
+          currentSlot
+        );
+      }
+
+      if (!currentSlot) {
         await this.logOperation("dispense-locked-back-error", {
-          error: "No opening slot data",
+          error: "No opening slot data or dispensing context",
           rawData: data.toString(),
-          message:
-            "DS12 dispense locked back received but no opening slot tracked",
+          dispensingContext: this.dispensingContext,
+          message: "DS12 dispense locked back received but no slot tracked",
         });
         return;
       }
@@ -1715,8 +1880,8 @@ export class DS12Controller extends KuControllerBase {
 
       if (!parseResult.success) {
         await this.logOperation("dispense-locked-back-parse-error", {
-          slotId: this.openingSlot.slotId,
-          hn: this.openingSlot.hn,
+          slotId: currentSlot.slotId,
+          hn: currentSlot.hn,
           error: parseResult.error?.message || "Parse failed",
           rawData: data.toString(),
           message: "DS12 dispense locked back state parsing failed",
@@ -1726,13 +1891,13 @@ export class DS12Controller extends KuControllerBase {
 
       // GET SLOT STATES: Extract slot states from parsed data
       const slotStates = parseResult.data!;
-      const targetSlotIndex = this.openingSlot.slotId - 1; // Convert to 0-based index
+      const targetSlotIndex = currentSlot.slotId - 1; // Convert to 0-based index
 
       // VALIDATE SLOT INDEX: Ensure slot exists in response data
       if (targetSlotIndex < 0 || targetSlotIndex >= slotStates.length) {
         await this.logOperation("dispense-locked-back-error", {
-          slotId: this.openingSlot.slotId,
-          hn: this.openingSlot.hn,
+          slotId: currentSlot.slotId,
+          hn: currentSlot.hn,
           error: "Slot index out of range",
           targetSlotIndex,
           slotStatesLength: slotStates.length,
@@ -1747,8 +1912,8 @@ export class DS12Controller extends KuControllerBase {
       if (!isLockedBack) {
         // SLOT NOT LOCKED: Continue waiting for medication to be removed and slot to lock
         await this.logOperation("dispense-locked-back-not-ready", {
-          slotId: this.openingSlot.slotId,
-          hn: this.openingSlot.hn,
+          slotId: currentSlot.slotId,
+          hn: currentSlot.hn,
           rawData: data.toString(),
           message:
             "DS12 slot not yet locked back after dispensing, continuing to wait",
@@ -1757,19 +1922,12 @@ export class DS12Controller extends KuControllerBase {
       }
 
       // PRESERVE SLOT DATA: Store for logging and UI updates before clearing
-      const completedSlot = { ...this.openingSlot };
+      const completedSlot = { ...currentSlot };
       const userId = "system"; // Will be enhanced when passkey tracking is added
 
-      // DATABASE UPDATE: Mark slot as empty and available for next patient
-      await Slot.update(
-        {
-          hn: null, // Clear patient HN - slot available for next patient
-          occupied: false, // Medication dispensed successfully
-          opening: false, // Dispensing process complete
-          timestamp: null, // Clear timestamp for fresh start
-        },
-        { where: { slotId: completedSlot.slotId } }
-      );
+      // NOTE: Slot data reset moved to user decision in clearOrContinue dialog
+      // The slot will be cleared only when user chooses "ไม่มียาแล้ว" (reset) 
+      // or updated when user chooses "มียา" (dispense-continue)
 
       // DISPENSING LOG: Create final audit record for medical compliance
       await logDispensing({
@@ -1784,7 +1942,13 @@ export class DS12Controller extends KuControllerBase {
       this.setWaitForDispenseLockedBack(false);
       this.setDispensing(false);
       this.setOpening(false);
+      this.currentOperationType = null; // Reset operation type after completion
       this.openingSlot = null;
+
+      // Clear dispensing context if we were using it
+      if (this.dispensingContext.slotId) {
+        this.clearDispensingContext();
+      }
 
       // UI NOTIFICATION: Inform renderer of successful dispensing completion
       this.emitToUI("dispensing", {
@@ -1794,6 +1958,14 @@ export class DS12Controller extends KuControllerBase {
         unlocking: false, // All operations complete
         reset: true, // Trigger clearOrContinue dialog for medication decision
         completed: true, // Mark as successfully completed
+      });
+
+      // ADDITIONAL UI NOTIFICATION: Send locked-back-success event for dispensing workflow
+      this.emitToUI("locked-back-success", {
+        slotId: completedSlot.slotId,
+        hn: completedSlot.hn,
+        message: `DS12 slot ${completedSlot.slotId} locked back successfully - medication loaded`,
+        timestamp: Date.now(),
       });
 
       // UI NOTIFICATION: Update unlock status for consistency
@@ -1837,6 +2009,7 @@ export class DS12Controller extends KuControllerBase {
     this.setDispensing(false);
     this.setWaitForLockedBack(false);
     this.setWaitForDispenseLockedBack(false);
+    this.currentOperationType = null; // Reset operation type
     this.openingSlot = null;
 
     // HARDWARE PROTECTION: Reset connection management state

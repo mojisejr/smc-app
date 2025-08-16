@@ -28,6 +28,7 @@
     "test:integration": "jest tests/integration/",
     "test:hardware": "npx ts-node scripts/test-ds12-hardware.ts",
     "test:hardware:js": "node scripts/test-ds12-hardware.js",
+    "test:dispensing-workflow": "npx ts-node scripts/test-dispensing-workflow.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:manual": "npx ts-node scripts/phase4-1-validation/manual-test.ts",

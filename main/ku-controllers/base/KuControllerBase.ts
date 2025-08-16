@@ -95,6 +95,19 @@ export abstract class KuControllerBase {
    * RECOMMENDED: abstract sendCheckState(): Promise<SlotState[]>
    */
   abstract sendCheckState(): Promise<SlotState[]>;
+
+  /**
+   * Set dispensing context for tracking ongoing dispensing operations
+   * Optional method that controllers can implement if needed
+   * @param context - Dispensing context with slotId and hn
+   */
+  setDispensingContext?(context: { slotId?: number; hn?: string; timestamp?: number }): void;
+
+  /**
+   * Clear dispensing context after operation completion
+   * Optional method that controllers can implement if needed
+   */
+  clearDispensingContext?(): void;
   /**
    * Unlocks a specific slot for patient access
    * @param inputSlot - Slot information including patient HN and timestamp
@@ -174,6 +187,20 @@ export abstract class KuControllerBase {
    */
   abstract reactivate(slotId: number, passkey: string): Promise<void>;
 
+  /**
+   * Deactivate all slots (admin operation)
+   * Optional method that controllers can implement if needed
+   * @param passkey - admin passkey
+   */
+  deactiveAllSlots?(passkey: string): Promise<void>;
+
+  /**
+   * Reactivate all slots (admin operation)
+   * Optional method that controllers can implement if needed
+   * @param passkey - admin passkey
+   */
+  reactiveAllSlots?(passkey: string): Promise<void>;
+
   // TYPO FIX: "recievedCheckState" -> "receivedCheckState"
   // TESTING REQUIREMENT: This method needs comprehensive unit tests for different data formats
   // Test cases: empty array, DS12 format (5 bytes), DS16 format (7 bytes), invalid data
@@ -189,6 +216,13 @@ export abstract class KuControllerBase {
   // TESTING CHALLENGE: Requires hardware simulation or mocking for unit tests
   // PERFORMANCE: Consider adding receive buffer management for high-frequency data
   abstract receive(): void;
+
+  /**
+   * Handle dispense unlock responses from hardware
+   * Optional method that controllers can implement for separate dispense handling
+   * @param data - Binary array from hardware unlock response for dispense operations
+   */
+  receivedDispenseUnlockState?(data: number[]): Promise<void>;
   /**
    * BINARY PARSING ARCHITECTURE ANALYSIS & RECOMMENDATIONS
    *
