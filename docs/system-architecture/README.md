@@ -30,8 +30,8 @@ This document serves as the **definitive navigation guide** for all agents worki
   - **Detailed Files**: `/docs/system-architecture/02-hardware-evolution.md`, `/docs/system-architecture/07-protocol-specifications.md`
 
 - **@agent-nextjs-ui-advisor**: 
-  - **Quick Reference**: [UI Components](#ui-components-architecture) and [State Management](#state-management-patterns)
-  - **Detailed Files**: `/docs/system-architecture/03-user-workflow.md`, `/docs/system-architecture/04-technical-components.md`
+  - **Quick Reference**: [UI Components](#ui-components-architecture), [Design System](#design-system-architecture) and [Enhanced UX Patterns](#enhanced-user-experience-patterns)
+  - **Detailed Files**: `/docs/system-architecture/03-user-workflow.md`, `/docs/system-architecture/04-technical-components.md`, `/docs/system-architecture/05-data-flow-patterns.md`
 
 - **@agent-sequelize-database-manager**: 
   - **Quick Reference**: [Database Schema](#database-schema) and [Data Flow](#data-flow-patterns)
@@ -53,7 +53,10 @@ This document serves as the **definitive navigation guide** for all agents worki
 | **Hardware Protocols** | [Hardware Evolution](#hardware-evolution--protocol-support) | `02-hardware-evolution.md` | Technical components (04), Protocol specs (07) |
 | **Medical Workflows** | See detailed file only | `03-user-workflow.md` | UI Components (04), Security (06) |
 | **Component Implementation** | [UI Components](#ui-components-architecture) | `04-technical-components.md` | User workflows (03), Data flow (05) |
+| **Design System & UI Components** | [Design System Architecture](#design-system-architecture) | `04-technical-components.md` (Design System Section) | Data flow (05), User workflows (03) |
+| **Form Handling & Validation** | [Design System Architecture](#design-system-architecture) | `04-technical-components.md`, `05-data-flow-patterns.md` | Enhanced UX patterns |
 | **Database & State Management** | [Database Schema](#database-schema), [Data Flow](#data-flow-patterns) | `05-data-flow-patterns.md` | Security (06), Technical components (04) |
+| **Enhanced User Experience** | See detailed file only | `05-data-flow-patterns.md` (Enhanced UX Section) | Design System (04), User workflows (03) |
 | **Security & Audit Trail** | [Security & Compliance](#security--compliance) | `06-security-compliance.md` | Data flow (05), User workflows (03) |
 | **Protocol Specifications** | [Protocol Quick Reference](#hardware-evolution--protocol-support) | `07-protocol-specifications.md` | Hardware evolution (02), Testing (08) |
 | **Testing & Quality** | [Testing Strategy](#testing-strategy) | `08-testing-strategy.md` | Protocol specs (07), Migration (09) |
@@ -261,6 +264,49 @@ ipcMain.handle('operation', async (event, payload) => {
   }
 });
 ```
+
+---
+
+## Design System Architecture
+
+> **📖 For Complete Details**: See `/docs/system-architecture/04-technical-components.md` (Design System Section)
+> **🔗 Related Files**: `05-data-flow-patterns.md` (Enhanced UX Patterns), `03-user-workflow.md`
+
+**Centralized Component Library**: `/renderer/components/Shared/DesignSystem/`
+**Purpose**: Consistent UI/UX across all dialog components with enhanced form handling
+**Recent Implementation**: Complete refactoring of dialog components with React Hook Form integration
+
+### Core Design System Components
+```typescript
+// Centralized exports for consistent usage
+export { default as DialogBase } from './DialogBase';        // Container with flexible layout
+export { default as DialogHeader } from './DialogHeader';    // Headers with progress indicators  
+export { default as StatusIndicator } from './StatusIndicator'; // Color-coded status display
+export { DialogInput, DialogButton } from './FormElements';  // Enhanced form components
+```
+
+### Enhanced Form Integration
+- **React Hook Form**: Complete integration with forwardRef pattern for validation
+- **Error Handling**: Visual error states with Thai language feedback
+- **Loading States**: Integrated loading animations with disabled states during operations
+- **Validation**: Client-side validation with server-side error propagation
+
+### Design Token System
+```javascript
+// Updated Tailwind configuration with medical device color system
+colors: {
+  red: colors.red,      // Error states, danger actions
+  green: colors.green,  // Success states, completed actions  
+  yellow: colors.yellow, // Warning states, attention needed
+  black: colors.black,   // High contrast text for medical environments
+}
+```
+
+### Status Indicator Enhancements
+- **Color-coded feedback**: Success (green), Error (red), Warning (yellow), Info (blue)
+- **Animation support**: Pulsing indicators for active states
+- **Slot integration**: Automatic slot number formatting
+- **Accessibility**: High contrast ratios for medical environment visibility
 
 ---
 

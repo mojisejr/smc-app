@@ -33,8 +33,18 @@ export const reactivateAdminHandler = () => {
       }
 
       // Use controller.reactivate() instead of ku16.reactive()
-      // DS12Controller implements reactivate() with same signature
+      // DS12Controller implements reactivate() with same signature and includes hardware state reset
       const result = await controller.reactivate(payload.slotId, payload.name);
+      
+      // ADDITIONAL STATE VALIDATION: Ensure hardware controller is ready after reactivation
+      // DS12Controller.reactivate() includes emergencyStateReset() but this provides extra assurance
+      if (controller.emergencyStateReset) {
+        controller.emergencyStateReset();
+        await logger({
+          user: "system",
+          message: `reactivate-admin: emergency state reset applied for slot #${payload.slotId}`,
+        });
+      }
       
       // PRESERVE: Same timing pattern - 1 second sleep then check state
       // Create delay utility matching KU16.sleep() behavior
@@ -46,7 +56,7 @@ export const reactivateAdminHandler = () => {
       // PRESERVE: Exact same logging patterns and messages
       await logger({
         user: "system",
-        message: `reactivate-admin: slot #${payload.slotId} by ${payload.name}`,
+        message: `reactivate-admin: slot #${payload.slotId} by ${payload.name} with hardware state reset`,
       });
 
       return result;

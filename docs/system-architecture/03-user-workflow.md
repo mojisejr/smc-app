@@ -44,8 +44,33 @@ graph TD
     G --> D
 ```
 
-**Component**: `/renderer/components/Dialogs/inputSlot.tsx`
+**Component**: `/renderer/components/Dialogs/inputSlot.tsx` (Enhanced with Design System)
 **IPC Event**: `unlock-req` with `{ slotId, hn, passkey, timestamp }`
+
+**Enhanced UI/UX Features (Latest Update)**:
+- **Design System Integration**: Consistent dialog layout with `DialogBase`, `DialogHeader`, and enhanced form elements
+- **React Hook Form Validation**: Real-time form validation with visual error feedback
+- **Loading States**: Button shows loading animation during IPC operations
+- **Error Handling**: Immediate visual feedback for validation errors with Thai language messages
+
+**Enhanced Form Experience**:
+```typescript
+// React Hook Form integration with enhanced validation
+const { register, handleSubmit, formState: { errors } } = useForm<Inputs>();
+
+// Visual error feedback in real-time
+<DialogInput
+  placeholder="รหัสผู้ป่วย"
+  error={errors.hn ? "กรุณากรอกรหัสผู้ป่วย" : undefined}
+  {...register("hn", { required: true })}
+/>
+
+// Enhanced submit button with loading states
+<DialogButton type="submit" variant="primary" icon="✓">
+  ตกลง
+</DialogButton>
+```
+
 **Validation Rules**:
 - HN (Hospital Number): Required, patient identifier
 - Passkey: Required, user authentication
@@ -78,9 +103,15 @@ graph TD
     E --> F[IPC check-locked-back event]
 ```
 
-**Component**: `/renderer/components/Dialogs/lockWait.tsx`
+**Component**: `/renderer/components/Dialogs/lockWait.tsx` (Enhanced with Design System)
 **Business Logic**: Manual confirmation required (no real-time hardware monitoring to save resources)
 **Safety Feature**: Emergency deactivate button available if slot malfunctions
+
+**Enhanced User Experience Features**:
+- **Status Indicator Integration**: Visual slot status with color-coded feedback (green=success, red=error)
+- **Progress Indication**: Clear step progression display (Step 1 of 2)
+- **Loading Animations**: Visual feedback during hardware verification
+- **Enhanced Instructions**: Clear Thai language step-by-step guidance with icons
 
 #### Step 5: Slot State Confirmation
 ```mermaid
@@ -159,9 +190,37 @@ graph TD
     E --> F[Check dispensed state]
 ```
 
-**Component**: `/renderer/components/Dialogs/dispensingWait.tsx`
+**Component**: `/renderer/components/Dialogs/dispensingWait.tsx` (Enhanced with Design System)
 **User Action**: Manual confirmation that medication was retrieved
 **Safety Feature**: Emergency deactivate available
+
+**Enhanced Dispensing Experience**:
+- **Multi-Step Progress**: Visual step indicators showing "Step 1 of 2" with progress colors
+- **Status Indicator**: Real-time slot status with color-coded feedback (red="เปิดอยู่" with pulsing animation)
+- **Enhanced Instructions**: Clear numbered steps with icons (📋 Instructions: 1. เอายาออกจากช่อง 2. ปิดช่องให้แน่น 3. กดปุ่ม "ตกลง")
+- **Loading States**: Button shows loading animation during hardware verification with descriptive text
+- **Error Handling**: Enhanced error validation with user-friendly Thai language messages
+
+**Dispensing Wait Dialog Features**:
+```typescript
+// Enhanced status display
+<StatusIndicator
+  status="error"        // Red background for slot open state
+  message="เปิดอยู่"      // Clear status message in Thai
+  slotNo={slotNo}       // Automatic slot number formatting
+  animated={true}       // Pulsing animation for active state
+/>
+
+// Loading button with state management
+<DialogButton
+  variant="primary"
+  loading={isCheckingLock}    // Loading state management
+  onClick={handleCheckLockedBack}
+  icon={!isCheckingLock ? "✓" : undefined}
+>
+  {isCheckingLock ? "กำลังตรวจสอบการปิดช่อง..." : "ตกลง"}
+</DialogButton>
+```
 
 #### Step 5: Post-Dispense Decision
 ```mermaid

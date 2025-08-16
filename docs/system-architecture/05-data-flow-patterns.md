@@ -109,19 +109,54 @@ sequenceDiagram
     Modal->>Modal: Close dialog
 ```
 
-**Business Logic Validation**:
+**Enhanced Form Validation with React Hook Form**:
 ```typescript
-// Client-side validation in inputSlot.tsx
+// React Hook Form integration in inputSlot.tsx
+const { register, handleSubmit, formState: { errors } } = useForm<Inputs>();
+
+// Form submission with enhanced validation
+const onSubmit: SubmitHandler<Inputs> = (data) => {
+  console.log("🔍 InputSlot Form Submit - Data:", data);
+  console.log("🔍 InputSlot Form Submit - SlotNo:", slotNo);
+
+  // Passkey validation
+  if (data.passkey == "") {
+    toast.error("กรุณากรอกรหัสผู้ใช้");
+    return;
+  }
+
+  // Business logic validation
+  if (!checkDuplicate(data.hn)) {
+    toast.error("ไม่สามารถลงทะเบียนซ้ำได้");
+    return;
+  } else {
+    console.log("✅ InputSlot calling unlock function");
+    unlock(slotNo, data.hn, data.passkey);
+    onClose();
+  }
+};
+
+// Enhanced duplicate checking
 const checkDuplicate = (hn: string) => {
   const found = slots.find((slot) => slot.hn == hn);
   return found == undefined && slots.length > 0 ? true : false;
 };
 
-// Passkey validation
-if (data.passkey == "") {
-  toast.error("กรุณากรอกรหัสผู้ใช้");
-  return;
-}
+// Form rendering with validation feedback
+<form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
+  <DialogInput
+    placeholder="รหัสผู้ป่วย"
+    error={errors.hn ? "กรุณากรอกรหัสผู้ป่วย" : undefined}
+    {...register("hn", { required: true })}
+  />
+  <DialogInput
+    type="password"
+    placeholder="รหัสผู้ใช้"
+    error={errors.passkey ? "กรุณากรอกรหัสผู้ใช้" : undefined}
+    {...register("passkey", { required: true })}
+  />
+  <DialogButton type="submit" variant="primary" icon="✓">ตกลง</DialogButton>
+</form>
 ```
 
 #### Phase 2: Server-side Processing & Hardware Control
@@ -201,6 +236,139 @@ sequenceDiagram
     CTRL->>DB: Update slot state (occupied: true, opening: false)
     CTRL-->>UI: emit state update
     UI->>Modal: Close dialog, update slot display
+```
+
+### 2.5 Enhanced User Experience Patterns (Latest Update)
+
+#### Multi-Step Progress Indication
+```mermaid
+sequenceDiagram
+    participant User as Healthcare Staff
+    participant Header as DialogHeader
+    participant Status as StatusIndicator
+    participant UI as Enhanced UI
+
+    User->>Header: View progress (Step 1 of 2)
+    Header->>Header: Display step indicator with visual feedback
+    User->>Status: View operation status with color coding
+    Status->>Status: Animate status with appropriate colors
+    Status-->>UI: Provide clear feedback (green=success, red=error, yellow=warning)
+    UI->>User: Clear next steps with visual guidance
+```
+
+**Enhanced Dialog Header with Progress**:
+```typescript
+// DialogHeader with step progression
+<DialogHeader
+  title=""
+  currentStep={1}
+  totalSteps={2}
+  hn={hn}
+  onEmergencyAction={onOpenDeactive}
+  emergencyLabel="!"
+  bgColor="bg-blue-50"      // Step-specific background color
+  textColor="text-blue-700" // Step-specific text color
+/>
+```
+
+**Status Indicator Integration**:
+```typescript
+// Enhanced status feedback in dispensingWait.tsx
+<StatusIndicator
+  status="error"        // Color-coded status (red for slot open)
+  message="เปิดอยู่"      // Thai language status message
+  slotNo={slotNo}       // Automatic slot number formatting
+  animated={true}       // Pulsing animation for active states
+/>
+```
+
+#### Loading State Management
+```mermaid
+sequenceDiagram
+    participant Form as Dialog Form
+    participant Button as DialogButton
+    participant Loading as Loading Component
+    participant IPC as IPC Operation
+
+    Form->>Button: User clicks submit
+    Button->>Button: Set loading={true}
+    Button->>Loading: Show loading animation
+    Button->>IPC: Execute operation
+    
+    alt Operation Success
+        IPC-->>Button: Success response
+        Button->>Button: Set loading={false}
+        Button-->>Form: Enable form interaction
+    else Operation Failure
+        IPC-->>Button: Error response
+        Button->>Button: Set loading={false}
+        Button-->>Form: Show error state
+    end
+```
+
+**Enhanced Loading Integration**:
+```typescript
+// auth.tsx - Loading state management
+const [loading, setLoading] = useState(false);
+
+const onSubmit: SubmitHandler<Inputs> = async (data) => {
+  console.log("🔍 Auth Form Submit - Data:", data);
+  setLoading(true);
+
+  if (data.passkey == "" || data.passkey == null) {
+    console.log("❌ Auth - Empty passkey");
+    setLoading(false);
+    toast.error(`กรุณาใส่ข้อมูลให้ครบถ้วน`, { toastId: 99, type: "error" });
+    return;
+  }
+
+  const req: AuthRequest = { passkey: data.passkey };
+  console.log("✅ Auth calling IPC login-req");
+  ipcRenderer.invoke("login-req", req);
+};
+
+// Enhanced button with loading state
+<DialogButton
+  type="submit"
+  variant="primary"
+  loading={loading}        // Integrated loading state
+  disabled={loading}       // Prevent double submission
+  icon="🔐"
+>
+  เข้าสู่ระบบ
+</DialogButton>
+```
+
+#### Error Handling Enhancement
+```typescript
+// Enhanced error propagation with visual feedback
+const handleCheckLockedBack = () => {
+  // Validate required data before IPC call
+  if (!slotNo || !hn) {
+    console.error("DISPENSING WAIT ERROR: Missing slotNo or hn", { slotNo, hn });
+    toast.error("ข้อมูลไม่ครบถ้วน กรุณาเริ่มกระบวนการใหม่");
+    return;
+  }
+
+  console.log("DISPENSING DIALOG TRACE: CHECK LOCKED BACK ON DISPENSING PROCESS", {
+    slotId: slotNo,
+    hn: hn,
+  });
+
+  setIsCheckingLock(true);
+
+  ipcRenderer
+    .invoke("check-locked-back", { slotId: slotNo, hn: hn })
+    .then(() => {
+      console.log("DISPENSING WAIT DEBUG: check-locked-back IPC call successful");
+      setIsCheckingLock(false);
+    })
+    .catch((error) => {
+      console.error("DISPENSING WAIT ERROR: check-locked-back IPC failed:", error);
+      toast.error("ไม่สามารถตรวจสอบการปิดช่องได้: " + error.message);
+      setIsCheckingLock(false);
+    });
+};
 ```
 
 ### 3. Medication Dispensing Flow

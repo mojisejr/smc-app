@@ -76,7 +76,7 @@ export class DS12Controller extends KuControllerBase {
   private reconnectDelay: number = 1000; // 1 second base delay for exponential backoff
 
   // Operation type tracking for proper dialog routing
-  private currentOperationType: 'unlock' | 'dispense' | null = null;
+  private currentOperationType: "unlock" | "dispense" | null = null;
   private hardwareProtectionEnabled: boolean = true; // Enable safe hardware interaction
 
   // Command queue for sequential operations (prevents command conflicts)
@@ -545,7 +545,7 @@ export class DS12Controller extends KuControllerBase {
 
       // STATE UPDATE: Track opening operation
       this.setOpening(true);
-      this.currentOperationType = 'unlock'; // Track operation type for proper dialog routing
+      this.currentOperationType = "unlock"; // Track operation type for proper dialog routing
       this.openingSlot = inputSlot;
 
       // MEDICAL AUDIT: Log unlock operation
@@ -681,7 +681,7 @@ export class DS12Controller extends KuControllerBase {
       // STATE UPDATE: Set both opening and dispensing flags
       this.setOpening(true);
       this.setDispensing(true);
-      this.currentOperationType = 'dispense'; // Track operation type for proper dialog routing
+      this.currentOperationType = "dispense"; // Track operation type for proper dialog routing
       this.openingSlot = inputSlot;
 
       // MEDICAL AUDIT: Log dispense operation
@@ -827,9 +827,9 @@ export class DS12Controller extends KuControllerBase {
         { where: { slotId: slotId } }
       );
 
-      // STATE RESET: Clear controller operation flags
-      this.setDispensing(false);
-      this.setOpening(false);
+      // EMERGENCY STATE RESET: Clear all hardware controller operation flags
+      // This is critical for preventing "Device not ready" errors after reactivation
+      this.emergencyStateReset();
 
       // UI NOTIFICATION: Update renderer with unlock status (follows KU16 pattern)
       this.emitToUI("unlocking", {
@@ -845,11 +845,18 @@ export class DS12Controller extends KuControllerBase {
         reset: false,
       });
 
+      // EMIT DEACTIVATED EVENT: Notify UI that slot has been deactivated
+      this.emitToUI("deactivated", {
+        slotId: slotId,
+        timestamp: Date.now(),
+        reason: "Emergency deactivation via emergency button",
+      });
+
       // MEDICAL AUDIT: Log deactivate operation
       await this.logOperation("deactivate", {
         userId: user.getDataValue("id"),
         slotId: slotId,
-        message: `DS12 slot ${slotId} deactivated successfully`,
+        message: `DS12 slot ${slotId} deactivated successfully with hardware state reset`,
       });
     } catch (error) {
       // EXCEPTION HANDLING: Log unexpected errors
@@ -914,11 +921,27 @@ export class DS12Controller extends KuControllerBase {
         { where: { slotId: slotId } }
       );
 
+      // HARDWARE STATE RESET: Ensure clean controller state after reactivation
+      // This is critical for preventing "Device not ready" errors from stale operation flags
+      this.emergencyStateReset();
+
+      // HARDWARE VALIDATION: Verify device connection and readiness
+      if (!this.isConnected()) {
+        await this.logOperation("reactivate-warning", {
+          userId: user.getDataValue("id"),
+          slotId: slotId,
+          warning: "Device not connected during reactivation",
+          message: `DS12 slot ${slotId} reactivated but device not connected - may need reconnection`,
+        });
+      }
+
       // MEDICAL AUDIT: Log reactivate operation
       await this.logOperation("reactivate", {
         userId: user.getDataValue("id"),
         slotId: slotId,
-        message: `DS12 slot ${slotId} reactivated successfully`,
+        hardwareStateReset: true,
+        deviceConnected: this.isConnected(),
+        message: `DS12 slot ${slotId} reactivated successfully with hardware state reset`,
       });
     } catch (error) {
       // EXCEPTION HANDLING: Log unexpected errors
@@ -1096,15 +1119,15 @@ export class DS12Controller extends KuControllerBase {
 
   /**
    * Handle dispense unlock response from DS12 hardware
-   * 
+   *
    * This method specifically handles unlock responses for dispense operations
    * (patient medication pickup), separate from unlock operations for medication loading.
-   * 
+   *
    * KEY DIFFERENCES FROM receivedUnlockState():
    * - Emits "dispensing" event instead of "unlocking" event
    * - Sets waitForDispenseLockedBack instead of waitForLockedBack
    * - Different logging for audit trail clarity
-   * 
+   *
    * @param data - Binary array from DS12 unlock response
    */
   private async handleDispenseUnlockResponse(data: number[]): Promise<void> {
@@ -1141,7 +1164,8 @@ export class DS12Controller extends KuControllerBase {
         await this.logOperation("dispense-unlock-state-error", {
           error: "No opening slot data",
           rawData: data.toString(),
-          message: "DS12 dispense unlock response received but no opening slot tracked",
+          message:
+            "DS12 dispense unlock response received but no opening slot tracked",
         });
         return;
       }
@@ -1372,7 +1396,7 @@ export class DS12Controller extends KuControllerBase {
         }
       } else if (command === CommandType.DS12_UNLOCK_SLOT) {
         // UNLOCK RESPONSE HANDLING - Route based on operation type
-        if (this.currentOperationType === 'dispense') {
+        if (this.currentOperationType === "dispense") {
           // Route dispense unlock responses to separate handler for proper dialog routing
           await this.handleDispenseUnlockResponse(completePacket);
         } else {
@@ -1532,6 +1556,8 @@ export class DS12Controller extends KuControllerBase {
       // COMBINE DATA: Map hardware states with database information
       const slotStates = hardwareStates.map((hardwareState, index) => {
         const dbSlot = dbSlots[index];
+        const dbIsActive = dbSlot?.getDataValue("isActive") ?? false;
+        const finalIsActive = dbIsActive && hardwareState;
 
         return {
           slotId: dbSlot?.getDataValue("slotId") ?? null,
@@ -1539,8 +1565,7 @@ export class DS12Controller extends KuControllerBase {
           occupied: dbSlot?.getDataValue("occupied") ?? false,
           timestamp: dbSlot?.getDataValue("timestamp") ?? null,
           opening: dbSlot?.getDataValue("opening") ?? false,
-          isActive:
-            (dbSlot?.getDataValue("isActive") ?? false) && hardwareState,
+          isActive: finalIsActive,
         } as SlotState;
       });
 
@@ -1926,7 +1951,7 @@ export class DS12Controller extends KuControllerBase {
       const userId = "system"; // Will be enhanced when passkey tracking is added
 
       // NOTE: Slot data reset moved to user decision in clearOrContinue dialog
-      // The slot will be cleared only when user chooses "ไม่มียาแล้ว" (reset) 
+      // The slot will be cleared only when user chooses "ไม่มียาแล้ว" (reset)
       // or updated when user chooses "มียา" (dispense-continue)
 
       // DISPENSING LOG: Create final audit record for medical compliance
@@ -1996,6 +2021,62 @@ export class DS12Controller extends KuControllerBase {
   }
 
   /**
+   * Emergency state reset for deactivation and reactivation scenarios
+   *
+   * This method clears all hardware controller operation states without affecting
+   * the database or connection state. Used during emergency deactivation and
+   * reactivation to ensure clean state synchronization.
+   *
+   * CRITICAL FOR DEVICE STATE SYNCHRONIZATION:
+   * - Clears waitForLockedBack flag that blocks subsequent operations
+   * - Resets all operation flags (opening, dispensing, wait states)
+   * - Clears pending operations and command queue
+   * - PRESERVES hardware connection state (does NOT set connected = false)
+   * - Maintains medical device audit compliance
+   */
+  emergencyStateReset(): void {
+    // PRESERVE CONNECTION STATE: Store current connection status
+    const wasConnected = this.connected;
+
+    // OPERATION STATE RESET: Clear all operation flags
+    this.setOpening(false);
+    this.setDispensing(false);
+    this.setWaitForLockedBack(false);
+    this.setWaitForDispenseLockedBack(false);
+
+    // OPERATION CONTEXT RESET: Clear operation tracking
+    this.currentOperationType = null;
+    this.openingSlot = null;
+    this.clearDispensingContext();
+
+    // COMMAND QUEUE RESET: Clear pending operations (but preserve connection)
+    this.commandQueue = [];
+    this.processingCommand = false;
+
+    // RESTORE CONNECTION STATE: Ensure connection state is preserved
+    this.connected = wasConnected;
+
+    // MEDICAL AUDIT: Log emergency state reset for compliance
+    this.logOperation("emergency-state-reset", {
+      deviceType: this.deviceType,
+      connectionPreserved: wasConnected,
+      timestamp: Date.now(),
+      message: `DS12 emergency state reset - operation flags cleared, connection ${
+        wasConnected ? "preserved" : "maintained as disconnected"
+      }`,
+    });
+
+    // UI NOTIFICATION: Inform renderer of emergency state reset
+    this.emitToUI("emergency-state-reset", {
+      deviceType: this.deviceType,
+      connectionPreserved: wasConnected,
+      timestamp: Date.now(),
+      message:
+        "Device state reset for emergency operation - hardware connection preserved",
+    });
+  }
+
+  /**
    * Reset all controller states to initial values
    * Override from base class with DS12-specific implementation
    */
@@ -2011,6 +2092,7 @@ export class DS12Controller extends KuControllerBase {
     this.setWaitForDispenseLockedBack(false);
     this.currentOperationType = null; // Reset operation type
     this.openingSlot = null;
+    this.clearDispensingContext();
 
     // HARDWARE PROTECTION: Reset connection management state
     this.connectionAttempts = 0;

@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useState } from "react";
 import { AuthRequest, AuthResponse } from "../../interfaces/auth";
 import { useRouter } from "next/router";
+import { DialogBase, DialogHeader, DialogInput, DialogButton } from "../Shared/DesignSystem";
 
 type Inputs = {
   passkey: string;
@@ -23,12 +24,11 @@ const AuthDialog = ({ onClose }: AuthDialogProps) => {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
-  } = useForm();
+  } = useForm<Inputs>();
 
   useEffect(() => {
-    ipcRenderer.on("login-res", (event, user: AuthResponse) => {
+    ipcRenderer.on("login-res", (_, user: AuthResponse) => {
       if (user == null) {
         toast.error(`ผู้ใช้งานไม่ถูกต้อง`, { toastId: 99, type: "error" });
         setAdmin(null);
@@ -55,9 +55,11 @@ const AuthDialog = ({ onClose }: AuthDialogProps) => {
   }, []);
 
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
+    console.log("🔍 Auth Form Submit - Data:", data);
     setLoading(true);
 
     if (data.passkey == "" || data.passkey == null) {
+      console.log("❌ Auth - Empty passkey");
       setLoading(false);
       toast.error(`กรุณาใส่ข้อมูลให้ครบถ้วน`, { toastId: 99, type: "error" });
       return;
@@ -67,44 +69,41 @@ const AuthDialog = ({ onClose }: AuthDialogProps) => {
       passkey: data.passkey,
     };
 
+    console.log("✅ Auth calling IPC login-req");
     ipcRenderer.invoke("login-req", req);
   };
 
   return (
-    <>
-      <div className="flex flex-col gap-3 text-[#000]">
-        <div className="text-xl font-bold shadow-md p-3 rounded-md flex justify-between items-center">
-          <span className="font-bold">เข้าสู่ระบบ</span>
-          <button
-            onClick={onClose}
-            className="btn btn-ghost btn-circle btn-sm font-bold"
-          >
-            x
-          </button>
-        </div>
+    <DialogBase maxWidth="max-w-[400px]">
+      <DialogHeader
+        title="เข้าสู่ระบบ"
+        onClose={onClose}
+      />
+      
+      <div className="flex flex-col p-4 gap-4">
         <form
-          className="flex flex-col p-3 gap-2"
+          className="flex flex-col gap-4"
           onSubmit={handleSubmit(onSubmit)}
         >
-          <input
+          <DialogInput
             type="password"
-            className="p-2 bg-gray-100 rounded-md text-[#000]"
             placeholder="รหัสผ่านผู้ดูแลระบบ"
+            error={errors.passkey ? "กรุณากรอกรหัสผ่าน" : undefined}
             {...register("passkey", { required: true })}
-          ></input>
-          <button
-            disabled={loading}
-            className="font-bold p-2 bg-[#eee] hover:bg-[#5495F6] hover:text-white rounded-md"
+          />
+          
+          <DialogButton
             type="submit"
+            variant="primary"
+            loading={loading}
+            disabled={loading}
+            icon="🔐"
           >
-            <>เข้าสู่ระบบ</>
-            {loading && (
-              <div className="loading loading-spinner loading-sm"></div>
-            )}
-          </button>
+            เข้าสู่ระบบ
+          </DialogButton>
         </form>
       </div>
-    </>
+    </DialogBase>
   );
 };
 

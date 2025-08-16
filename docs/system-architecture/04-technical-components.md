@@ -289,6 +289,150 @@ ipcRenderer.on('unlocking', (event, data) => {
 
 ### 6. Frontend Component Architecture
 
+#### Design System Implementation (Latest Update)
+
+**Design System Location**: `/renderer/components/Shared/DesignSystem/`
+**Purpose**: Centralized UI component library ensuring consistent design across all dialogs
+**Architecture**: Modular, reusable components with TypeScript interfaces
+
+**Core Design System Components**:
+```typescript
+// Design System exports
+export { default as DialogBase } from './DialogBase';
+export { default as DialogHeader } from './DialogHeader';
+export { default as StatusIndicator } from './StatusIndicator';
+export { DialogInput, DialogButton } from './FormElements';
+```
+
+**DialogBase Component**:
+```typescript
+interface DialogBaseProps {
+  children: React.ReactNode;
+  maxWidth?: string;  // Default: "max-w-[350px]"
+  className?: string;
+}
+
+// Usage Pattern
+<DialogBase maxWidth="max-w-[400px]">
+  <DialogHeader title="Dialog Title" onClose={onClose} />
+  <div className="flex flex-col p-4 gap-4">
+    {/* Dialog content */}
+  </div>
+</DialogBase>
+```
+
+**DialogInput Component** (React Hook Form Integration):
+```typescript
+interface DialogInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  placeholder: string;
+  error?: string;  // Form validation error display
+}
+
+// Enhanced with forwardRef for React Hook Form compatibility
+export const DialogInput = React.forwardRef<HTMLInputElement, DialogInputProps>(({
+  placeholder,
+  error,
+  className = "",
+  ...props
+}, ref) => {
+  // Consistent styling with error state handling
+  const baseClasses = "p-2 bg-gray-100 rounded-md text-black border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all duration-200";
+  const errorClasses = error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "";
+  
+  return (
+    <div className="flex flex-col gap-1">
+      <input ref={ref} className={`${baseClasses} ${errorClasses} ${className}`} placeholder={placeholder} {...props} />
+      {error && <span className="text-sm text-red-600 font-medium">{error}</span>}
+    </div>
+  );
+});
+```
+
+**DialogButton Component** (Multi-variant with Loading States):
+```typescript
+interface DialogButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "danger";
+  loading?: boolean;
+  icon?: string;
+  children: React.ReactNode;
+}
+
+// Usage Examples
+<DialogButton variant="primary" icon="✓" loading={isSubmitting}>
+  ตกลง
+</DialogButton>
+<DialogButton variant="danger" icon="!" onClick={onEmergencyAction}>
+  ปิดใช้งานช่อง
+</DialogButton>
+```
+
+**StatusIndicator Component** (Enhanced Status Display):
+```typescript
+type StatusType = 'success' | 'error' | 'warning' | 'info' | 'loading';
+
+interface StatusIndicatorProps {
+  status: StatusType;
+  message: string;
+  animated?: boolean;  // Default: true
+  slotNo?: number;     // Automatic slot number formatting
+}
+
+// Color-coded status with consistent design
+<StatusIndicator status="error" message="เปิดอยู่" slotNo={slotNo} animated={true} />
+```
+
+#### Updated Dialog Component Integration
+
+**Enhanced Dialog Components with Design System**:
+```
+Dialogs/ (All components now use Design System)
+├── inputSlot.tsx (React Hook Form + DialogInput integration)
+├── dispenseSlot.tsx (Enhanced form validation)
+├── lockWait.tsx (StatusIndicator integration)
+├── dispensingWait.tsx (Multi-step progress indicators)
+├── clearOrContinue.tsx (Consistent button variants)
+├── auth.tsx (Loading states and error handling)
+└── newUser.tsx (Complete form system integration)
+```
+
+**React Hook Form Integration Pattern**:
+```typescript
+// Example from inputSlot.tsx
+const { register, handleSubmit, formState: { errors } } = useForm<Inputs>();
+
+const onSubmit: SubmitHandler<Inputs> = (data) => {
+  // Enhanced validation with proper error handling
+  if (data.passkey == "") {
+    toast.error("กรุณากรอกรหัสผู้ใช้");
+    return;
+  }
+  
+  if (!checkDuplicate(data.hn)) {
+    toast.error("ไม่สามารถลงทะเบียนซ้ำได้");
+    return;
+  }
+  
+  unlock(slotNo, data.hn, data.passkey);
+  onClose();
+};
+
+return (
+  <DialogBase maxWidth="max-w-[400px]">
+    <DialogHeader title={`ช่อง #${slotNo} - ลงทะเบียน`} onClose={onClose} />
+    <div className="flex flex-col p-4 gap-4">
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
+        <DialogInput
+          placeholder="รหัสผู้ป่วย"
+          error={errors.hn ? "กรุณากรอกรหัสผู้ป่วย" : undefined}
+          {...register("hn", { required: true })}
+        />
+        <DialogButton type="submit" variant="primary" icon="✓">ตกลง</DialogButton>
+      </form>
+    </div>
+  </DialogBase>
+);
+```
+
 #### Page-Level Components
 
 **Home Page**: `/renderer/pages/home.tsx`
@@ -297,47 +441,137 @@ ipcRenderer.on('unlocking', (event, data) => {
 - 5x3 slot grid layout (15 slots total, slot 16 unused)
 - Real-time hardware state synchronization
 - Temperature and humidity display
-- Modal dialog management
+- Enhanced modal dialog management with Design System
 
 **Management Dashboard**: `/renderer/pages/management/index.tsx`
 **Purpose**: Admin interface for system management
-**Authentication**: Requires admin login
+**Authentication**: Requires admin login with enhanced auth dialog
 **Tabs**:
 1. Slot Management - Activate/deactivate slots
-2. User Management - Add/remove users
+2. User Management - Add/remove users with improved forms
 3. System Settings - Hardware configuration
 4. Logs Management - Audit trail export
 
-#### Component Hierarchy
+#### Enhanced Component Hierarchy
 
 **Slot Components**:
 ```
 Slot/index.tsx (Main slot container)
 ├── empty.tsx (Empty slot display)
-├── locked.tsx (Medication-loaded slot display)
-└── Modal integration for interactions
+├── locked.tsx (Medication-loaded slot display with enhanced status indicators)
+└── Design System modal integration
 ```
 
-**Dialog Components**:
+**Shared Components**:
 ```
-Dialogs/
-├── inputSlot.tsx (Medication assignment input)
-├── dispenseSlot.tsx (Patient verification dialog)
-├── lockWait.tsx (Hardware operation wait screen)
-├── dispensingWait.tsx (Medication pickup wait screen)
-├── clearOrContinue.tsx (Post-dispense options)
-├── auth.tsx (Admin authentication)
-└── newUser.tsx (User creation dialog)
+Shared/
+├── DesignSystem/ (NEW - Centralized component library)
+│   ├── DialogBase.tsx (Container with consistent layout)
+│   ├── DialogHeader.tsx (Header with progress indicators)
+│   ├── FormElements.tsx (DialogInput & DialogButton)
+│   ├── StatusIndicator.tsx (Color-coded status display)
+│   └── index.ts (Design System exports)
+├── Loading.tsx (Loading animations)
+├── Navbar.tsx (Navigation component)
+└── Tooltip.tsx (Enhanced tooltips)
 ```
 
 **Settings Components**:
 ```
 Settings/
-├── SlotSetting.tsx (Slot management interface)
-├── UserSetting.tsx (User management interface)
-├── SystemSetting.tsx (Hardware configuration)
-└── LogsSetting.tsx (Audit log viewer)
+├── SlotSetting.tsx (Enhanced slot management with Design System)
+├── UserSetting.tsx (Improved form validation and UX)
+├── SystemSetting.tsx (Consistent configuration interface)
+└── LogsSetting.tsx (Enhanced audit log viewer)
 ```
+
+#### Design Token System and Tailwind Configuration
+
+**Updated Tailwind Configuration**: `/renderer/tailwind.config.js`
+**Purpose**: Standardized color system supporting status indicators and consistent theming
+
+**Enhanced Color Palette**:
+```javascript
+module.exports = {
+  theme: {
+    colors: {
+      // Core colors for medical device interface
+      white: colors.white,
+      gray: colors.gray,
+      blue: colors.blue,
+      red: colors.red,      // NEW - Error states, danger actions
+      green: colors.green,  // NEW - Success states, completed actions
+      yellow: colors.yellow, // NEW - Warning states, attention needed
+      black: colors.black,   // NEW - High contrast text
+      
+      // Custom medical interface colors
+      bg_1: "#F9FFFF",      // Primary background (light blue tint)
+      bg_2: "#F3F3F3",      // Secondary background (neutral gray)
+      text_1: "#615858",    // Primary text color (warm gray)
+    },
+  },
+};
+```
+
+**Design Token Usage in Components**:
+```typescript
+// Status-based color mapping in StatusIndicator
+const getStatusStyles = () => {
+  switch (status) {
+    case 'success':
+      return {
+        bg: 'bg-green-50',     // Light green background
+        border: 'border-green-200',
+        text: 'text-green-700',
+        dot: 'bg-green-500'    // Solid green indicator
+      };
+    case 'error':
+      return {
+        bg: 'bg-red-50',       // Light red background
+        border: 'border-red-200',
+        text: 'text-red-700',
+        dot: 'bg-red-500'      // Solid red indicator
+      };
+    case 'warning':
+      return {
+        bg: 'bg-yellow-50',    // Light yellow background
+        border: 'border-yellow-200',
+        text: 'text-yellow-700',
+        dot: 'bg-yellow-500'   // Solid yellow indicator
+      };
+  }
+};
+```
+
+**Button Variant Color System**:
+```typescript
+// DialogButton variant styling
+const getVariantClasses = () => {
+  switch (variant) {
+    case "primary":
+      return "bg-blue-500 hover:bg-blue-600 text-white";    // Medical blue theme
+    case "secondary":
+      return "bg-gray-100 hover:bg-gray-200 text-gray-700"; // Neutral actions
+    case "danger":
+      return "bg-red-500 hover:bg-red-600 text-white";      // Emergency/danger actions
+  }
+};
+```
+
+**Form Input Error States**:
+```typescript
+// DialogInput error styling integration
+const baseClasses = "p-2 bg-gray-100 rounded-md text-black border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500";
+const errorClasses = error 
+  ? "border-red-500 focus:border-red-500 focus:ring-red-500"  // Red error state
+  : "";
+```
+
+**Medical Device Accessibility**:
+- High contrast ratios for medical environment visibility
+- Color-blind friendly status indication (shape + color)
+- Consistent hover states for touch screen compatibility
+- Loading states with clear visual feedback
 
 #### React Hooks for State Management
 
