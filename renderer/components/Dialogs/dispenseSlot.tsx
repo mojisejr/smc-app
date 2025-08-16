@@ -4,7 +4,12 @@ import { useKuStates } from "../../hooks/useKuStates";
 import { useEffect } from "react";
 import { toast } from "react-toastify";
 import { useDispensingContext } from "../../contexts/dispensingContext";
-import { DialogBase, DialogHeader, DialogInput, DialogButton } from "../Shared/DesignSystem";
+import {
+  DialogBase,
+  DialogHeader,
+  DialogInput,
+  DialogButton,
+} from "../Shared/DesignSystem";
 
 type Inputs = {
   hn: string;
@@ -36,13 +41,13 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
   };
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
-    console.log("🔍 DispenseSlot Form Submit - Data:", data);
-    
+    // console.log("🔍 DispenseSlot Form Submit - Data:", data);
+
     const slot = whichSlot(data.hn);
-    console.log("🔍 DispenseSlot Found Slot:", slot);
-    
+    // console.log("🔍 DispenseSlot Found Slot:", slot);
+
     if (slot) {
-      console.log("✅ DispenseSlot calling dispense function");
+      // console.log("✅ DispenseSlot calling dispense function");
       dispense({
         slotId: slot.slotId,
         hn: slot.hn,
@@ -52,7 +57,7 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
       setPasskey(data.passkey);
       onClose();
     } else {
-      console.log("❌ DispenseSlot - No slot found for HN:", data.hn);
+      // console.log("❌ DispenseSlot - No slot found for HN:", data.hn);
       toast(`ไม่พบคนไข้ HN #${data.hn}`, {
         toastId: 3,
         type: "error",
@@ -68,18 +73,15 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
         bgColor="bg-red-50"
         textColor="text-red-700"
       />
-      
+
       <div className="flex flex-col p-4 gap-4">
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={handleSubmit(onSubmit)}
-        >
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
           <DialogInput
             placeholder="รหัสผู้ป่วย"
             error={errors.hn ? "กรุณากรอกรหัสผู้ป่วย" : undefined}
             {...register("hn", { required: true })}
           />
-          
+
           <DialogInput
             type="password"
             placeholder="รหัสผู้ใช้"
@@ -87,11 +89,7 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
             {...register("passkey", { required: true })}
           />
 
-          <DialogButton
-            type="submit"
-            variant="danger"
-            icon="💊"
-          >
+          <DialogButton type="submit" variant="danger" icon="💊">
             จ่ายยา
           </DialogButton>
         </form>

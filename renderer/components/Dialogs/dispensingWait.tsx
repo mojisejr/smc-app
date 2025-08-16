@@ -54,10 +54,10 @@ const DispensingWait = ({
     };
 
     const handleLockedBackErrorEvent = (event: any, error: any) => {
-      console.log(
-        "DISPENSING WAIT DEBUG: Received locked-back-error event:",
-        error
-      );
+      // console.log(
+      //   "DISPENSING WAIT DEBUG: Received locked-back-error event:",
+      //   error
+      // );
       toast.error("เกิดข้อผิดพลาดในการตรวจสอบการปิดช่อง กรุณาลองใหม่");
     };
 
@@ -81,37 +81,37 @@ const DispensingWait = ({
   const handleCheckLockedBack = () => {
     // Validate required data before IPC call
     if (!slotNo || !hn) {
-      console.error("DISPENSING WAIT ERROR: Missing slotNo or hn", {
-        slotNo,
-        hn,
-      });
+      // console.error("DISPENSING WAIT ERROR: Missing slotNo or hn", {
+      //   slotNo,
+      //   hn,
+      // });
       toast.error("ข้อมูลไม่ครบถ้วน กรุณาเริ่มกระบวนการใหม่");
       return;
     }
 
-    console.log(
-      "DISPENSING DIALOG TRACE: CHECK LOCKED BACK ON DISPENSING PROCESS",
-      {
-        slotId: slotNo,
-        hn: hn,
-      }
-    );
+    // console.log(
+    //   "DISPENSING DIALOG TRACE: CHECK LOCKED BACK ON DISPENSING PROCESS",
+    //   {
+    //     slotId: slotNo,
+    //     hn: hn,
+    //   }
+    // );
 
     setIsCheckingLock(true);
 
     ipcRenderer
       .invoke("check-locked-back", { slotId: slotNo, hn: hn })
       .then(() => {
-        console.log(
-          "DISPENSING WAIT DEBUG: check-locked-back IPC call successful"
-        );
+        // console.log(
+        //   "DISPENSING WAIT DEBUG: check-locked-back IPC call successful"
+        // );
         setIsCheckingLock(false);
       })
       .catch((error) => {
-        console.error(
-          "DISPENSING WAIT ERROR: check-locked-back IPC failed:",
-          error
-        );
+        // console.error(
+        //   "DISPENSING WAIT ERROR: check-locked-back IPC failed:",
+        //   error
+        // );
         toast.error("ไม่สามารถตรวจสอบการปิดช่องได้: " + error.message);
         setIsCheckingLock(false);
       });

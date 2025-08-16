@@ -34,8 +34,8 @@ const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
   };
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
-    console.log("🔍 InputSlot Form Submit - Data:", data);
-    console.log("🔍 InputSlot Form Submit - SlotNo:", slotNo);
+    // console.log("🔍 InputSlot Form Submit - Data:", data);
+    // console.log("🔍 InputSlot Form Submit - SlotNo:", slotNo);
 
     if (data.passkey == "") {
       toast.error("กรุณากรอกรหัสผู้ใช้");
@@ -46,7 +46,7 @@ const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
       toast.error("ไม่สามารถลงทะเบียนซ้ำได้");
       return;
     } else {
-      console.log("✅ InputSlot calling unlock function");
+      // console.log("✅ InputSlot calling unlock function");
       unlock(slotNo, data.hn, data.passkey);
       onClose();
     }
