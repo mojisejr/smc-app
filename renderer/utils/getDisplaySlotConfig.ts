@@ -184,6 +184,44 @@ export function getResponsiveGridConfig(): {
 }
 
 /**
+ * Get device-specific slot styling configuration
+ * 
+ * SLOT RESPONSIVE DESIGN:
+ * - DS12: Larger slots with bigger typography (200×200px)
+ * - DS16: Compact slots with smaller typography (160×170px)
+ * - Maintains visual hierarchy and readability
+ * - Adaptive internal spacing
+ * 
+ * @returns object - Device-specific slot styling
+ */
+export function getSlotStylingConfig(): {
+  slotSizeClass: string;
+  slotNumberClass: string;
+  paddingClass: string;
+  indicatorSpacing: string;
+} {
+  const { slotCount } = getDisplaySlotConfig();
+  
+  if (slotCount <= 12) {
+    // DS12 Configuration: Larger, more spacious
+    return {
+      slotSizeClass: 'w-full max-w-[200px] min-h-[200px]',
+      slotNumberClass: 'text-5xl', // 48px
+      paddingClass: 'p-4',
+      indicatorSpacing: 'px-3'
+    };
+  } else {
+    // DS16 Configuration: Compact but readable
+    return {
+      slotSizeClass: 'w-full max-w-[160px] min-h-[170px]',
+      slotNumberClass: 'text-3xl', // 30px
+      paddingClass: 'p-3',
+      indicatorSpacing: 'px-2'
+    };
+  }
+}
+
+/**
  * Validate slot configuration for medical compliance
  * 
  * MEDICAL DEVICE VALIDATION:

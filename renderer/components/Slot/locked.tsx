@@ -4,6 +4,7 @@ import { BsArrowClockwise } from "react-icons/bs";
 import Modal from "../Modals";
 import ResetSlotOrNot from "../Dialogs/ResetSlotOrNot";
 import Indicator from "../Indicators/baseIndicator";
+import { getSlotStylingConfig } from "../../utils/getDisplaySlotConfig";
 interface LockedSlotProps {
   slotNo: number;
   hn: string;
@@ -23,6 +24,9 @@ export const LockedSlot = ({
 }: LockedSlotProps) => {
   const [bg, setBg] = useState<string>("bg-[#F6F6F6]");
   const [openReset, setOpenReset] = useState<boolean>(false);
+  
+  // Get responsive styling configuration
+  const { slotSizeClass, slotNumberClass, paddingClass, indicatorSpacing } = getSlotStylingConfig();
 
   function handleForceReset() {
     // if(!slotData.hn) {
@@ -45,7 +49,7 @@ export const LockedSlot = ({
 
   return (
     <div
-      className={`relative min-w-[170px] min-h-[175px] ${bg} shadow-xl rounded-xl p-3 cursor-default`}
+      className={`relative ${slotSizeClass} ${bg} shadow-xl rounded-xl ${paddingClass} cursor-default`}
     >
       <div className="flex justify-between">
         <div className="font-bold">HN</div>
@@ -65,13 +69,13 @@ export const LockedSlot = ({
           <div className="text-[12px]">{date}</div>
           <div className="text-[12px]">{time}</div>
         </div>
-        <div className="flex w-full">
+        <div className={`flex w-full ${indicatorSpacing}`}>
           <Indicator value={temp} unit="*C" title="Temp." threshold={50} />
           <Indicator value={humid} unit="%" title="%RH" threshold={85} />
         </div>
       </div>
 
-      <div className="absolute bottom-2 right-2 text-[#5495F6] text-[40px] font-bold">
+      <div className={`absolute bottom-2 right-2 text-[#5495F6] ${slotNumberClass} font-bold`}>
         {slotNo}
       </div>
       <button
