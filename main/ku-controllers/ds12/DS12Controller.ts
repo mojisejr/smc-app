@@ -1812,7 +1812,7 @@ export class DS12Controller extends KuControllerBase {
         hn: this.openingSlot.hn,
         slotId: this.openingSlot.slotId,
         process: "dispense-continue" as any,
-        message: `DS12 slot ${this.openingSlot.slotId} dispensing started for patient ${this.openingSlot.hn}`,
+        message: `เริ่มจ่ายยาช่องที่ ${this.openingSlot.slotId} สำหรับผู้ป่วย HN ${this.openingSlot.hn}`,
       });
 
       // UI NOTIFICATION: Inform renderer of dispensing progress
@@ -1960,7 +1960,7 @@ export class DS12Controller extends KuControllerBase {
         hn: completedSlot.hn,
         slotId: completedSlot.slotId,
         process: "dispense-end" as any,
-        message: `DS12 slot ${completedSlot.slotId} dispensing completed successfully for patient ${completedSlot.hn}`,
+        message: `จ่ายยาช่องที่ ${completedSlot.slotId} สำเร็จสำหรับผู้ป่วย HN ${completedSlot.hn}`,
       });
 
       // STATE RESET: Clear all operation flags and opening slot data
