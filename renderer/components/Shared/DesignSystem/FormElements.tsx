@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes, ButtonHTMLAttributes } from "react";
+import React, { InputHTMLAttributes, ButtonHTMLAttributes, SelectHTMLAttributes } from "react";
 import Loading from "../Loading";
 
 interface DialogInputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -11,6 +11,12 @@ interface DialogButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   icon?: string;
   children: React.ReactNode;
+}
+
+interface FilterDropdownProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  options: { value: string; label: string; }[];
+  placeholder?: string;
+  error?: string;
 }
 
 export const DialogInput = React.forwardRef<HTMLInputElement, DialogInputProps>(({
@@ -41,6 +47,44 @@ export const DialogInput = React.forwardRef<HTMLInputElement, DialogInputProps>(
 });
 
 DialogInput.displayName = 'DialogInput';
+
+export const FilterDropdown = React.forwardRef<HTMLSelectElement, FilterDropdownProps>(({
+  options,
+  placeholder = "เลือก",
+  error,
+  className = "",
+  ...props
+}, ref) => {
+  const baseClasses =
+    "p-2 bg-gray-100 rounded-md text-black border border-gray-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all duration-200 cursor-pointer";
+  const errorClasses = error
+    ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+    : "";
+
+  return (
+    <div className="flex flex-col gap-1">
+      <select
+        ref={ref}
+        className={`${baseClasses} ${errorClasses} ${className}`}
+        {...props}
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {error && (
+        <span className="text-sm text-red-600 font-medium">{error}</span>
+      )}
+    </div>
+  );
+});
+
+FilterDropdown.displayName = 'FilterDropdown';
 
 export const DialogButton: React.FC<DialogButtonProps> = ({
   variant = "primary",
