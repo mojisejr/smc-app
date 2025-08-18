@@ -7,6 +7,7 @@ export interface ISetting {
   service_code: string;
   indi_port: string;
   indi_baudrate: number;
+  device_type: string;
 }
 
 export interface IUpdateSetting {

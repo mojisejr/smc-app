@@ -17,10 +17,7 @@ import { useUnlock } from "../hooks/useUnlock";
 import Navbar from "../components/Shared/Navbar";
 import DeActivate from "../components/Dialogs/Deactivate";
 import { useIndicator } from "../hooks/useIndicator";
-import { generateSlotArray, getResponsiveGridConfig } from "../utils/getDisplaySlotConfig";
-
-// Generate slots dynamically based on hardware configuration
-const mockSlots = generateSlotArray();
+import { generateSlotArray, getResponsiveGridConfig, debugSlotConfiguration, loadDisplaySlotConfigAsync } from "../utils/getDisplaySlotConfig";
 
 function Home() {
   const { slots } = useKuStates();
@@ -30,9 +27,44 @@ function Home() {
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
-  
-  // Get responsive grid configuration based on hardware
-  const { containerClass, gridClass, gapClass } = getResponsiveGridConfig();
+  const [configLoading, setConfigLoading] = useState<boolean>(true);
+  const [mockSlots, setMockSlots] = useState<any[]>([]);
+  const [gridConfig, setGridConfig] = useState<{
+    containerClass: string;
+    gridClass: string;
+    gapClass: string;
+  }>({
+    containerClass: 'h-full place-content-center place-items-center px-8 py-8',
+    gridClass: 'grid grid-cols-4',
+    gapClass: 'gap-6'
+  });
+
+  // Load device configuration on component mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        setConfigLoading(true);
+        await loadDisplaySlotConfigAsync();
+        
+        // Get grid configuration after database config is loaded
+        const responsiveGridConfig = getResponsiveGridConfig();
+        setGridConfig(responsiveGridConfig);
+        
+        const slots = generateSlotArray();
+        setMockSlots(slots);
+        debugSlotConfiguration();
+      } catch (error) {
+        console.error('Error loading device configuration:', error);
+        // Use default slots if config loading fails
+        const defaultSlots = generateSlotArray();
+        setMockSlots(defaultSlots);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    loadConfig();
+  }, []);
 
   useEffect(() => {
     if (unlocking.unlocking) {
@@ -73,7 +105,11 @@ function Home() {
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
           <div className="w-full h-full p-[2rem] overflow-y-auto">
             <>
-              {mockSlots === undefined ? (
+              {configLoading ? (
+                <div className="min-h-[300px] flex justify-center items-center">
+                  <Loading />
+                </div>
+              ) : mockSlots === undefined ? (
                 <div>Error: undefined</div>
               ) : (
                 <>
@@ -82,7 +118,7 @@ function Home() {
                       <Loading />
                     </div>
                   ) : (
-                    <ul className={`!${gridClass} ${gapClass} ${containerClass}`}>
+                    <ul className={`${gridConfig.gridClass} ${gridConfig.gapClass} ${gridConfig.containerClass}`}>
                       {mockSlots
                         .map((s, index) => {
                           return {

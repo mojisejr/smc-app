@@ -17,6 +17,7 @@ Setting.init(
     activated_key: { type: DataTypes.STRING },
     indi_port: { type: DataTypes.STRING },
     indi_baudrate: { type: DataTypes.INTEGER },
+    device_type: { type: DataTypes.STRING, defaultValue: "DS12" },
   },
   {
     sequelize,

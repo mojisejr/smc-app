@@ -22,8 +22,8 @@
  * ```
  */
 
-// Remove direct import of BuildConstants to avoid main process dependency
-// Use IPC to get device configuration from main process
+// Use database setting to get device configuration
+import { ipcRenderer } from 'electron';
 
 /**
  * Slot Display Configuration Interface
@@ -52,10 +52,48 @@ export interface SlotDisplayConfig {
  * 
  * @returns SlotDisplayConfig - Configuration for slot display
  */
+// Cache for device configuration to avoid repeated IPC calls
+let cachedDeviceConfig: SlotDisplayConfig | null = null;
+
+/**
+ * Get Display Slot Configuration (Synchronous)
+ * Uses cached configuration or defaults to DS12
+ * Call loadDisplaySlotConfigAsync() first to populate cache
+ */
 export function getDisplaySlotConfig(): SlotDisplayConfig {
+  // Return cached configuration if available
+  if (cachedDeviceConfig) {
+    return cachedDeviceConfig;
+  }
+  
+  // FALLBACK: Default to DS12 configuration if no cache
+  console.log('getDisplaySlotConfig: Using DS12 fallback, call loadDisplaySlotConfigAsync() to load from database');
+  
+  return {
+    slotCount: 12,
+    columns: 4,
+    gridClass: 'grid-cols-4',
+    maxDisplaySlots: 15,
+    deviceType: 'DS12'
+  };
+}
+
+/**
+ * Load Display Slot Configuration from Database (Async)
+ * Fetches setting from database and caches the result
+ * 
+ * @returns Promise<SlotDisplayConfig> - Configuration loaded from database
+ */
+export async function loadDisplaySlotConfigAsync(): Promise<SlotDisplayConfig> {
   try {
-    // Get device type from environment variable (same as main process)
-    const deviceType = process.env.DEVICE_TYPE || 'DS12';
+    // Get setting from database via IPC
+    const setting = await ipcRenderer.invoke('get-setting');
+    
+    if (!setting || !setting.device_type) {
+      throw new Error('No device type found in settings');
+    }
+    
+    const deviceType = setting.device_type || 'DS12';
     
     // Device configuration mapping
     const deviceConfigs = {
@@ -83,7 +121,7 @@ export function getDisplaySlotConfig(): SlotDisplayConfig {
       gridClass = 'grid-cols-5';
     }
     
-    return {
+    const resultConfig = {
       slotCount,
       columns,
       gridClass,
@@ -91,18 +129,39 @@ export function getDisplaySlotConfig(): SlotDisplayConfig {
       deviceType
     };
     
-  } catch (error) {
-    // FALLBACK: Default to DS12 configuration if error occurs
-    console.error('getDisplaySlotConfig: Error loading configuration, using DS12 fallback:', error);
+    // Cache the result for synchronous access
+    cachedDeviceConfig = resultConfig;
     
-    return {
+    console.log('loadDisplaySlotConfigAsync: Configuration loaded from database:', deviceType);
+    
+    return resultConfig;
+    
+  } catch (error) {
+    // FALLBACK: Default to DS12 configuration if database fails
+    console.error('loadDisplaySlotConfigAsync: Error loading from database, using DS12 fallback:', error);
+    
+    const fallbackConfig = {
       slotCount: 12,
       columns: 4,
       gridClass: 'grid-cols-4',
       maxDisplaySlots: 15,
       deviceType: 'DS12'
     };
+    
+    // Cache the fallback
+    cachedDeviceConfig = fallbackConfig;
+    
+    return fallbackConfig;
   }
+}
+
+/**
+ * Clear cached configuration
+ * Use when settings are updated
+ */
+export function clearDisplaySlotConfigCache(): void {
+  cachedDeviceConfig = null;
+  console.log('Display slot configuration cache cleared');
 }
 
 /**
@@ -258,5 +317,26 @@ export function validateSlotConfiguration(): boolean {
   } catch (error) {
     console.error('Slot configuration validation error:', error);
     return false;
+  }
+}
+
+/**
+ * Debug function to log current configuration
+ * Useful for troubleshooting layout issues
+ */
+export function debugSlotConfiguration(): void {
+  try {
+    const displayConfig = getDisplaySlotConfig();
+    const gridConfig = getResponsiveGridConfig();
+    const styleConfig = getSlotStylingConfig();
+    
+    console.group('🔍 Slot Configuration Debug');
+    console.log('📱 Display Config:', displayConfig);
+    console.log('🎯 Grid Config:', gridConfig);
+    console.log('🎨 Style Config:', styleConfig);
+    console.log('✅ Validation:', validateSlotConfiguration());
+    console.groupEnd();
+  } catch (error) {
+    console.error('❌ Debug configuration error:', error);
   }
 }

@@ -6,6 +6,7 @@ export interface ISetting {
   max_user: number;
   service_code: string;
   max_log_counts: number;
+  device_type: string;
 }
 
 export interface IUpdateSetting {
