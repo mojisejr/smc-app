@@ -17,129 +17,10 @@ import { useUnlock } from "../hooks/useUnlock";
 import Navbar from "../components/Shared/Navbar";
 import DeActivate from "../components/Dialogs/Deactivate";
 import { useIndicator } from "../hooks/useIndicator";
+import { generateSlotArray, getResponsiveGridConfig } from "../utils/getDisplaySlotConfig";
 
-const mockSlots = [
-  {
-    slotId: 1,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 2,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 3,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 4,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 5,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 6,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 7,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 8,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 9,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 10,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 11,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 12,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 13,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 14,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 15,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-];
+// Generate slots dynamically based on hardware configuration
+const mockSlots = generateSlotArray();
 
 function Home() {
   const { slots } = useKuStates();
@@ -149,6 +30,9 @@ function Home() {
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
+  
+  // Get responsive grid configuration based on hardware
+  const { containerClass, gridClass, gapClass } = getResponsiveGridConfig();
 
   useEffect(() => {
     if (unlocking.unlocking) {
@@ -187,7 +71,7 @@ function Home() {
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
-          <div className="w-full h-full p-[2rem] flex flex-col gap-[1.2rem] overflow-y-auto">
+          <div className="w-full h-full p-[2rem] overflow-y-auto">
             <>
               {mockSlots === undefined ? (
                 <div>Error: undefined</div>
@@ -198,7 +82,7 @@ function Home() {
                       <Loading />
                     </div>
                   ) : (
-                    <ul className="grid grid-cols-5 gap-6 min-h-[70vh] place-content-start px-20 py-6">
+                    <ul className={`!${gridClass} ${gapClass} ${containerClass}`}>
                       {mockSlots
                         .map((s, index) => {
                           return {
