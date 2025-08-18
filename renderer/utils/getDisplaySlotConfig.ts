@@ -221,18 +221,18 @@ export function getResponsiveGridConfig(): {
   // Base grid configuration
   const baseGridClass = `grid ${gridClass}`;
   
-  // Device-specific spacing configuration
+  // Viewport-based responsive spacing configuration
   let gapClass: string;
   let containerClass: string;
   
   if (slotCount <= 12) {
-    // DS12 Configuration: More generous spacing
-    gapClass = 'gap-6';
-    containerClass = 'h-full place-content-center place-items-center px-8 py-8';
+    // DS12 Configuration: Responsive spacing for larger screens
+    gapClass = 'gap-4 lg:gap-6 xl:gap-8';
+    containerClass = 'h-full place-content-center place-items-center px-[2vw] py-[2vh] lg:px-[3vw] lg:py-[3vh] xl:px-[4vw] xl:py-[2vh]';
   } else {
-    // DS16 Configuration: Efficient spacing
-    gapClass = 'gap-4';
-    containerClass = 'h-full place-content-center place-items-center px-6 py-6';
+    // DS16 Configuration: Compact responsive spacing
+    gapClass = 'gap-3 lg:gap-4 xl:gap-6';
+    containerClass = 'h-full place-content-center place-items-center px-[1.5vw] py-[1.5vh] lg:px-[2vw] lg:py-[2vh] xl:px-[3vw] xl:py-[1.5vh]';
   }
   
   return {
@@ -262,20 +262,20 @@ export function getSlotStylingConfig(): {
   const { slotCount } = getDisplaySlotConfig();
   
   if (slotCount <= 12) {
-    // DS12 Configuration: Larger, more spacious
+    // DS12 Configuration: Responsive larger sizing
     return {
-      slotSizeClass: 'w-full max-w-[200px] min-h-[200px]',
-      slotNumberClass: 'text-5xl', // 48px
-      paddingClass: 'p-4',
-      indicatorSpacing: 'px-3'
+      slotSizeClass: 'w-full aspect-square min-w-[180px] max-w-[320px] min-h-[180px]',
+      slotNumberClass: 'text-4xl lg:text-5xl xl:text-6xl', // Responsive font size
+      paddingClass: 'p-3 lg:p-4 xl:p-5',
+      indicatorSpacing: 'px-2 lg:px-3 xl:px-4'
     };
   } else {
-    // DS16 Configuration: Compact but readable
+    // DS16 Configuration: Responsive compact sizing
     return {
-      slotSizeClass: 'w-full max-w-[160px] min-h-[170px]',
-      slotNumberClass: 'text-3xl', // 30px
-      paddingClass: 'p-3',
-      indicatorSpacing: 'px-2'
+      slotSizeClass: 'w-full aspect-square min-w-[140px] max-w-[240px] min-h-[140px]',
+      slotNumberClass: 'text-2xl lg:text-3xl xl:text-4xl', // Responsive font size
+      paddingClass: 'p-2 lg:p-3 xl:p-4',
+      indicatorSpacing: 'px-1 lg:px-2 xl:px-3'
     };
   }
 }

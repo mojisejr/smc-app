@@ -103,7 +103,7 @@ function Home() {
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
-          <div className="w-full h-full p-[2rem] overflow-y-auto">
+          <div className="w-full h-full p-4 lg:p-6 xl:p-8 overflow-y-auto">
             <>
               {configLoading ? (
                 <div className="min-h-[300px] flex justify-center items-center">
