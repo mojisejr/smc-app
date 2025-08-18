@@ -262,20 +262,20 @@ export function getSlotStylingConfig(): {
   const { slotCount } = getDisplaySlotConfig();
   
   if (slotCount <= 12) {
-    // DS12 Configuration: Responsive larger sizing
+    // DS12 Configuration: Enhanced responsive sizing with fluid scaling
     return {
-      slotSizeClass: 'w-full aspect-square min-w-[180px] max-w-[320px] min-h-[180px]',
-      slotNumberClass: 'text-4xl lg:text-5xl xl:text-6xl', // Responsive font size
-      paddingClass: 'p-3 lg:p-4 xl:p-5',
-      indicatorSpacing: 'px-2 lg:px-3 xl:px-4'
+      slotSizeClass: 'w-full aspect-square min-w-[180px] max-w-[min(500px,30vw)] min-h-[180px]',
+      slotNumberClass: 'text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl', // Enhanced responsive font size
+      paddingClass: 'p-3 lg:p-4 xl:p-5 2xl:p-6',
+      indicatorSpacing: 'px-2 lg:px-3 xl:px-4 2xl:px-5'
     };
   } else {
-    // DS16 Configuration: Responsive compact sizing
+    // DS16 Configuration: Enhanced responsive compact sizing with fluid scaling
     return {
-      slotSizeClass: 'w-full aspect-square min-w-[140px] max-w-[240px] min-h-[140px]',
-      slotNumberClass: 'text-2xl lg:text-3xl xl:text-4xl', // Responsive font size
-      paddingClass: 'p-2 lg:p-3 xl:p-4',
-      indicatorSpacing: 'px-1 lg:px-2 xl:px-3'
+      slotSizeClass: 'w-full aspect-square min-w-[140px] max-w-[min(400px,24vw)] min-h-[140px]',
+      slotNumberClass: 'text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl', // Enhanced responsive font size
+      paddingClass: 'p-2 lg:p-3 xl:p-4 2xl:p-5',
+      indicatorSpacing: 'px-1 lg:px-2 xl:px-3 2xl:px-4'
     };
   }
 }
