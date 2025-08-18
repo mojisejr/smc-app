@@ -6,11 +6,14 @@ This document maps the complete data flow patterns within the Smart Medication C
 
 ## State Management Architecture
 
-### Three-Layer State Synchronization
+### Three-Layer State Synchronization (Enhanced Production Architecture)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        UI LAYER (React)                        │
+│                   ENHANCED UI LAYER (React)                   │
+│ • Design System State (DialogBase, StatusIndicator)            │
+│ • Responsive Grid State (Dynamic slot configuration)           │
+│ • React Hook Form State (Enhanced validation)                  │
 │ • Component State (useState, useForm)                          │
 │ • Context State (Authentication, Dispensing)                   │ 
 │ • Hook State (useKuStates, useUnlock, useDispense)            │
@@ -18,8 +21,11 @@ This document maps the complete data flow patterns within the Smart Medication C
 └─────────────────────────────────────────────────────────────────┘
                         ▲ IPC Events ▼ IPC Calls
 ┌─────────────────────────────────────────────────────────────────┐
-│                  BUSINESS LOGIC LAYER (Main)                   │
-│ • Runtime State (BuildTimeController properties)               │
+│              ENHANCED BUSINESS LOGIC LAYER (Main)             │
+│ • BuildTimeController State (DS12 PROD / DS16 CONFIG)         │
+│ • Device Configuration State (Build-time device type)          │
+│ • Protocol Parser State (DS12/DS16 abstraction)               │
+│ • Runtime State (Hardware connection properties)               │
 │ • Session State (Authentication, device connections)           │
 │ • Operation State (opening, dispensing, waitFor flags)         │
 │ • Cache State (slot states, user sessions)                     │
@@ -29,7 +35,8 @@ This document maps the complete data flow patterns within the Smart Medication C
 │                   DATABASE LAYER (SQLite)                      │
 │ • Persistent State (Slot, User, Setting models)                │
 │ • Audit Logs (DispensingLog, SystemLog)                       │
-│ • Configuration State (Device settings, user preferences)      │
+│ • Responsive Configuration State (Grid layout, device type)    │
+│ • Device Settings (Hardware configuration, build parameters)   │
 │ • Historical Data (Operation history, error logs)              │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -774,26 +781,179 @@ export const auditableOperation = async (operation: string, data: any, handler: 
 };
 ```
 
+## Enhanced UX Data Flow Patterns (Production Features)
+
+### 1. Responsive Grid Configuration Flow
+
+```mermaid
+sequenceDiagram
+    participant Home as Home Component
+    participant Config as getDisplaySlotConfig
+    participant DB as Database Settings
+    participant Build as BuildTimeController
+    participant UI as Grid UI
+
+    Home->>Config: loadDisplaySlotConfigAsync()
+    Config->>DB: Load device configuration
+    DB-->>Config: Return device settings
+    Config->>Build: Get current device type
+    Build-->>Config: Return DS12/DS16 config
+    Config-->>Home: Return responsive grid config
+    Home->>UI: Apply grid layout (3x4 or 3x5)
+    UI-->>UI: Render hardware-aware slot grid
+```
+
+**Critical Implementation**:
+```typescript
+// Dynamic configuration loading
+const loadConfig = async () => {
+  await loadDisplaySlotConfigAsync();
+  const responsiveGridConfig = getResponsiveGridConfig();
+  setGridConfig(responsiveGridConfig);
+  
+  // Generate mock slots based on hardware
+  const config = getDisplaySlotConfig();
+  const mockSlots = generateSlotArray(config.slotCount);
+  setMockSlots(mockSlots);
+};
+
+// Hardware-aware UI rendering
+<div className={gridConfig.containerClass}>
+  <div className={`${gridConfig.gridClass} ${gridConfig.gapClass}`}>
+    {mockSlots.map((slot) => (
+      <Slot key={slot.slotId} slotData={slot} />
+    ))}
+  </div>
+</div>
+```
+
+### 2. Design System Form Validation Flow
+
+```mermaid
+sequenceDiagram
+    participant User as Healthcare Staff
+    participant Form as React Hook Form
+    participant Design as Design System
+    participant IPC as IPC Layer
+    participant Audit as Audit System
+
+    User->>Form: Input medication data
+    Form->>Design: Validate via DialogInput
+    Design-->>Form: Return validation state
+    Form->>Form: Display error feedback
+    User->>Form: Correct input and submit
+    Form->>IPC: Submit validated data
+    IPC->>Audit: Log form submission
+    Audit-->>IPC: Audit confirmation
+    IPC-->>Design: Success response
+    Design-->>User: StatusIndicator success
+```
+
+**Enhanced Form Pattern**:
+```typescript
+// Design System integrated form
+const MyDialog = () => {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  
+  return (
+    <DialogBase maxWidth="max-w-[400px]">
+      <DialogHeader title="ยืนยันการปลดล็อคช่องยา" variant="warning" />
+      <StatusIndicator 
+        status="info" 
+        message="กรุณากรอกข้อมูลให้ครบถ้วน"
+        slotNumber={slotId}
+      />
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <DialogInput 
+          label="รหัสผ่าน"
+          type="password"
+          error={errors.passkey?.message}
+          {...register('passkey', { 
+            required: 'กรุณากรอกรหัสผ่าน',
+            minLength: { value: 4, message: 'รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร' }
+          })}
+        />
+        <DialogButton variant="primary" loading={isSubmitting}>
+          ยืนยัน
+        </DialogButton>
+      </form>
+    </DialogBase>
+  );
+};
+```
+
+### 3. Build-Time Configuration State Flow
+
+```typescript
+// Production configuration pattern
+interface DeviceConfiguration {
+  deviceType: 'DS12' | 'DS16';
+  slotCount: number;
+  gridLayout: ResponsiveGridConfig;
+  protocolParser: string;
+  baudRate: number;
+}
+
+// Configuration loading at app startup
+const initializeDeviceConfiguration = async () => {
+  // 1. Load build-time configuration
+  const buildConfig = BuildConstants.getCurrentConfig();
+  
+  // 2. Load database settings
+  const settings = await getSetting();
+  
+  // 3. Initialize controller with configuration
+  await BuildTimeController.initialize(
+    mainWindow,
+    settings.ku_port,
+    settings.ku_baudrate
+  );
+  
+  // 4. Update UI configuration
+  const gridConfig = getResponsiveGridConfig();
+  mainWindow.webContents.send('config-updated', {
+    deviceType: buildConfig.deviceType,
+    gridConfig: gridConfig,
+    slotCount: buildConfig.maxSlots
+  });
+};
+```
+
 ## Migration Impact on Data Flow
 
 ### Current State (Production BuildTimeController)
 ```
-UI → IPC → BuildTimeController → Protocol Parser → Serial Port → Hardware
+UI → IPC → BuildTimeController → DS12 Protocol Parser → Serial Port → DS12 Hardware
+     ↓
+Responsive Grid ← Device Configuration ← Build Constants
 ```
 
-### Target State (Abstract Controllers)
+### Enhanced State (Production + Design System)
 ```
-UI → IPC → ControllerFactory → DS12/DS16Controller → ProtocolParser → Serial Port → Hardware
+Enhanced UI (Design System + Responsive Grid) 
+     ↓ IPC
+BuildTimeController (DS12 PROD / DS16 CONFIG)
+     ↓
+Protocol Abstraction Layer (DS12/DS16 parsers)
+     ↓
+Serial Communication → Hardware
 ```
 
-### Migration Strategy for Data Flow Preservation
+### Migration Strategy for Enhanced Data Flow
 
-1. **Phase 1**: Maintain existing IPC interfaces
-2. **Phase 2**: Add controller factory behind existing interfaces
-3. **Phase 3**: Gradually migrate IPC handlers to new controllers
-4. **Phase 4**: BuildTimeController production deployment (COMPLETED)
+1. **✅ COMPLETED**: Design System integration with form validation
+2. **✅ COMPLETED**: Responsive grid with hardware detection
+3. **✅ COMPLETED**: BuildTimeController production deployment
+4. **🔧 READY**: DS16 protocol activation (configuration-ready)
 
-**Backward Compatibility Pattern**:
+**Data Flow Evolution Summary**:
+
+- **Enhanced UI Layer**: Design System + Responsive Grid + React Hook Form integration
+- **Business Logic**: BuildTimeController with protocol abstraction (DS12 production, DS16 ready)
+- **Database Layer**: Enhanced with responsive configuration and device settings
+- **Medical Compliance**: All audit trails preserved with enhanced Thai language support
+
+**Backward Compatibility Maintained**:
 ```typescript
 // Maintain existing IPC interface during migration
 ipcMain.handle('unlock', async (event, payload) => {

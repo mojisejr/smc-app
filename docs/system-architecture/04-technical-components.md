@@ -452,37 +452,355 @@ return (
 3. System Settings - Hardware configuration
 4. Logs Management - Audit trail export
 
+### 5. Design System Architecture (Production Implementation)
+
+#### Centralized Component Library
+**Location**: `/renderer/components/Shared/DesignSystem/`
+**Purpose**: Consistent UI/UX across all dialog components with enhanced form handling
+**Implementation Status**: ✅ **PRODUCTION DEPLOYED**
+
+#### Core Design System Components
+
+**DialogBase.tsx** - Flexible Container Component:
+```typescript
+interface DialogBaseProps {
+  children: React.ReactNode;
+  maxWidth?: string;        // Responsive width control
+  className?: string;       // Additional styling flexibility
+}
+
+// Usage: Provides consistent dialog structure with responsive behavior
+<DialogBase maxWidth="max-w-[450px]" className="custom-styles">
+  {/* Dialog content */}
+</DialogBase>
+```
+
+**DialogHeader.tsx** - Enhanced Header Component:
+```typescript
+interface DialogHeaderProps {
+  title: string;
+  progress?: number;        // Progress indicator for multi-step processes
+  onClose?: () => void;     // Optional close functionality
+  variant?: 'default' | 'success' | 'error' | 'warning';
+}
+
+// Features: Progress indicators, status-based styling, consistent typography
+```
+
+**FormElements.tsx** - React Hook Form Integrated Components:
+```typescript
+// DialogInput - Forward ref pattern for React Hook Form
+const DialogInput = React.forwardRef<HTMLInputElement, DialogInputProps>(
+  ({ label, error, type = "text", ...props }, ref) => {
+    return (
+      <div className="space-y-1">
+        {label && <label className="text-sm font-medium text-gray-700">{label}</label>}
+        <input 
+          ref={ref}
+          className={`input input-bordered w-full ${error ? 'input-error' : ''}`}
+          {...props}
+        />
+        {error && <span className="text-sm text-red-600">{error}</span>}
+      </div>
+    );
+  }
+);
+
+// DialogButton - Enhanced button with loading states
+interface DialogButtonProps {
+  variant?: 'primary' | 'secondary' | 'danger' | 'success';
+  loading?: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+}
+```
+
+**StatusIndicator.tsx** - Medical-Grade Status Display:
+```typescript
+interface StatusIndicatorProps {
+  status: 'success' | 'error' | 'warning' | 'info' | 'loading';
+  message: string;
+  slotNumber?: number;      // Automatic slot number formatting
+  animate?: boolean;        // Pulsing animation for active states
+}
+
+// Features:
+// - Color-coded feedback (medical device standards)
+// - High contrast ratios for medical environment visibility
+// - Automatic Thai language formatting
+// - Accessibility compliance
+```
+
+#### Design System Usage Pattern
+```typescript
+import { DialogBase, DialogHeader, DialogInput, DialogButton, StatusIndicator } from '@/components/Shared/DesignSystem';
+
+// Consistent dialog implementation
+const MyDialog = () => (
+  <DialogBase maxWidth="max-w-[400px]">
+    <DialogHeader title="ยืนยันการปลดล็อคช่องยา" variant="warning" />
+    <StatusIndicator 
+      status="info" 
+      message="กรุณายืนยันรหัสผ่านเพื่อปลดล็อค"
+      slotNumber={5}
+    />
+    <form>
+      <DialogInput 
+        label="รหัสผ่าน"
+        type="password"
+        error={formErrors.passkey}
+        {...register('passkey')}
+      />
+      <DialogButton variant="primary" loading={isSubmitting}>
+        ยืนยัน
+      </DialogButton>
+    </form>
+  </DialogBase>
+);
+```
+
 #### Enhanced Component Hierarchy
 
-**Slot Components**:
+**Slot Components** (Enhanced with Design System):
 ```
-Slot/index.tsx (Main slot container)
-├── empty.tsx (Empty slot display)
-├── locked.tsx (Medication-loaded slot display with enhanced status indicators)
-└── Design System modal integration
+Slot/index.tsx (Main slot container with responsive behavior)
+├── empty.tsx (Empty slot display with status indicators)
+├── locked.tsx (Enhanced medication-loaded slot with indicator integration)
+└── Integrated Design System components for consistent UI
+```
+
+#### Enhanced Slot Component Implementation
+
+**LockedSlot Component** (`/renderer/components/Slot/locked.tsx`):
+```typescript
+interface LockedSlotProps {
+  slotNo: number;
+  hn: string;        // Patient Hospital Number
+  date: string;      // Medication loading date
+  time: string;      // Medication loading time
+  temp: number;      // Temperature reading
+  humid: number;     // Humidity reading
+}
+
+// Enhanced features:
+// - Integrated temperature and humidity indicators
+// - Tooltip support for long HN display
+// - Force reset functionality with confirmation dialog
+// - Visual state management (background color changes)
+// - Medical-grade information display with Thai language support
+```
+
+**BaseIndicator Component** (`/renderer/components/Indicators/baseIndicator.tsx`):
+```typescript
+interface IndicatoProps {
+  title: string;
+  value: number;
+  unit: string;      // "*C" for temperature, "%" for humidity
+  threshold: number; // Alert threshold for medical compliance
+}
+
+// Features:
+// - Icon-based display (temperature/humidity icons)
+// - Compact design for slot integration
+// - Visual value representation with background styling
+// - Medical environment optimized styling
+```
+
+#### Medical Environment Indicator System
+
+**Environmental Monitoring Integration**:
+- **Temperature Monitoring**: TbTemperatureCelsius icon with real-time values
+- **Humidity Monitoring**: WiHumidity icon with percentage display  
+- **Threshold Awareness**: Built-in threshold checking for medical compliance
+- **Compact Design**: Optimized for slot component integration
+
+**Usage in Locked Slots**:
+```typescript
+<div className="flex w-full">
+  <Indicator value={temp} unit="*C" title="Temp." threshold={50} />
+  <Indicator value={humid} unit="%" title="%RH" threshold={85} />
+</div>
 ```
 
 **Shared Components**:
 ```
 Shared/
-├── DesignSystem/ (NEW - Centralized component library)
-│   ├── DialogBase.tsx (Container with consistent layout)
-│   ├── DialogHeader.tsx (Header with progress indicators)
-│   ├── FormElements.tsx (DialogInput & DialogButton)
-│   ├── StatusIndicator.tsx (Color-coded status display)
-│   └── index.ts (Design System exports)
+├── DesignSystem/ (PRODUCTION - Centralized component library)
+│   ├── DialogBase.tsx (Flexible container with responsive layout)
+│   ├── DialogHeader.tsx (Headers with progress indicators)
+│   ├── FormElements.tsx (React Hook Form integrated components)
+│   ├── StatusIndicator.tsx (Medical-grade color-coded display)
+│   └── index.ts (Unified exports for consistent usage)
 ├── Loading.tsx (Loading animations)
 ├── Navbar.tsx (Navigation component)
 └── Tooltip.tsx (Enhanced tooltips)
 ```
 
-**Settings Components**:
+**Settings Components** (Enhanced with Design System):
 ```
 Settings/
 ├── SlotSetting.tsx (Enhanced slot management with Design System)
 ├── UserSetting.tsx (Improved form validation and UX)
 ├── SystemSetting.tsx (Consistent configuration interface)
 └── LogsSetting.tsx (Enhanced audit log viewer)
+```
+
+### 6. Responsive Slot Grid System (Production Implementation)
+
+#### Dynamic Hardware Configuration
+**Location**: `/renderer/utils/getDisplaySlotConfig.ts`
+**Purpose**: Hardware-aware responsive grid layout with build-time device detection
+**Implementation Status**: ✅ **PRODUCTION DEPLOYED**
+
+#### Slot Display Configuration Interface
+```typescript
+interface SlotDisplayConfig {
+  slotCount: number;        // DS12: 12, DS16: 15 (max displayable)
+  columns: number;          // DS12: 4, DS16: 5
+  rows: number;             // Both: 3 (medical device standard)
+  gridClass: string;        // Tailwind CSS grid classes
+  containerClass: string;   // Responsive container styling
+  gapClass: string;         // Consistent spacing
+}
+
+interface ResponsiveGridConfig {
+  containerClass: string;   // Main container layout
+  gridClass: string;        // CSS Grid configuration
+  gapClass: string;         // Grid gap spacing
+}
+```
+
+#### Hardware Detection and Grid Generation
+```typescript
+// Automatic hardware detection from BuildTimeController
+export const getDisplaySlotConfig = (): SlotDisplayConfig => {
+  const deviceConfig = BuildConstants.getCurrentConfig();
+  
+  switch (deviceConfig.deviceType) {
+    case DeviceType.DS12:
+      return {
+        slotCount: 12,
+        columns: 4,
+        rows: 3,
+        gridClass: 'grid-cols-4',
+        containerClass: 'h-full place-content-center place-items-center px-8 py-8',
+        gapClass: 'gap-6'
+      };
+    
+    case DeviceType.DS16:
+      return {
+        slotCount: 15,          // Max displayable (16th slot reserved)
+        columns: 5,
+        rows: 3,
+        gridClass: 'grid-cols-5',
+        containerClass: 'h-full place-content-center place-items-center px-6 py-6',
+        gapClass: 'gap-4'       // Slightly tighter spacing for 5 columns
+      };
+  }
+};
+
+// Responsive grid configuration for different screen sizes
+export const getResponsiveGridConfig = (): ResponsiveGridConfig => {
+  const config = getDisplaySlotConfig();
+  return {
+    containerClass: config.containerClass,
+    gridClass: `grid ${config.gridClass}`,
+    gapClass: config.gapClass
+  };
+};
+
+// Slot array generation with hardware awareness
+export const generateSlotArray = (slotCount: number): IPayload[] => {
+  return Array.from({ length: slotCount }, (_, index) => ({
+    slotId: index + 1,
+    hn: null,
+    occupied: false,
+    opening: false,
+    isActive: true
+  }));
+};
+```
+
+#### Home Page Responsive Implementation
+**Location**: `/renderer/pages/home.tsx`
+
+```typescript
+function Home() {
+  const { slots } = useKuStates();
+  const [gridConfig, setGridConfig] = useState<ResponsiveGridConfig>({
+    containerClass: 'h-full place-content-center place-items-center px-8 py-8',
+    gridClass: 'grid grid-cols-4',
+    gapClass: 'gap-6'
+  });
+
+  // Load device configuration on component mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        await loadDisplaySlotConfigAsync();  // Load from database
+        const responsiveGridConfig = getResponsiveGridConfig();
+        setGridConfig(responsiveGridConfig);
+        
+        // Generate mock slots for hardware compatibility
+        const config = getDisplaySlotConfig();
+        const mockSlots = generateSlotArray(config.slotCount);
+        setMockSlots(mockSlots);
+        
+      } catch (error) {
+        console.error('Failed to load slot configuration:', error);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    loadConfig();
+  }, []);
+
+  // Render responsive grid
+  return (
+    <div className={gridConfig.containerClass}>
+      <div className={`${gridConfig.gridClass} ${gridConfig.gapClass}`}>
+        {mockSlots.map((slot, index) => (
+          <Slot 
+            key={slot.slotId}
+            slotData={slot}
+            // Hardware-specific features
+            showAdvanced={slot.infrared !== undefined} // DS16-specific
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+#### Medical Device Grid Standards
+- **Fixed 3-Row Layout**: Medical device standard for consistent operator experience
+- **Variable Column Count**: DS12 (4 columns), DS16 (5 columns) based on hardware
+- **Maximum 15 Displayable Slots**: 16th slot reserved for system operations
+- **Consistent Spacing**: Optimized for touch interaction in medical environments
+- **Hardware-Agnostic UI**: Same user workflow regardless of underlying hardware
+
+#### Database Integration
+```typescript
+// Configuration persistence in database
+interface SettingData {
+  available_slots: number;  // Loaded from hardware configuration
+  grid_layout: string;      // Serialized layout configuration
+  device_type: string;      // DS12 | DS16 for build-time selection
+}
+
+// Async configuration loading
+export const loadDisplaySlotConfigAsync = async (): Promise<void> => {
+  try {
+    const settings = await ipcRenderer.invoke('get-setting');
+    // Configuration is automatically applied to UI rendering
+    debugSlotConfiguration(settings);
+  } catch (error) {
+    console.error('Error loading display slot configuration:', error);
+    throw error;
+  }
+};
 ```
 
 #### Design Token System and Tailwind Configuration

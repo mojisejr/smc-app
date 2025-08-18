@@ -11,39 +11,42 @@ This document provides comprehensive system understanding for safe refactoring o
 **Technology Stack**: Electron.js + Next.js + Sequelize + SQLite
 **Target Platform**: Desktop application for medication dispensing hardware
 
-## High-Level Architecture
+## High-Level Architecture (Production Implementation)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Electron Main Process                │
 ├─────────────────────────────────────────────────────────┤
-│ • Hardware Controllers (KU16, DS12, DS16)              │
+│ • BuildTimeController (DS12 ✅ / DS16 🔧)              │
+│ • Protocol Abstraction Layer                          │
 │ • Serial Communication (RS485)                         │
 │ • Database Management (SQLite + Sequelize)             │
-│ • IPC Event Handlers                                   │
+│ • Unified IPC Event Handlers                          │
 │ • Authentication & Authorization                        │
-│ • Audit Logging System                                 │
+│ • Medical Audit Logging System                        │
 └─────────────────────────────────────────────────────────┘
                             │ IPC
                             ▼
 ┌─────────────────────────────────────────────────────────┐
-│                 Electron Renderer Process              │
+│           Enhanced Renderer Process (Production)        │
 ├─────────────────────────────────────────────────────────┤
-│ • Next.js Application (React + TypeScript)             │
-│ • Home Page - 15 Slot Grid Interface                   │
-│ • Admin Management Dashboard                           │
-│ • Modal Dialogs & User Interactions                   │
-│ • Real-time Hardware Status Updates                   │
+│ • Next.js + TypeScript + Responsive Grid               │
+│ • Centralized Design System                            │
+│ • Dynamic Slot Configuration (DS12/DS16)               │
+│ • Enhanced Dialog Components + React Hook Form         │
+│ • Real-time Hardware Status + Thai Language UI         │
+│ • Responsive Layout System                             │
 └─────────────────────────────────────────────────────────┘
                             │ RS485/Serial
                             ▼
 ┌─────────────────────────────────────────────────────────┐
 │                 Hardware Layer                         │
 ├─────────────────────────────────────────────────────────┤
-│ • DS16 (16-slot device, CU16-compatible)              │
-│ • DS12 (12-slot device, CU12-compatible)              │
+│ • DS12 (12-slot device, LIVE PRODUCTION)              │
+│ • DS16 (16-slot device, CONFIG-READY)                 │
 │ • Indicator Device (Temperature/Humidity sensors)      │
 │ • Lock Mechanisms & State Detection                   │
+│ • Build-time Device Configuration                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -75,9 +78,11 @@ KU12    →       CU12         →        DS12          →    DS12 (Production)
 
 ### Production Status (January 2025)
 - **DS12**: ✅ **PRODUCTION DEPLOYED** - BuildTimeController with complete DS12 protocol implementation
+- **Responsive Grid**: ✅ **PRODUCTION DEPLOYED** - Dynamic slot configuration with build-time hardware detection
+- **Design System**: ✅ **PRODUCTION DEPLOYED** - Centralized component library with React Hook Form integration
 - **DS16**: 🔧 **CONFIGURATION READY** - Architecture prepared, awaiting hardware availability  
 - **Legacy**: `/main/ku16/` folder preserved for reference and rollback capability
-- **Architecture**: Build-time device type selection with protocol abstraction (LIVE)
+- **Architecture**: Build-time device type selection with protocol abstraction and responsive UI (LIVE)
 
 ## Critical System Components
 
@@ -102,12 +107,20 @@ DispensingLog: { id, timestamp, userId, slotId, hn, process, message }
 Logs: { id, user, message, timestamp }
 ```
 
-### 3. User Interface Components (Enhanced with Design System)
-- **Home Page**: `/renderer/pages/home.tsx` - 15-slot grid with real-time status indicators
-- **Admin Dashboard**: `/renderer/pages/management/` - Enhanced 4-tab interface with improved UX
-- **Design System**: `/renderer/components/Shared/DesignSystem/` - Centralized component library
-- **Enhanced Dialogs**: React Hook Form integration with visual validation feedback
-- **Status Indicators**: Color-coded feedback system for medical device compliance
+### 3. Enhanced User Interface Components (Production Implementation)
+- **Responsive Home Page**: `/renderer/pages/home.tsx` - Dynamic slot grid with build-time configuration
+- **Design System Architecture**: `/renderer/components/Shared/DesignSystem/` - Centralized component library
+  - `DialogBase.tsx` - Flexible container with responsive layout
+  - `DialogHeader.tsx` - Headers with progress indicators
+  - `FormElements.tsx` - React Hook Form integrated inputs with validation
+  - `StatusIndicator.tsx` - Medical-grade color-coded status display
+- **Enhanced Slot Components**: Medical-grade slot display with environmental monitoring
+  - `locked.tsx` - Enhanced medication-loaded slots with integrated temperature/humidity indicators
+  - `baseIndicator.tsx` - Compact environmental monitoring display for medical compliance
+- **Dynamic Slot Configuration**: `/renderer/utils/getDisplaySlotConfig.ts` - Hardware-aware grid layout
+- **Enhanced Dialog System**: Complete React Hook Form integration with Thai language validation
+- **Responsive Grid System**: Automatic layout adjustment for DS12 (3x4) and DS16 (3x5) configurations
+- **Admin Dashboard**: 4-tab management interface with enhanced UX patterns
 
 ### 4. State Management Pattern (Production Architecture)
 Enhanced three-layer state synchronization with medical-grade consistency:
@@ -148,19 +161,54 @@ Enhanced three-layer state synchronization with medical-grade consistency:
 
 ### Production Deployment Success (Phase 4.2 Complete)
 ✅ **DS12 Implementation**: Complete BuildTimeController production deployment  
+✅ **Responsive Grid System**: Dynamic slot configuration with hardware-aware layout  
+✅ **Design System Integration**: Centralized component library with React Hook Form  
 ✅ **Medical Compliance**: All regulatory requirements met and validated  
 ✅ **Zero Regression**: Existing functionality preserved with enhanced capabilities  
+✅ **Enhanced UX**: Improved dialog system with visual validation feedback  
 ✅ **Audit Trail Integrity**: Complete logging system with Thai language support  
+
+### Production Features (Latest Implementation)
+✅ **Responsive Layout**: Automatic grid adjustment (DS12: 3x4, DS16: 3x5)  
+✅ **Build-Time Configuration**: Hardware detection with dynamic UI adaptation  
+✅ **Enhanced Components**: Medical-grade status indicators and form validation  
+✅ **Thai Language Integration**: Complete localization with enhanced error messaging  
 
 ### DS16 Readiness (Phase 5)
 🔧 **Configuration Ready**: Architecture prepared for DS16 hardware availability  
 🔧 **Protocol Support**: DS16 protocol patterns established, ready for activation  
-🔧 **Build-Time Selection**: Device type configuration system deployed  
+🔧 **UI Compatibility**: Responsive grid system supports 16-slot layout automatically  
+
+## Responsive Slot Configuration System (Production Feature)
+
+### Dynamic Hardware Detection
+The system automatically detects hardware configuration and adjusts UI layout accordingly:
+
+```typescript
+// Build-time configuration with responsive grid adaptation
+interface SlotDisplayConfig {
+  slotCount: number;        // DS12: 12, DS16: 15 (max displayable)
+  columns: number;          // DS12: 4, DS16: 5
+  rows: number;             // Both: 3 (medical device standard)
+  gridClass: string;        // Tailwind CSS classes
+  containerClass: string;   // Responsive container styling
+}
+
+// Hardware-aware grid generation
+const config = getDisplaySlotConfig(); // Loads from BuildTimeController
+const slots = generateSlotArray(config.slotCount);
+```
+
+### Medical Device UI Adaptations
+- **DS12 Configuration**: 3x4 grid layout optimized for 12-slot hardware
+- **DS16 Configuration**: 3x5 grid layout with 15 active slots (16th slot reserved)
+- **Consistent UX**: Same medical workflow regardless of hardware type
+- **Thai Language**: Complete localization maintained across all configurations
 
 ### Future Enhancements
-1. **DS16 Activation**: Immediate deployment when hardware becomes available
+1. **DS16 Activation**: Immediate deployment when hardware becomes available (UI ready)
 2. **Enhanced Monitoring**: Advanced hardware health monitoring features
 3. **Performance Optimization**: Medical device response time improvements
 4. **Extended Compliance**: Additional regulatory feature implementations
 
-This overview documents the current production-ready system with comprehensive medical device functionality, compliance, and extensibility for future hardware support.
+This overview documents the current production-ready system with comprehensive medical device functionality, responsive design capabilities, enhanced UI components, and extensibility for future hardware support.
