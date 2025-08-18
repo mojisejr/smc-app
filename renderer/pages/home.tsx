@@ -17,129 +17,7 @@ import { useUnlock } from "../hooks/useUnlock";
 import Navbar from "../components/Shared/Navbar";
 import DeActivate from "../components/Dialogs/Deactivate";
 import { useIndicator } from "../hooks/useIndicator";
-
-const mockSlots = [
-  {
-    slotId: 1,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 2,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 3,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 4,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 5,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 6,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 7,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 8,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 9,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 10,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 11,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 12,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 13,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 14,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-  {
-    slotId: 15,
-    hn: "",
-    occupied: false,
-    timestamp: new Date().getTime(),
-    opening: false,
-    isActive: false,
-  },
-];
+import { generateSlotArray, getResponsiveGridConfig, debugSlotConfiguration, loadDisplaySlotConfigAsync } from "../utils/getDisplaySlotConfig";
 
 function Home() {
   const { slots } = useKuStates();
@@ -149,6 +27,44 @@ function Home() {
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
+  const [configLoading, setConfigLoading] = useState<boolean>(true);
+  const [mockSlots, setMockSlots] = useState<any[]>([]);
+  const [gridConfig, setGridConfig] = useState<{
+    containerClass: string;
+    gridClass: string;
+    gapClass: string;
+  }>({
+    containerClass: 'h-full place-content-center place-items-center px-8 py-8',
+    gridClass: 'grid grid-cols-4',
+    gapClass: 'gap-6'
+  });
+
+  // Load device configuration on component mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        setConfigLoading(true);
+        await loadDisplaySlotConfigAsync();
+        
+        // Get grid configuration after database config is loaded
+        const responsiveGridConfig = getResponsiveGridConfig();
+        setGridConfig(responsiveGridConfig);
+        
+        const slots = generateSlotArray();
+        setMockSlots(slots);
+        debugSlotConfiguration();
+      } catch (error) {
+        console.error('Error loading device configuration:', error);
+        // Use default slots if config loading fails
+        const defaultSlots = generateSlotArray();
+        setMockSlots(defaultSlots);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+
+    loadConfig();
+  }, []);
 
   useEffect(() => {
     if (unlocking.unlocking) {
@@ -187,9 +103,13 @@ function Home() {
           </div>
         </div>
         <div className="col-span-10 bg-[#F3F3F3] rounded-l-[50px]">
-          <div className="w-full h-full p-[2rem] flex flex-col gap-[1.2rem] overflow-y-auto">
+          <div className="w-full h-full p-4 lg:p-6 xl:p-8 overflow-y-auto">
             <>
-              {mockSlots === undefined ? (
+              {configLoading ? (
+                <div className="min-h-[300px] flex justify-center items-center">
+                  <Loading />
+                </div>
+              ) : mockSlots === undefined ? (
                 <div>Error: undefined</div>
               ) : (
                 <>
@@ -198,7 +118,7 @@ function Home() {
                       <Loading />
                     </div>
                   ) : (
-                    <ul className="grid grid-cols-5 gap-6 min-h-[70vh] place-content-start px-20 py-6">
+                    <ul className={`${gridConfig.gridClass} ${gridConfig.gapClass} ${gridConfig.containerClass}`}>
                       {mockSlots
                         .map((s, index) => {
                           return {
