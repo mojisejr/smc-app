@@ -184,10 +184,13 @@ export const activateKeyHandler = async () => {
   });
 
   // รักษา legacy handler ไว้ชั่วคราว (จะลบใน Phase 3)
-  ipcMain.handle("activate-key", async (event, payload) => {
+  ipcMain.handle("activate-key", async (_event, _payload) => {
     console.log("warn: Legacy activate-key handler called - redirecting to new system");
     
-    // Redirect ไป new handler
-    return await event.sender.invoke("activate-license-file", {});
+    // Return error message to indicate system replacement
+    return {
+      success: false,
+      error: 'ระบบ activation เปลี่ยนเป็น license file แล้ว กรุณาใช้ไฟล์ license.lic'
+    };
   });
 };
