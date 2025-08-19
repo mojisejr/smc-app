@@ -16,7 +16,8 @@ This README serves as your **navigation hub** for the complete system architectu
 ├── 06-security-compliance.md    # Medical device security and audit requirements
 ├── 07-protocol-specifications.md # Complete DS12/DS16 protocol documentation
 ├── 08-testing-strategy.md       # Testing frameworks and quality assurance
-└── 09-migration-roadmap.md      # Implementation phases and deployment plans
+├── 09-migration-roadmap.md      # Implementation phases and deployment plans
+└── 10-license-cli-integration.md # SMC License CLI Tool (v1.0.0) integration specs
 ```
 
 ## Quick Start for Agents
@@ -746,6 +747,7 @@ npm run test:performance   # Medical device performance standards
 | **`07-protocol-specifications.md`** | Complete DS12/DS16 protocol documentation | Binary protocols, packet structure, command sets | @agent-electron-native-integrator | 02-hardware-evolution.md, 08-testing-strategy.md |
 | **`08-testing-strategy.md`** | Testing frameworks and quality assurance | Unit tests, integration tests, hardware simulation | @agent-code-quality-coach | 07-protocol-specifications.md, 09-migration-roadmap.md |
 | **`09-migration-roadmap.md`** | Implementation phases and deployment plans | Project phases, timelines, deployment strategies | @agent-project-architect | 01-system-overview.md, 08-testing-strategy.md |
+| **`10-license-cli-integration.md`** | SMC License CLI Tool integration specifications | ESP32 hardware binding, encryption, CLI commands | All agents (security integration) | 01-system-overview.md, 06-security-compliance.md |
 
 ### When to Read Which File
 
