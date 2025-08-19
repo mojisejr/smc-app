@@ -11,13 +11,14 @@ import crypto from 'crypto';
  */
 
 // Shared secret key - ต้องตรงกับ CLI tool
-const SHARED_SECRET_KEY = process.env.SMC_LICENSE_SHARED_KEY || 
+const SHARED_SECRET_KEY = process.env.SHARED_SECRET_KEY || 
   'SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS';
 
 // Pre-computed key สำหรับ performance (32 bytes สำหรับ AES-256)
 const PRECOMPUTED_KEY = crypto.createHash('sha256')
   .update(SHARED_SECRET_KEY)
-  .digest();
+  .digest('hex')
+  .slice(0, 32);
 
 // Encryption configuration
 const ENCRYPTION_CONFIG = {
@@ -63,11 +64,16 @@ export class LicenseFileManager {
    */
   static async findLicenseFile(): Promise<string | null> {
     try {
+      console.log(`debug: Starting license file search...`);
+      console.log(`debug: Current working directory: ${process.cwd()}`);
+      
       // ตรวจสอบ custom path จาก environment variable ก่อน
       const customPath = process.env.SMC_LICENSE_FILE_PATH;
+      console.log(`debug: Custom license path from env: ${customPath || 'not set'}`);
+      
       if (customPath) {
         try {
-          await fs.access(customPath, fs.constants.F_OK | fs.constants.R_OK);
+          await fs.access(customPath);
           console.log(`info: Found license file at custom path: ${customPath}`);
           return customPath;
         } catch {
@@ -76,18 +82,21 @@ export class LicenseFileManager {
       }
 
       // ค้นหาตาม default paths
+      console.log(`debug: Searching in default paths...`);
       for (const filePath of this.LICENSE_FILE_PATHS) {
+        console.log(`debug: Checking path: ${filePath}`);
         try {
-          await fs.access(filePath, fs.constants.F_OK | fs.constants.R_OK);
+          await fs.access(filePath);
           console.log(`info: Found license file at: ${filePath}`);
           return path.resolve(filePath);
-        } catch {
-          // ไม่พบไฟล์ที่ path นี้
+        } catch (err: any) {
+          console.log(`debug: Not found at ${filePath}: ${err.code || err.message || 'ENOENT'}`);
           continue;
         }
       }
 
       console.log("debug: No license.lic file found in any default location");
+      console.log(`debug: Searched paths:`, this.LICENSE_FILE_PATHS);
       return null;
 
     } catch (error) {
