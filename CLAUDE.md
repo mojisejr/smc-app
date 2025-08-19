@@ -71,7 +71,7 @@ npm run test:dispensing-workflow       # Test complete dispensing workflow
 **BuildTimeController** (`main/ku-controllers/BuildTimeController.ts`) - ✅ Production Deployed:
 
 - Singleton factory for medical device controller management
-- Handles DS12 (PRODUCTION) / DS16 (CONFIG-READY) hardware abstraction 
+- Handles DS12 (PRODUCTION) / DS16 (CONFIG-READY) hardware abstraction
 - Critical for medical device compliance (audit trails, thread safety)
 - Build-time device configuration with protocol abstraction
 
@@ -156,32 +156,40 @@ SQLite database with Sequelize models in `db/model/`:
 ### Design System Components (Production)
 
 **Core Components**:
+
 ```typescript
 // Centralized exports from /renderer/components/Shared/DesignSystem/
-export { DialogBase } from './DialogBase';        // Flexible container with responsive layout
-export { DialogHeader } from './DialogHeader';    // Headers with progress indicators
-export { StatusIndicator } from './StatusIndicator'; // Medical-grade color-coded status display
-export { DialogInput, DialogButton } from './FormElements'; // React Hook Form integrated components
+export { DialogBase } from "./DialogBase"; // Flexible container with responsive layout
+export { DialogHeader } from "./DialogHeader"; // Headers with progress indicators
+export { StatusIndicator } from "./StatusIndicator"; // Medical-grade color-coded status display
+export { DialogInput, DialogButton } from "./FormElements"; // React Hook Form integrated components
 ```
 
 **Usage Pattern**:
+
 ```typescript
-import { DialogBase, DialogHeader, DialogInput, DialogButton, StatusIndicator } from '@/components/Shared/DesignSystem';
+import {
+  DialogBase,
+  DialogHeader,
+  DialogInput,
+  DialogButton,
+  StatusIndicator,
+} from "@/components/Shared/DesignSystem";
 
 const MyDialog = () => (
   <DialogBase maxWidth="max-w-[400px]">
     <DialogHeader title="ยืนยันการปลดล็อคช่องยา" variant="warning" />
-    <StatusIndicator 
-      status="info" 
+    <StatusIndicator
+      status="info"
       message="กรุณายืนยันรหัสผ่านเพื่อปลดล็อค"
       slotNumber={5}
     />
     <form>
-      <DialogInput 
+      <DialogInput
         label="รหัสผ่าน"
         type="password"
         error={formErrors.passkey}
-        {...register('passkey')}
+        {...register("passkey")}
       />
       <DialogButton variant="primary" loading={isSubmitting}>
         ยืนยัน
@@ -194,6 +202,7 @@ const MyDialog = () => (
 ### Responsive Grid System (Production)
 
 **Hardware-Aware Configuration**:
+
 ```typescript
 // Dynamic slot configuration based on device type
 const config = getDisplaySlotConfig(); // DS12: 12 slots, DS16: 15 slots
@@ -205,6 +214,7 @@ const gridConfig = getResponsiveGridConfig(); // Auto grid layout
 ```
 
 **Home Page Implementation**:
+
 ```typescript
 // Hardware detection and UI adaptation
 useEffect(() => {
@@ -212,7 +222,7 @@ useEffect(() => {
     await loadDisplaySlotConfigAsync();
     const responsiveGridConfig = getResponsiveGridConfig();
     setGridConfig(responsiveGridConfig);
-    
+
     const config = getDisplaySlotConfig();
     const mockSlots = generateSlotArray(config.slotCount);
     setMockSlots(mockSlots);
@@ -230,6 +240,7 @@ useEffect(() => {
 - `renderer/utils/getDisplaySlotConfig.ts` - Dynamic hardware configuration utility
 
 **Enhanced Slot Components** (Production):
+
 - `renderer/components/Slot/locked.tsx` - Enhanced medication slots with environmental monitoring
 - `renderer/components/Indicators/baseIndicator.tsx` - Compact temperature/humidity display for medical compliance
 
@@ -241,6 +252,7 @@ useEffect(() => {
 - เขียน code โดยการใช้ code pattern ที่ง่ายต่อการเข้าใจ และมีประสิทธิภาพ เหมาะสำหรับ solo dev
 - โค้ดที่มีความยากและซับซ้อน ต้อง comment ขั้นตอนการทำงานต่างๆ ให้ชัดเจน
 - ไม่ใช้ code pattern ที่ซับซ้อน
+- ตอบคำถามผมเป็นภาษาไทยเท่านั้น ยกเว้น technical term เป็นภาษาอังกฤษได้
 
 \*\* When you need to write console.log
 
@@ -270,7 +282,13 @@ const isConnected = controller.isConnected();
 
 ```typescript
 // Import from centralized Design System
-import { DialogBase, DialogHeader, StatusIndicator, DialogInput, DialogButton } from '@/components/Shared/DesignSystem';
+import {
+  DialogBase,
+  DialogHeader,
+  StatusIndicator,
+  DialogInput,
+  DialogButton,
+} from "@/components/Shared/DesignSystem";
 
 // Use consistent component patterns
 const MyComponent = () => (
@@ -286,16 +304,21 @@ const MyComponent = () => (
 
 ```typescript
 // Use hardware-aware configuration
-import { getDisplaySlotConfig, getResponsiveGridConfig } from '@/utils/getDisplaySlotConfig';
+import {
+  getDisplaySlotConfig,
+  getResponsiveGridConfig,
+} from "@/utils/getDisplaySlotConfig";
 
 const MyGridComponent = () => {
   const config = getDisplaySlotConfig(); // Auto-detect DS12/DS16
   const gridConfig = getResponsiveGridConfig();
-  
+
   return (
     <div className={gridConfig.containerClass}>
       <div className={`${gridConfig.gridClass} ${gridConfig.gapClass}`}>
-        {slots.map(slot => <Slot key={slot.slotId} slotData={slot} />)}
+        {slots.map((slot) => (
+          <Slot key={slot.slotId} slotData={slot} />
+        ))}
       </div>
     </div>
   );
@@ -320,17 +343,17 @@ import Indicator from '@/components/Indicators/baseIndicator';
 />
 
 // Standalone indicator usage for environmental monitoring
-<Indicator 
-  value={temp} 
-  unit="*C" 
-  title="Temperature" 
+<Indicator
+  value={temp}
+  unit="*C"
+  title="Temperature"
   threshold={50}    // Medical compliance threshold
 />
 
-<Indicator 
-  value={humid} 
-  unit="%" 
-  title="Humidity" 
+<Indicator
+  value={humid}
+  unit="%"
+  title="Humidity"
   threshold={85}    // Medical compliance threshold
 />
 ```
