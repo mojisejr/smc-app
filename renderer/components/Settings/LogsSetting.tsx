@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import Tooltip from "../Shared/Tooltip";
 
 interface LogsSettingProps {
   logs: any[];
   setting: any;
-  exportLogHandler: () => void;
+  exportLogHandler: (format: string) => void;
 }
 
 export default function LogsSetting({
@@ -12,6 +12,12 @@ export default function LogsSetting({
   setting,
   exportLogHandler,
 }: LogsSettingProps) {
+  const [selectedFormat, setSelectedFormat] = useState<string>("csv");
+
+  const handleExport = () => {
+    exportLogHandler(selectedFormat);
+  };
+
   return (
     <div className="bg-white rounded-lg p-6 min-h-[60vh] text-[#000]">
       <h2 className="text-start text-xl font-semibold mb-4">จัดการ Logs</h2>
@@ -34,16 +40,34 @@ export default function LogsSetting({
               {setting?.max_log_counts}
             </td>
           </tr>
+          
+          <tr>
+            <td className="flex gap-2 items-center font-bold">
+              รูปแบบไฟล์
+              <Tooltip text={"เลือกรูปแบบไฟล์ที่ต้องการ export"} />
+            </td>
+            <td>
+              <select 
+                className="select select-bordered select-sm w-full max-w-xs"
+                value={selectedFormat}
+                onChange={(e) => setSelectedFormat(e.target.value)}
+              >
+                <option value="csv">CSV (.csv)</option>
+                <option value="xlsx">Excel (.xlsx)</option>
+              </select>
+            </td>
+          </tr>
+          
           <tr>
             <td></td>
             <td className="flex gap-2 items-center">
               <button
-                onClick={exportLogHandler}
+                onClick={handleExport}
                 className="btn btn-primary btn-sm"
               >
                 export logs
               </button>
-              <Tooltip text={"ส่ง logs ทั้งหมดไปยังไฟล์ .csv"} />
+              <Tooltip text={`ส่ง logs ทั้งหมดไปยังไฟล์ .${selectedFormat}`} />
             </td>
           </tr>
         </tbody>

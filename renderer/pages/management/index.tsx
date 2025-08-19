@@ -89,9 +89,10 @@ export default function Document() {
     }
   }, [admin, replace]);
 
-  const exportLogHandler = async () => {
-    const filename = await ipcRenderer.invoke("export_logs");
-    toast.success(`ส่ง logs ทั้งหมดไปยังไฟล์ ${filename}`);
+  const exportLogHandler = async (format: string = "csv") => {
+    const filename = await ipcRenderer.invoke("export_logs", format);
+    const fileExtension = format === "xlsx" ? "Excel" : "CSV";
+    toast.success(`ส่ง logs ทั้งหมดไปยังไฟล์ ${fileExtension} ${filename}`);
   };
 
   const handleDeactivateAll = async () => {

@@ -5,6 +5,7 @@ import { User } from "../../db/model/user.model";
 import fs from "fs";
 import { Setting } from "../../db/model/setting.model";
 import path from "path";
+import * as XLSX from "xlsx";
 
 export interface LogData {
   id?: number;
@@ -59,9 +60,14 @@ export const LoggingHandler = () => {
 };
 
 export const exportLogsHandler = () => {
-  ipcMain.handle("export_logs", async (event: IpcMainEvent) => {
-    const filename = await exportLogs();
-    return filename.csvPath;
+  ipcMain.handle("export_logs", async (event: IpcMainEvent, format: string = "csv") => {
+    if (format === "xlsx") {
+      const result = await exportXlsxLogs();
+      return result.filePath;
+    } else {
+      const result = await exportLogs();
+      return result.csvPath;
+    }
   });
 };
 
@@ -102,6 +108,21 @@ export const logDispensing = async (data: DispensingLogData) => {
   await createDispensingLog(data);
 };
 
+// ฟังก์ชันสำหรับเตรียมข้อมูล logs ที่จะ export
+const prepareLogData = async () => {
+  const logs = await getDispensingLogs();
+  return logs.map((log) => {
+    return {
+      timestamp: new Date(log.dataValues.timestamp).toLocaleString(),
+      user: log.dataValues.User?.dataValues.name || "N/A",
+      hn: log.dataValues.hn,
+      slotId: log.dataValues.slotId,
+      process: log.dataValues.process,
+      message: log.dataValues.message,
+    };
+  });
+};
+
 export const exportLogs = async () => {
   try {
     const result = await dialog.showOpenDialog({
@@ -110,18 +131,7 @@ export const exportLogs = async () => {
 
     if (!result.canceled && result.filePaths.length > 0) {
       const saveDir = result.filePaths[0];
-
-      const logs = await getDispensingLogs();
-      const csvData = logs.map((log) => {
-        return {
-          timestamp: new Date(log.dataValues.timestamp).toLocaleString(),
-          user: log.dataValues.User?.dataValues.name || "N/A",
-          hn: log.dataValues.hn,
-          slotId: log.dataValues.slotId,
-          process: log.dataValues.process,
-          message: log.dataValues.message,
-        };
-      });
+      const csvData = await prepareLogData();
 
       const csvHeaders = [
         "เวลา",
@@ -155,6 +165,65 @@ export const exportLogs = async () => {
       return {
         success: true,
         csvPath,
+      };
+    }
+    return { success: false, error: "ยกเลิกการบันทึกไฟล์" };
+  } catch (error) {
+    return { success: false, error: "เกิดข้อผิดพลาดในการบันทึกไฟล์" };
+  }
+};
+
+export const exportXlsxLogs = async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory"],
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      const saveDir = result.filePaths[0];
+      const xlsxData = await prepareLogData();
+
+      // สร้าง workbook และ worksheet
+      const workbook = XLSX.utils.book_new();
+      
+      // สร้าง headers เป็นภาษาไทย
+      const headers = [
+        "เวลา",
+        "ผู้ใช้งาน", 
+        "เลข HN",
+        "หมายเลขช่อง",
+        "กระบวนการ",
+        "ข้อความ",
+      ];
+
+      // เตรียมข้อมูลสำหรับ worksheet
+      const worksheetData = [
+        headers,
+        ...xlsxData.map((row) => [
+          row.timestamp,
+          row.user,
+          row.hn,
+          row.slotId,
+          row.process,
+          row.message,
+        ]),
+      ];
+
+      // สร้าง worksheet จาก array
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      
+      // เพิ่ม worksheet เข้า workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, "SMC Logs");
+
+      // กำหนดชื่อไฟล์และ path
+      const xlsxPath = path.join(saveDir, `smc-log-${new Date().getTime()}.xlsx`);
+      
+      // เขียนไฟล์ Excel
+      XLSX.writeFile(workbook, xlsxPath);
+
+      return {
+        success: true,
+        filePath: xlsxPath,
       };
     }
     return { success: false, error: "ยกเลิกการบันทึกไฟล์" };
