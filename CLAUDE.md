@@ -253,6 +253,8 @@ useEffect(() => {
 - โค้ดที่มีความยากและซับซ้อน ต้อง comment ขั้นตอนการทำงานต่างๆ ให้ชัดเจน
 - ไม่ใช้ code pattern ที่ซับซ้อน
 - ตอบคำถามผมเป็นภาษาไทยเท่านั้น ยกเว้น technical term เป็นภาษาอังกฤษได้
+- พยายาม commit checkpoint เมื่อจบ แต่ละ phase
+- หลังจากจบแต่ละ phase ถ้ามี run dev server ให้ kill ด้วย
 
 \*\* When you need to write console.log
 
