@@ -94,6 +94,21 @@ export async function generateLicenseFile(options: GenerateOptions): Promise<str
     const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     console.log(chalk.white(`Days Until Expiry: ${daysUntilExpiry} days`));
     
+    // Step 7: แสดง Shared Key Information สำหรับ Application Setup
+    console.log(chalk.blue('\n🔑 Application Setup Information:'));
+    console.log(chalk.gray('====================================='));
+    console.log(chalk.white('Add this to your application .env file:'));
+    console.log(chalk.green(`SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS`));
+    
+    console.log(chalk.white('\n📝 Quick Commands:'));
+    console.log(chalk.cyan(`echo "SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS" >> .env`));
+    console.log(chalk.gray(`# Copy license file: cp ${path.basename(outputPath)} /path/to/your/app/`));
+    
+    console.log(chalk.yellow('\n⚠️  Security Notes:'));
+    console.log(chalk.gray('• Keep the SHARED_SECRET_KEY confidential'));
+    console.log(chalk.gray('• Never commit .env files to version control'));
+    console.log(chalk.gray('• Both license.lic and .env are required for activation'));
+    
     console.log(chalk.green('\n🎉 License generation completed successfully!'));
     
     return outputPath;
@@ -159,6 +174,20 @@ export async function generateSampleLicenseFile(
     
     console.log(chalk.green(`✅ Sample license file saved: ${outputPath}`));
     console.log(chalk.yellow(`⚠️  This license uses mock MAC address: ${mockMacAddress}`));
+    
+    // แสดง Shared Key Information สำหรับ Application Setup
+    console.log(chalk.blue('\n🔑 Application Setup Information:'));
+    console.log(chalk.gray('====================================='));
+    console.log(chalk.white('Add this to your application .env file:'));
+    console.log(chalk.green(`SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS`));
+    
+    console.log(chalk.white('\n📝 Quick Commands:'));
+    console.log(chalk.cyan(`echo "SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS" >> .env`));
+    console.log(chalk.gray(`# Copy test license: cp ${path.basename(outputPath)} /path/to/your/app/license.lic`));
+    
+    console.log(chalk.yellow('\n⚠️  Test Mode Reminder:'));
+    console.log(chalk.gray('• This uses mock MAC address for testing'));
+    console.log(chalk.gray('• Use without --test-mode for production'));
     
     return outputPath;
     

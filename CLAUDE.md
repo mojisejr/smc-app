@@ -432,13 +432,23 @@ smc-license info -f license.lic
 
 # Test ESP32 connection
 smc-license test-esp32 --ip 192.168.4.1
+
+# Show shared secret key for .env setup
+smc-license show-key
+
+# Export shared key to .env file
+smc-license export-env --output .env
+smc-license export-env --stdout
 ```
 
 ### Development Workflow
 
-1. **Development Phase**: Use `--test-mode` for testing without ESP32 hardware
-2. **Production Phase**: Connect to actual ESP32 device for MAC address binding
-3. **Distribution**: Use `npm run package` to create distributable .tgz file
+1. **License Generation**: Generate license.lic file with CLI tool
+2. **Environment Setup**: Use `smc-license show-key` or `export-env` to configure application
+3. **Development Phase**: Use `--test-mode` for testing without ESP32 hardware
+4. **Production Phase**: Connect to actual ESP32 device for MAC address binding
+5. **Application Deployment**: Copy license.lic and .env to application directory
+6. **Distribution**: Use `npm run package` to create distributable .tgz file
 
 ### Architecture
 
@@ -458,6 +468,41 @@ smc-license test-esp32 --ip 192.168.4.1
 - ✅ **Error Handling**: Context-aware error messages with troubleshooting guides  
 - ✅ **Security**: Medical-grade encryption and hardware binding
 - ✅ **Build System**: Production-optimized builds and packaging
+
+### Application License System Integration
+
+**License Activation Flow** (Production Implementation):
+1. Application startup checks license activation status via `isSystemActivated()`
+2. If not activated, automatically redirects to `/activate-key` page
+3. Activation page performs 8-step validation process with real-time progress
+4. Upon success, application redirects to main interface (`/home`)
+
+**Key Application Components**:
+- `main/license/validator.ts` - Core license validation and database flag management
+- `main/license/file-manager.ts` - License.lic file parsing with AES-256-CBC decryption
+- `main/license/esp32-client.ts` - ESP32 WiFi connection and MAC address validation
+- `main/license/wifi-manager.ts` - Cross-platform WiFi management
+- `renderer/pages/activate-key.tsx` - Modern step-by-step activation UI with Design System
+
+**Environment Configuration**:
+```bash
+# Required in application .env file:
+SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS
+
+# Optional ESP32 configuration:
+ESP32_DEFAULT_IP=192.168.4.1
+LICENSE_FILE_PATH=license.lic
+```
+
+**Integration Commands**:
+```bash
+# Setup application environment:
+smc-license show-key >> .env
+cp license.lic /path/to/app/
+
+# Test activation workflow:
+npm run dev  # App auto-redirects to /activate-key if not activated
+```
 
 \*\*Important Document Resources
 

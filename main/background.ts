@@ -34,6 +34,8 @@ import {
 } from "./setting/ipcMain/setSelectedPort";
 import { checkActivationKeyHandler } from "./license/ipcMain/check-activation-key";
 import { activateKeyHandler } from "./license/ipcMain/activate-key";
+import { activationProgressHandler } from "./license/ipcMain/activation-progress";
+import { isSystemActivated } from "./license/validator";
 import { IndicatorDevice } from "./indicator";
 /**
  * Indicates whether the application is running in production mode.
@@ -117,9 +119,30 @@ if (isProd) {
   // Start receiving data from indicator device
   indicator.receive();
 
-  //Activation key check
+  // Initialize license system handlers
   activateKeyHandler();
   checkActivationKeyHandler();
+  activationProgressHandler();
+
+  // Check license activation status and determine initial page
+  let initialPage = "activate-key"; // Default to activation page
+  
+  try {
+    console.log("info: Checking system activation status...");
+    const isActivated = await isSystemActivated();
+    
+    if (isActivated) {
+      console.log("info: System is activated - proceeding to main application");
+      initialPage = "home";
+    } else {
+      console.log("info: System not activated - redirecting to activation page");
+      initialPage = "activate-key";
+    }
+  } catch (error: any) {
+    console.error("error: License activation check failed:", error.message);
+    console.log("info: Defaulting to activation page due to error");
+    initialPage = "activate-key";
+  }
 
   // Register all IPC handlers for various functionalities
   // PHASE 4.2: Use unified device controller handler registration
@@ -144,12 +167,14 @@ if (isProd) {
   LoggingHandler();
   exportLogsHandler();
 
-  // Load the application UI based on environment
+  // Load the application UI based on environment and license status
+  console.log(`info: Loading initial page: ${initialPage}`);
+  
   if (isProd) {
-    await mainWindow.loadURL("app://./home.html");
+    await mainWindow.loadURL(`app://./${initialPage}.html`);
   } else {
     const port = process.argv[2];
-    await mainWindow.loadURL(`http://localhost:${port}/home`);
+    await mainWindow.loadURL(`http://localhost:${port}/${initialPage}`);
     mainWindow.webContents.openDevTools();
   }
 })();

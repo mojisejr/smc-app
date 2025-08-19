@@ -48,7 +48,7 @@ function Document() {
       const logs = await ipcRenderer.invoke("get_dispensing_logs");
       // Sort by createdAt descending (newest first)
       const sortedLogs = logs.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setLogs(sortedLogs);
       setLoading(false);

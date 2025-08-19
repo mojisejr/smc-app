@@ -163,15 +163,6 @@ export const checkActivationKeyHandler = async () => {
     }
   });
 
-  // Legacy handler - รักษาไว้เพื่อ backward compatibility
-  ipcMain.handle("check-activation-key", async () => {
-    console.log("warn: Legacy check-activation-key handler called");
-    
-    // Redirect to new handler
-    const result = await validateLicense();
-    return result;
-  });
-
   // Utility handler - ตรวจสอบ ESP32 connection อย่างเดียว
   ipcMain.handle("check-esp32-connection", async () => {
     try {

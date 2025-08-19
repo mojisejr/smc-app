@@ -28,6 +28,8 @@ Examples:
   $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31"
   $ smc-license validate -f license.lic  
   $ smc-license info -f license.lic
+  $ smc-license show-key
+  $ smc-license export-env --output .env
   $ smc-license test-esp32 --ip 192.168.4.1
 
 For detailed command help: smc-license <command> --help
@@ -288,6 +290,150 @@ The device should respond to GET /mac endpoint with MAC address information.
       await displayESP32Info(options.ip);
     } catch (error: any) {
       console.log(chalk.red('❌ ESP32 test failed:', error.message));
+      process.exit(1);
+    }
+  });
+
+// Show Key command - แสดง shared secret key
+program
+  .command('show-key')
+  .description('Display the shared secret key for application .env configuration')
+  .addHelpText('after', `
+Examples:
+  $ smc-license show-key
+  
+Usage:
+  Use this command to view the shared secret key that must be added to your 
+  application's .env file for license decryption. Copy the displayed key 
+  exactly as shown.
+  
+Security Note:
+  Keep this key confidential and never commit .env files to version control.
+`)
+  .action(async () => {
+    try {
+      console.log(chalk.blue('🔑 SMC License System - Shared Secret Key'));
+      console.log(chalk.gray('====================================='));
+      console.log(chalk.white('Add this to your application .env file:'));
+      console.log('');
+      console.log(chalk.green(`SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS`));
+      console.log('');
+      
+      console.log(chalk.white('📝 Quick Commands:'));
+      console.log(chalk.cyan(`echo "SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS" >> .env`));
+      console.log(chalk.gray('# Or use: smc-license export-env --output .env'));
+      console.log('');
+      
+      console.log(chalk.yellow('⚠️  Security Notes:'));
+      console.log(chalk.gray('• Keep the SHARED_SECRET_KEY confidential'));
+      console.log(chalk.gray('• Never commit .env files to version control'));
+      console.log(chalk.gray('• Both license.lic and .env are required for activation'));
+      console.log(chalk.gray('• This key must match between CLI generation and application'));
+      console.log('');
+      
+      console.log(chalk.blue('✅ Shared key display complete!'));
+      
+    } catch (error: any) {
+      console.log(chalk.red('❌ Failed to display shared key'));
+      console.log(chalk.red(`Error: ${error.message}`));
+      process.exit(1);
+    }
+  });
+
+// Export ENV command - สร้าง .env file หรือ append key เข้าไป
+program
+  .command('export-env')
+  .description('Export shared secret key to .env file format')
+  .option('--output <filename>', 'Output .env filename (default: .env)', '.env')
+  .option('--append', 'Append to existing .env file instead of overwriting', false)
+  .option('--stdout', 'Print to stdout instead of writing to file', false)
+  .addHelpText('after', `
+Examples:
+  $ smc-license export-env
+  $ smc-license export-env --output .env.production
+  $ smc-license export-env --append --output .env
+  $ smc-license export-env --stdout
+
+Usage:
+  This command creates or updates .env file with the shared secret key required
+  for SMC license system. Use --append to add to existing file, or --stdout 
+  to display the key without writing to file.
+`)
+  .action(async (options) => {
+    try {
+      const keyLine = 'SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS';
+      const comment = '# SMC License System - Shared Secret Key for license decryption';
+      const warning = '# WARNING: Keep this key confidential - do not commit to version control';
+      const envContent = `${comment}\n${warning}\n${keyLine}\n`;
+      
+      if (options.stdout) {
+        // แสดงผลทาง stdout
+        console.log(chalk.blue('🔑 .env file content:'));
+        console.log(chalk.gray('====================================='));
+        console.log(envContent.trim());
+        console.log(chalk.gray('====================================='));
+        console.log(chalk.green('✅ Environment variables displayed!'));
+        return;
+      }
+      
+      const outputPath = options.output;
+      console.log(chalk.blue(`📝 Exporting shared key to: ${outputPath}`));
+      
+      if (options.append) {
+        // Append mode - เพิ่มเข้าไปในไฟล์ที่มีอยู่
+        console.log(chalk.cyan('🔄 Append mode: Adding to existing file...'));
+        
+        try {
+          // ตรวจสอบว่าไฟล์มี SHARED_SECRET_KEY อยู่แล้วหรือไม่
+          const existingContent = await fs.readFile(outputPath, 'utf8');
+          
+          if (existingContent.includes('SHARED_SECRET_KEY')) {
+            console.log(chalk.yellow('⚠️  SHARED_SECRET_KEY already exists in file'));
+            console.log(chalk.gray('   No changes made. Use --force to overwrite.'));
+            return;
+          }
+          
+          // เพิ่มเข้าไปท้ายไฟล์
+          const newContent = existingContent + '\n' + envContent;
+          await fs.writeFile(outputPath, newContent, 'utf8');
+          
+        } catch (error: any) {
+          if (error.code === 'ENOENT') {
+            // ไฟล์ไม่มี สร้างใหม่
+            await fs.writeFile(outputPath, envContent, 'utf8');
+          } else {
+            throw error;
+          }
+        }
+        
+      } else {
+        // Overwrite mode - เขียนทับไฟล์
+        console.log(chalk.cyan('📄 Creating new .env file...'));
+        await fs.writeFile(outputPath, envContent, 'utf8');
+      }
+      
+      console.log(chalk.green(`✅ Shared key exported to: ${outputPath}`));
+      console.log(chalk.gray(`   Mode: ${options.append ? 'append' : 'overwrite'}`));
+      console.log('');
+      
+      console.log(chalk.white('📋 File contains:'));
+      console.log(chalk.gray(`   SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_...`));
+      console.log('');
+      
+      console.log(chalk.yellow('⚠️  Next Steps:'));
+      console.log(chalk.gray('1. Copy your license.lic file to your application directory'));
+      console.log(chalk.gray('2. Make sure your application loads this .env file'));
+      console.log(chalk.gray('3. Never commit .env files to version control'));
+      
+    } catch (error: any) {
+      console.log(chalk.red('❌ Failed to export environment variables'));
+      console.log(chalk.red(`Error: ${error.message}`));
+      
+      console.log(chalk.yellow('\n🔧 Troubleshooting:'));
+      console.log(chalk.gray('1. Check file write permissions'));
+      console.log(chalk.gray('2. Ensure output directory exists'));
+      console.log(chalk.gray('3. Try using --stdout to display without writing'));
+      
       process.exit(1);
     }
   });

@@ -3,6 +3,7 @@ import { IoMdClose } from "react-icons/io";
 
 interface DialogHeaderProps {
   title: string;
+  variant?: "success" | "error" | "info" | "warning";
   currentStep?: number;
   totalSteps?: number;
   hn?: string;
@@ -15,18 +16,31 @@ interface DialogHeaderProps {
 
 const DialogHeader: React.FC<DialogHeaderProps> = ({
   title,
+  variant = "info",
   currentStep,
   totalSteps,
   hn,
   onClose,
   onEmergencyAction,
   emergencyLabel = "!",
-  bgColor = "bg-blue-50",
-  textColor = "text-blue-700",
+  bgColor,
+  textColor,
 }) => {
+  // Set default colors based on variant if not provided
+  const defaultBgColor = bgColor || 
+    (variant === "success" ? "bg-success/10" :
+     variant === "error" ? "bg-error/10" :
+     variant === "warning" ? "bg-warning/10" :
+     "bg-info/10");
+  
+  const defaultTextColor = textColor ||
+    (variant === "success" ? "text-success" :
+     variant === "error" ? "text-error" :
+     variant === "warning" ? "text-warning" :
+     "text-info");
   return (
     <div
-      className={`flex justify-between shadow-xl p-3 font-bold text-xl text-center ${bgColor}`}
+      className={`flex justify-between shadow-xl p-3 font-bold text-xl text-center ${defaultBgColor}`}
     >
       <div className="flex flex-col">
         {currentStep && totalSteps && (
@@ -34,7 +48,7 @@ const DialogHeader: React.FC<DialogHeaderProps> = ({
             ขั้นตอนที่ {currentStep} ของ {totalSteps}
           </span>
         )}
-        <span className={`font-bold ${textColor}`}>
+        <span className={`font-bold ${defaultTextColor}`}>
           {hn ? `HN: ${hn}` : title}
         </span>
       </div>
