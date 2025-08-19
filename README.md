@@ -36,6 +36,11 @@ SMC Application (Smart Medication Cart Version 1) เป็นแอปพลิ
   - TypeScript
   - Electron Builder (สำหรับ Build Desktop Application)
   - Nextron (Next.js + Electron)
+- License System:
+  - SMC License CLI (Production-ready license generation)
+  - AES-256-CBC Encryption with ESP32 hardware binding
+  - SQLite database activation flag management
+  - Cross-platform WiFi management for ESP32 communication
 
 ## 2. Installation and Setup
 
@@ -60,13 +65,43 @@ cd smc-app
 npm install
 ```
 
-3. Environment Configuration
+3. License System Setup (Required)
 
-- Copy `.env.example` to `.env`
-- Configure the following environment variables:
-  - [รอรายการตัวแปร environment ที่จำเป็น]
-  - [รอรายการตัวแปร environment ที่จำเป็น]
-  - [รอรายการตัวแปร environment ที่จำเป็น]
+**Generate License File:**
+```bash
+# Navigate to CLI directory
+cd cli/
+
+# Generate license for development/testing
+npm run build
+node dist/index.js generate -o "Test Hospital" -c "TEST001" -a "SMC_Test" -e "2025-12-31" --test-mode
+
+# Get shared secret key for application
+node dist/index.js show-key
+```
+
+**Configure Application Environment:**
+```bash
+# Return to application root
+cd ../
+
+# Create .env file with shared key (copy from CLI output)
+echo "SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS" > .env
+
+# Or use CLI to export directly
+cd cli/ && node dist/index.js export-env --output ../.env
+
+# Copy test license file to application root
+cp license_test.lic ../license.lic
+```
+
+4. Additional Environment Configuration
+
+- Copy `.env.example` to `.env` (if not created above)
+- Add additional environment variables as needed:
+  - `ESP32_DEFAULT_IP=192.168.4.1`
+  - `LICENSE_FILE_PATH=license.lic`
+  - `NODE_ENV=development`
 
 ### 2.3 Development Setup
 
@@ -125,6 +160,12 @@ smc-app/
 │   ├── migrations/      # ไฟล์สำหรับอัพเดทโครงสร้างฐานข้อมูล
 │   └── models/          # Sequelize models สำหรับการจัดการข้อมูล
 │
+├── cli/                  # SMC License CLI Tool (Production Ready v1.0.0)
+│   ├── index.ts         # CLI entry point with Commander.js
+│   ├── modules/         # Core modules (esp32.ts, encryption.ts, license-generator.ts)
+│   ├── types/           # TypeScript definitions
+│   └── README.md        # CLI documentation
+│
 ├── scripts/              # สคริปต์สำหรับการทำงานอัตโนมัติ
 │   └── start.sh         # สคริปต์สำหรับเริ่มต้นแอปพลิเคชัน
 │
@@ -179,6 +220,22 @@ smc-app/
   - กำหนดโครงสร้างข้อมูล
   - กำหนดความสัมพันธ์ระหว่างตาราง
 
+#### 3.2.4 License System (cli/ และ main/license/)
+
+**SMC License CLI Tool:**
+- `cli/index.ts` - CLI entry point พร้อม 6 commands
+- `cli/modules/encryption.ts` - AES-256-CBC encryption with ESP32 binding
+- `cli/modules/esp32.ts` - ESP32 communication และ MAC address retrieval
+- `cli/modules/license-generator.ts` - License file generation และ validation
+
+**Application License Integration:**
+- `main/license/validator.ts` - License validation และ database flag management
+- `main/license/file-manager.ts` - License.lic file parsing และ decryption
+- `main/license/esp32-client.ts` - ESP32 WiFi connection และ MAC validation
+- `main/license/wifi-manager.ts` - Cross-platform WiFi management
+- `main/license/ipcMain/` - IPC handlers สำหรับ activation workflow
+- `renderer/pages/activate-key.tsx` - 8-step activation UI พร้อม real-time progress
+
 ### 3.3 Configuration Files
 
 - `package.json` - ไฟล์กำหนดค่าโปรเจค
@@ -221,13 +278,34 @@ smc-app/
 
 #### 4.1.1 การเริ่มต้นพัฒนา
 
-1. เริ่มต้น development server
+**ขั้นตอนที่ 1: เตรียม License System**
+
+```bash
+# 1. สร้าง test license
+cd cli/
+npm run build
+node dist/index.js generate -o "Test Hospital" -c "DEV001" -a "SMC_Test" -e "2025-12-31" --test-mode
+
+# 2. Setup .env file
+node dist/index.js export-env --output ../.env
+
+# 3. คัดลอก license file
+cp license_test.lic ../license.lic
+
+# 4. กลับไปที่ application root
+cd ../
+```
+
+**ขั้นตอนที่ 2: เริ่มต้น development server**
 
 ```bash
 npm run dev
 ```
 
+**พฤติกรรมการทำงาน:**
 - แอปพลิเคชันจะเปิดขึ้นมาในโหมด development
+- ถ้ายังไม่ activate: จะแสดงหน้า `/activate-key` พร้อม 8-step activation process
+- ถ้า activate แล้ว: จะแสดงหน้า `/home` หลัก
 - มีการ hot-reload เมื่อมีการแก้ไขโค้ด
 - สามารถดู console logs ได้จาก Developer Tools
 
@@ -246,6 +324,49 @@ npm run dev
 - ใช้ Sequelize ORM สำหรับการจัดการฐานข้อมูล
 - ใช้ MQTT สำหรับการสื่อสารแบบ real-time
 - ใช้ SerialPort สำหรับการเชื่อมต่อกับอุปกรณ์ serial
+
+#### 4.1.4 การพัฒนา License System
+
+**CLI Commands สำหรับ Development:**
+
+```bash
+# เข้าไปใน CLI directory
+cd cli/
+
+# Build CLI
+npm run build
+
+# Generate test license
+node dist/index.js generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-12-31" --test-mode
+
+# แสดง shared key
+node dist/index.js show-key
+
+# Export .env file
+node dist/index.js export-env --output ../.env
+
+# Validate license
+node dist/index.js validate -f license_test.lic
+
+# แสดงข้อมูล license
+node dist/index.js info -f license_test.lic
+
+# กลับไปที่ application root
+cd ../
+```
+
+**การทดสอบ License System:**
+
+```bash
+# ลบ activation flag เพื่อทดสอบ activation ใหม่
+# (ทำได้โดยการลบ database หรือ reset activated_key field)
+
+# รัน application - จะแสดงหน้า activation
+npm run dev
+
+# หรือ test activation workflow โดยตรง
+# Application จะทำการ activate อัตโนมัติเมื่อมี license.lic และ .env
+```
 
 ### 4.2 การใช้งานแอปพลิเคชัน
 
@@ -608,6 +729,13 @@ npm run build:linux  # build สำหรับ Linux
 # การติดตั้ง
 npm install          # ติดตั้ง dependencies
 npm run postinstall  # ติดตั้ง electron dependencies
+
+# License System (CLI)
+cd cli/
+npm run build                    # build CLI
+node dist/index.js generate --test-mode  # สร้าง test license
+node dist/index.js show-key      # แสดง shared key
+node dist/index.js export-env    # export .env file
 ```
 
 #### 8.2.2 ตารางรหัสข้อผิดพลาด
@@ -672,6 +800,40 @@ npm run postinstall  # ติดตั้ง electron dependencies
 
 ---
 
+## License System Integration Summary
+
+### Key Features Implemented:
+- ✅ **SMC License CLI v1.0.0**: Production-ready CLI with 6 commands
+- ✅ **AES-256-CBC Encryption**: Hardware-bound licenses with ESP32 MAC addresses
+- ✅ **8-Step Activation Process**: Real-time progress with automatic ESP32 validation
+- ✅ **Environment Management**: Automated .env setup with shared key export
+- ✅ **Cross-Platform Support**: Windows, macOS, Linux compatibility
+- ✅ **Medical Device Compliance**: Audit-ready logging and security patterns
+
+### Quick Start for New Developers:
+```bash
+# 1. Setup license system
+cd cli/ && npm run build
+node dist/index.js generate -o "Test" -c "DEV001" -a "SMC_Test" -e "2025-12-31" --test-mode
+node dist/index.js export-env --output ../.env
+cp license_test.lic ../license.lic
+
+# 2. Run application
+cd ../ && npm run dev
+```
+
+### For Production Deployment:
+```bash
+# 1. Generate production license with real ESP32
+smc-license generate -o "Hospital Name" -c "CUST001" -a "SMC_Cabinet" -e "2025-12-31"
+
+# 2. Deploy with application
+cp license.lic /path/to/deployment/
+smc-license export-env --output /path/to/deployment/.env
+```
+
+---
+
 _เอกสารนี้จัดทำขึ้นโดยทีมพัฒนา SMC Application_
-_เวอร์ชัน 1.0.0_
-_อัพเดทล่าสุด: [รอวันที่]_
+_เวอร์ชัน 1.0.0 with License System Integration_
+_อัพเดทล่าสุด: 2025-08-19_
