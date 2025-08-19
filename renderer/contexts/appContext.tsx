@@ -28,11 +28,17 @@ export function AppProvider({ children }: appProviderProps) {
   }, [isActivated]);
 
   const handleCheckActivated = async () => {
-    const result = await ipcRenderer.invoke("check-activation-key");
-    if (!result) {
+    try {
+      const result = await ipcRenderer.invoke("check-activation");
+      if (!result.isValid) {
+        replace("/activate-key");
+      }
+      setActivated(result.isValid);
+    } catch (error) {
+      console.error("License activation check failed:", error);
+      setActivated(false);
       replace("/activate-key");
     }
-    setActivated(result);
   };
 
   return (
