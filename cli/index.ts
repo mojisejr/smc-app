@@ -2,6 +2,7 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
+import { displayESP32Info } from './modules/esp32';
 
 const program = new Command();
 
@@ -18,7 +19,7 @@ program
   .requiredOption('-c, --customer <customerId>', 'Customer ID')
   .requiredOption('-a, --app <applicationId>', 'Application ID')
   .requiredOption('-e, --expiry <date>', 'Expiry date (YYYY-MM-DD)')
-  .option('--esp32-ip <ip>', 'ESP32 device IP address', '192.168.1.100')
+  .option('--esp32-ip <ip>', 'ESP32 device IP address', '192.168.4.1')
   .option('--wifi-ssid <ssid>', 'WiFi SSID for ESP32 connection')
   .option('--wifi-password <password>', 'WiFi password for ESP32 connection')
   .option('--output <filename>', 'Output license filename', 'license.lic')
@@ -65,13 +66,14 @@ program
 program
   .command('test-esp32')
   .description('Test ESP32 connection and get MAC address')
-  .option('--ip <ip>', 'ESP32 device IP address', '192.168.1.100')
+  .option('--ip <ip>', 'ESP32 device IP address', '192.168.4.1')
   .action(async (options) => {
-    console.log(chalk.blue('🔌 Testing ESP32 connection...'));
-    console.log(chalk.gray('ESP32 IP:'), options.ip);
-    
-    // TODO: Implement ESP32 connection test
-    console.log(chalk.yellow('⚠️  ESP32 connection test not yet implemented'));
+    try {
+      await displayESP32Info(options.ip);
+    } catch (error: any) {
+      console.log(chalk.red('❌ ESP32 test failed:', error.message));
+      process.exit(1);
+    }
   });
 
 // Handle errors และ show help เมื่อไม่มี command
