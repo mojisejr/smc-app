@@ -56,6 +56,28 @@ export async function getESP32MacAddress(
   console.log(
     chalk.blue(`🔌 Connecting to ESP32 at ${ip}:${esp32Config.port}...`)
   );
+  
+  // แสดง progress indicator
+  const progressChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let progressIndex = 0;
+  let progressInterval: NodeJS.Timeout | null = null;
+  
+  const startProgress = (message: string) => {
+    process.stdout.write(`   ${message} `);
+    progressInterval = setInterval(() => {
+      process.stdout.write(`\r   ${message} ${chalk.cyan(progressChars[progressIndex])}`);
+      progressIndex = (progressIndex + 1) % progressChars.length;
+    }, 100);
+  };
+  
+  const stopProgress = (success: boolean, message: string) => {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+      progressInterval = null;
+    }
+    const icon = success ? chalk.green('✅') : chalk.red('❌');
+    process.stdout.write(`\r   ${icon} ${message}\n`);
+  };
 
   let lastError: any = null;
 
@@ -65,6 +87,8 @@ export async function getESP32MacAddress(
       console.log(
         chalk.gray(`   Attempt ${attempt}/${esp32Config.max_retries}`)
       );
+      
+      startProgress('Establishing connection...');
 
       // HTTP GET request ไปยัง /mac endpoint
       const response = await axios.get(`http://${ip}:${esp32Config.port}/mac`, {
@@ -76,9 +100,7 @@ export async function getESP32MacAddress(
         validateStatus: (status) => status < 500, // Accept 4xx as valid response
       });
 
-      console.log(
-        chalk.green(`   ✅ Connected successfully (${response.status})`)
-      );
+      stopProgress(true, `Connected successfully (${response.status})`);
 
       // ตรวจสอบ response structure
       if (!response.data) {
@@ -136,29 +158,26 @@ export async function getESP32MacAddress(
       return esp32Response;
     } catch (error: any) {
       lastError = error;
+      
+      // Stop progress indicator
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
 
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
 
         if (axiosError.code === "ECONNREFUSED") {
-          console.log(
-            chalk.red(`   ❌ Connection refused - ESP32 may be offline`)
-          );
+          stopProgress(false, 'Connection refused - ESP32 may be offline');
         } else if (axiosError.code === "ETIMEDOUT") {
-          console.log(
-            chalk.red(`   ❌ Connection timeout after ${esp32Config.timeout}ms`)
-          );
+          stopProgress(false, `Connection timeout after ${esp32Config.timeout}ms`);
         } else if (axiosError.response) {
-          console.log(
-            chalk.red(
-              `   ❌ HTTP Error: ${axiosError.response.status} - ${axiosError.response.statusText}`
-            )
-          );
+          stopProgress(false, `HTTP Error: ${axiosError.response.status} - ${axiosError.response.statusText}`);
         } else {
-          console.log(chalk.red(`   ❌ Network error: ${axiosError.message}`));
+          stopProgress(false, `Network error: ${axiosError.message}`);
         }
       } else {
-        console.log(chalk.red(`   ❌ Error: ${error.message}`));
+        stopProgress(false, `Error: ${error.message}`);
       }
 
       // รอสักครู่ก่อน retry (ยกเว้น attempt สุดท้าย)

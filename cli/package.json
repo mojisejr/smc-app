@@ -5,9 +5,19 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "build:prod": "npm run clean && tsc -p tsconfig.prod.json && npm run validate:build",
     "dev": "ts-node index.ts",
     "cli": "npm run build && node dist/index.js",
-    "test": "node scripts/manual-test.js"
+    "clean": "rm -rf dist/",
+    "validate:build": "node dist/index.js --help",
+    "test": "node scripts/manual-test.js",
+    "test:all": "npm run test && npm run test:phase2 && npm run test:phase3 && npm run test:phase4 && npm run test:phase5",
+    "test:phase2": "node scripts/manual-test-phase2.js",
+    "test:phase3": "node scripts/manual-test-phase3.js", 
+    "test:phase4": "node scripts/manual-test-phase4.js",
+    "test:phase5": "node scripts/manual-test-phase5.js",
+    "prepublishOnly": "npm run build:prod",
+    "package": "npm run build:prod && npm pack"
   },
   "bin": {
     "smc-license": "./dist/index.js"
