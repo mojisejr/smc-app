@@ -2,6 +2,7 @@ import { exec } from 'child_process';
 import * as os from 'os';
 import { promisify } from 'util';
 import { logger } from '../logger';
+import { isDevelopmentBypass, logEnvironmentInfo } from '../utils/environment';
 
 const execAsync = promisify(exec);
 
@@ -56,10 +57,29 @@ export class SystemWiFiManager {
 
   /**
    * เชื่อมต่อกับ WiFi network
+   * รองรับ development bypass สำหรับ macOS development
    */
   static async connectToNetwork(ssid: string, password: string): Promise<boolean> {
     try {
       console.log(`info: Attempting to connect to WiFi network: ${ssid}`);
+      
+      // ตรวจสอบ development bypass
+      if (isDevelopmentBypass()) {
+        console.log('⚠️  Development Mode: WiFi connection bypassed on macOS');
+        console.log(`info: Would connect to WiFi: ${ssid} (password: ${'*'.repeat(password.length)})`);
+        logEnvironmentInfo();
+        
+        // Mock successful connection
+        await this.delay(1000); // Simulate connection time
+        
+        await logger({
+          user: "system",
+          message: `[DEVELOPMENT] Mocked WiFi connection to: ${ssid}`
+        });
+        
+        console.log(`info: [DEVELOPMENT] Mocked successful connection to WiFi: ${ssid}`);
+        return true;
+      }
       
       let command = '';
       
@@ -160,9 +180,16 @@ export class SystemWiFiManager {
 
   /**
    * ตรวจสอบว่าเชื่อมต่อกับ network ที่ระบุอยู่หรือไม่
+   * รองรับ development bypass สำหรับ macOS development
    */
   static async isConnectedTo(ssid: string): Promise<boolean> {
     try {
+      // ตรวจสอบ development bypass
+      if (isDevelopmentBypass()) {
+        console.log(`debug: [DEVELOPMENT] Mocking connection check for: ${ssid}`);
+        return true; // Mock successful connection
+      }
+      
       const currentNetwork = await this.getCurrentConnectedNetwork();
       const isConnected = currentNetwork === ssid;
       

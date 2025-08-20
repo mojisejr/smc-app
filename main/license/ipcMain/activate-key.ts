@@ -3,6 +3,7 @@ import { logger } from "../../logger";
 import { LicenseFileManager } from "../file-manager";
 import { ESP32Client } from "../esp32-client";
 import { saveLicenseActivation, validateOrganizationData } from "../validator";
+import { isDevelopmentBypass, logEnvironmentInfo } from "../../utils/environment";
 
 /**
  * License File Activation Handler
@@ -27,6 +28,12 @@ export const activateKeyHandler = async () => {
   ipcMain.handle("activate-license-file", async (event, payload?: { filePath?: string }): Promise<ActivationResult> => {
     try {
       console.log("info: Starting CLI license file activation process");
+      
+      // แสดง environment information
+      if (isDevelopmentBypass()) {
+        console.log('⚠️  DEVELOPMENT MODE ACTIVE ⚠️');
+        logEnvironmentInfo();
+      }
       
       // Step 1: Find และ parse license file
       event.sender.send('activation-progress', { step: 'file-loading', progress: 10 });

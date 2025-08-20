@@ -5,7 +5,9 @@
 ## Features
 
 - **Hardware Binding**: License keys bound to ESP32 MAC addresses for secure device authentication
+- **WiFi Credentials Integration**: Encrypted WiFi SSID and password storage for automated ESP32 connection
 - **AES-256-CBC Encryption**: Production-grade encryption with proper IV handling and pre-computed keys
+- **Password Validation**: WiFi password strength checking with development bypass options
 - **Medical Device Compliance**: Audit-ready logging and security patterns
 - **Test Mode**: Development-friendly testing without ESP32 hardware requirements
 - **Environment Management**: Built-in tools for application environment setup
@@ -55,12 +57,14 @@ smc-license test-esp32 --ip 192.168.4.1
 ### 2. Generate License (Production Mode)
 
 ```bash
-# Generate license with ESP32 MAC address binding
+# Generate license with ESP32 MAC address binding and WiFi credentials
 smc-license generate \
   --org "SMC Medical Corp" \
   --customer "HOSP001" \
   --app "SMC_Cabinet" \
   --expiry "2025-12-31" \
+  --wifi-ssid "SMC_ESP32_001" \
+  --wifi-password "SecurePass123!" \
   --esp32-ip "192.168.4.1"
 ```
 
@@ -73,7 +77,10 @@ smc-license generate \
   --customer "TEST001" \
   --app "SMC_Test" \
   --expiry "2025-06-30" \
-  --test-mode
+  --wifi-ssid "TEST_WIFI" \
+  --wifi-password "simple123" \
+  --test-mode \
+  --bypass-password-check
 ```
 
 ### 4. Validate License
@@ -115,24 +122,28 @@ smc-license generate [options]
 - `-c, --customer <customerId>` - Customer ID (e.g., "CUST001")
 - `-a, --app <applicationId>` - Application ID (e.g., "SMC_Cabinet")
 - `-e, --expiry <date>` - Expiry date in YYYY-MM-DD format (e.g., "2025-12-31")
+- `--wifi-ssid <ssid>` - WiFi SSID for ESP32 connection (REQUIRED)
+- `--wifi-password <password>` - WiFi password for ESP32 connection (REQUIRED)
 
 **Optional Options:**
 - `--esp32-ip <ip>` - ESP32 device IP address (default: 192.168.4.1)
-- `--wifi-ssid <ssid>` - WiFi SSID for ESP32 connection (optional)
-- `--wifi-password <password>` - WiFi password for ESP32 connection (optional)
 - `--output <filename>` - Output license filename (default: license.lic)
 - `--test-mode` - Generate test license without ESP32 connection (uses mock MAC)
+- `--bypass-password-check` - Bypass WiFi password strength validation (development only)
 
 **Examples:**
 ```bash
 # Production license generation
-smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31"
+smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" \
+  --wifi-ssid "SMC_ESP32_001" --wifi-password "SecurePass123!"
 
 # Test mode for development
-smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-06-30" --test-mode
+smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-06-30" \
+  --wifi-ssid "TEST_WIFI" --wifi-password "simple123" --test-mode --bypass-password-check
 
 # Custom ESP32 IP address
-smc-license generate -o "Hospital ABC" -c "ABC001" -a "SMC_Pro" -e "2026-01-15" --esp32-ip "192.168.1.100"
+smc-license generate -o "Hospital ABC" -c "ABC001" -a "SMC_Pro" -e "2026-01-15" \
+  --wifi-ssid "HOSPITAL_ESP32" --wifi-password "HospitalSecure2024" --esp32-ip "192.168.1.100"
 ```
 
 ### `validate` - Validate License File
@@ -296,12 +307,14 @@ smc-license test-esp32 --ip 192.168.4.1
 
 **For Production:**
 ```bash
-# Generate production license with real ESP32 binding
+# Generate production license with real ESP32 binding and WiFi credentials
 smc-license generate \
   --org "SMC Medical Corp" \
   --customer "HOSP001" \
   --app "SMC_Cabinet" \
   --expiry "2025-12-31" \
+  --wifi-ssid "SMC_ESP32_001" \
+  --wifi-password "SecurePass123!" \
   --esp32-ip "192.168.4.1"
 
 # CLI will automatically display shared key after generation
@@ -315,7 +328,10 @@ smc-license generate \
   --customer "TEST001" \
   --app "SMC_Test" \
   --expiry "2025-06-30" \
-  --test-mode
+  --wifi-ssid "TEST_WIFI" \
+  --wifi-password "simple123" \
+  --test-mode \
+  --bypass-password-check
 ```
 
 #### Step 3: Note the Shared Key
@@ -390,10 +406,10 @@ ESP32_DEFAULT_IP=192.168.4.1
 **Activation Process (Automatic):**
 ```
 Step 1: กำลังโหลดไฟล์ license     [10%]
-Step 2: ตรวจสอบไฟล์ license       [20%]
+Step 2: ตรวจสอบไฟล์ license       [20%] 
 Step 3: ตรวจสอบวันหมดอายุ         [30%]
 Step 4: ตรวจสอบข้อมูลองค์กร       [40%]
-Step 5: เชื่อมต่อ WiFi ESP32      [50%]
+Step 5: เชื่อมต่อ WiFi ESP32      [50%] ← อ่าน WiFi จาก license โดยอัตโนมัติ
 Step 6: ดึง MAC Address          [70%]
 Step 7: ตรวจสอบ MAC Address      [80%]
 Step 8: บันทึกการ activation     [90%]
@@ -519,6 +535,8 @@ SMC license files (`.lic`) use the following encrypted JSON structure:
   "generatedAt": "2024-01-15T10:30:00.000Z",
   "expiryDate": "2025-12-31",
   "macAddress": "AA:BB:CC:DD:EE:FF",
+  "wifiSsid": "SMC_ESP32_001",
+  "wifiPassword": "SecurePass123!",
   "version": "1.0.0",
   "checksum": "sha256-hash"
 }
@@ -560,7 +578,8 @@ npm run test:phase4 # Phase 4
 ```bash
 # Run in development mode with ts-node
 npm run dev -- generate --help
-npm run dev -- generate -o "Test" -c "DEV001" -a "Test_App" -e "2025-12-31" --test-mode
+npm run dev -- generate -o "Test" -c "DEV001" -a "Test_App" -e "2025-12-31" \
+  --wifi-ssid "DEV_WIFI" --wifi-password "dev123" --test-mode --bypass-password-check
 ```
 
 ## Troubleshooting
@@ -580,6 +599,18 @@ npm run dev -- generate -o "Test" -c "DEV001" -a "Test_App" -e "2025-12-31" --te
 5. Use `--test-mode` for development without ESP32
 
 ### License Generation Errors
+
+**Problem:** WiFi password validation error
+```bash
+❌ License generation failed
+Error: WiFi password does not meet security requirements
+```
+
+**Solutions:**
+1. Use stronger passwords (8+ characters, mixed case, numbers, symbols)
+2. Add `--bypass-password-check` for development/testing
+3. Avoid common passwords like "password", "123456", etc.
+4. Example strong password: "SMC_Secure123!"
 
 **Problem:** Date format error
 ```bash
@@ -626,9 +657,11 @@ npm run dev -- generate -o "Test" -c "DEV001" -a "Test_App" -e "2025-12-31" --te
 ## Security Considerations
 
 - **Encryption**: Uses AES-256-CBC with proper IV handling
+- **WiFi Security**: WiFi credentials encrypted and stored securely in license files
+- **Password Validation**: Enforces strong WiFi passwords with development bypass option
 - **Key Management**: Shared secret key for encryption/decryption
 - **Hardware Binding**: MAC address binding prevents license transfer
-- **Integrity Checking**: SHA-256 checksum validation
+- **Integrity Checking**: SHA-256 checksum validation includes WiFi credentials
 - **Audit Trail**: All operations are logged for medical device compliance
 
 ## License
@@ -654,7 +687,8 @@ For technical support and issues:
 
 ```bash
 # Generate license (test mode)
-smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-12-31" --test-mode
+smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-12-31" \
+  --wifi-ssid "TEST_WIFI" --wifi-password "simple123" --test-mode --bypass-password-check
 
 # Get shared key for .env
 smc-license show-key

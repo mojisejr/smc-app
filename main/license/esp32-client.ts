@@ -1,5 +1,6 @@
 import * as http from 'http';
 import { logger } from '../logger';
+import { isDevelopmentBypass } from '../utils/environment';
 
 /**
  * ESP32 Client
@@ -38,9 +39,16 @@ export class ESP32Client {
 
   /**
    * ทดสอบการเชื่อมต่อกับ ESP32
+   * รองรับ development bypass สำหรับ macOS development
    */
   static async testConnection(ip?: string): Promise<boolean> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
+    
+    // ตรวจสอบ development bypass
+    if (isDevelopmentBypass()) {
+      console.log(`info: [DEVELOPMENT] Mocking ESP32 connection test to ${targetIp}`);
+      return true; // Mock successful connection
+    }
     
     try {
       console.log(`info: Testing ESP32 connection to ${targetIp}`);
@@ -64,9 +72,25 @@ export class ESP32Client {
   /**
    * ดึง MAC address จาก ESP32
    * พร้อม retry logic และ error handling
+   * รองรับ development bypass สำหรับ macOS development
    */
   static async getMacAddress(ip?: string): Promise<string | null> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
+    
+    // ตรวจสอบ development bypass
+    if (isDevelopmentBypass()) {
+      const mockMac = 'AA:BB:CC:DD:EE:FF';
+      console.log('⚠️  Development Mode: Using mock MAC address');
+      console.log(`info: [DEVELOPMENT] Mock MAC address: ${mockMac}`);
+      
+      await logger({
+        user: "system",
+        message: "[DEVELOPMENT] Using mock ESP32 MAC address for testing"
+      });
+      
+      return mockMac;
+    }
+    
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= this.DEFAULT_CONFIG.max_retries; attempt++) {
