@@ -35,6 +35,8 @@ export interface LicenseData {
   generatedAt: string;
   expiryDate: string;
   macAddress: string;
+  wifiSsid: string;           // WiFi SSID สำหรับเชื่อมต่อ ESP32
+  wifiPassword: string;       // WiFi Password
   version: string;
   checksum?: string;
 }
@@ -232,40 +234,43 @@ export class LicenseFileManager {
 
   /**
    * ดึง WiFi credentials จาก license data
-   * ใช้สำหรับเชื่อมต่อ ESP32
+   * อ่านจาก wifiSsid และ wifiPassword ที่ถูก decrypt จาก license โดยตรง
    */
   static async extractWiFiCredentials(licenseData: LicenseData): Promise<{ssid: string, password: string} | null> {
     try {
-      // WiFi credentials อาจถูก encode ไว้ใน applicationId หรือ organization
-      // ตาม format ที่ CLI tool สร้างไว้
+      console.log('info: Extracting WiFi credentials from license data...');
       
-      // ตัวอย่าง format: applicationId มี format "SMC_Cabinet_WIFI_SSID_PASSWORD"
-      const appId = licenseData.applicationId;
-      
-      // ถ้ามี WiFi info ใน applicationId
-      if (appId.includes('_WIFI_')) {
-        const parts = appId.split('_WIFI_');
-        if (parts.length === 2) {
-          const wifiPart = parts[1];
-          const [ssid, password] = wifiPart.split('_PWD_');
-          
-          if (ssid && password) {
-            console.log(`info: Extracted WiFi credentials from license`);
-            console.log(`info: SSID: ${ssid}`);
-            return { ssid, password };
-          }
-        }
+      // ตรวจสอบว่ามี WiFi credentials ใน license data
+      if (!licenseData.wifiSsid || !licenseData.wifiPassword) {
+        console.log("error: WiFi credentials not found in license data");
+        console.log(`debug: wifiSsid: ${licenseData.wifiSsid || 'undefined'}`);
+        console.log(`debug: wifiPassword: ${licenseData.wifiPassword ? '***hidden***' : 'undefined'}`);
+        return null;
       }
-
-      // Fallback: ใช้ข้อมูลจาก customer ID หรือ organization
-      // สำหรับ test license หรือ format อื่น
       
-      console.log("debug: No WiFi credentials found in license, using test defaults");
+      // Validate WiFi credentials format
+      const ssid = licenseData.wifiSsid.trim();
+      const password = licenseData.wifiPassword;
+      
+      if (!ssid || ssid.length === 0) {
+        console.log("error: WiFi SSID is empty or invalid");
+        return null;
+      }
+      
+      if (!password || password.length < 4) {
+        console.log("error: WiFi password is too short or invalid");
+        return null;
+      }
+      
+      console.log(`info: WiFi credentials extracted successfully`);
+      console.log(`info: SSID: ${ssid}`);
+      console.log(`info: Password: ${'*'.repeat(password.length)} (${password.length} characters)`);
+      
       return {
-        ssid: 'SMC_ESP32_' + licenseData.customerId.slice(0, 6),
-        password: 'smc' + licenseData.checksum?.slice(0, 8) || 'smc12345'
+        ssid: ssid,
+        password: password
       };
-
+      
     } catch (error) {
       console.error("error: Failed to extract WiFi credentials:", error);
       return null;
@@ -277,8 +282,8 @@ export class LicenseFileManager {
    */
   static validateLicenseData(licenseData: LicenseData): boolean {
     try {
-      // ตรวจสอบ required fields
-      const requiredFields = ['organization', 'customerId', 'applicationId', 'expiryDate', 'macAddress'];
+      // ตรวจสอบ required fields (รวม WiFi credentials)
+      const requiredFields = ['organization', 'customerId', 'applicationId', 'expiryDate', 'macAddress', 'wifiSsid', 'wifiPassword'];
       for (const field of requiredFields) {
         if (!licenseData[field as keyof LicenseData]) {
           console.log(`debug: Missing required field in license data: ${field}`);
@@ -286,9 +291,9 @@ export class LicenseFileManager {
         }
       }
       
-      // ตรวจสอบ checksum ถ้ามี
+      // ตรวจสอบ checksum ถ้ามี (รวม WiFi SSID)
       if (licenseData.checksum) {
-        const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}`;
+        const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}${licenseData.wifiSsid}`;
         const expectedChecksum = crypto.createHash('sha256')
           .update(checksumData)
           .digest('hex')

@@ -12,6 +12,10 @@ export interface LicenseData {
   // Hardware binding
   macAddress: string;         // MAC address จาก ESP32
   
+  // WiFi credentials สำหรับ ESP32 connection
+  wifiSsid: string;           // WiFi SSID สำหรับเชื่อมต่อ ESP32
+  wifiPassword: string;       // WiFi Password
+  
   // Metadata
   version: string;            // Version ของ license format
   checksum?: string;          // Checksum สำหรับ verification
@@ -73,6 +77,14 @@ export interface CLIError {
   code: string;
   message: string;
   details?: any;
+}
+
+// WiFi password validation result
+export interface WiFiPasswordValidation {
+  isValid: boolean;
+  strength: 'weak' | 'medium' | 'strong';
+  errors: string[];
+  warnings: string[];
 }
 
 // Encryption configuration

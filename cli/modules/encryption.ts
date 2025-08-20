@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import chalk from 'chalk';
-import { LicenseData, LicenseFile, EncryptionConfig } from '../types';
+import { LicenseData, LicenseFile, EncryptionConfig, WiFiPasswordValidation } from '../types';
 
 /**
  * Encryption Module for SMC License System
@@ -119,6 +119,7 @@ export function decryptLicenseData(encryptedData: string): LicenseData {
  * 
  * @param options - License generation options
  * @param macAddress - MAC address from ESP32
+ * @param wifiCredentials - WiFi SSID and password for ESP32 connection
  * @returns LicenseData object
  */
 export function createLicenseData(
@@ -128,7 +129,11 @@ export function createLicenseData(
     app: string;
     expiry: string;
   },
-  macAddress: string
+  macAddress: string,
+  wifiCredentials: {
+    ssid: string;
+    password: string;
+  }
 ): LicenseData {
   
   console.log(chalk.blue('📝 Creating license data structure...'));
@@ -156,12 +161,14 @@ export function createLicenseData(
     generatedAt: new Date().toISOString(),
     expiryDate: options.expiry,
     macAddress: macAddress.toUpperCase(), // Normalize MAC address เป็นตัวใหญ่
+    wifiSsid: wifiCredentials.ssid.trim(),
+    wifiPassword: wifiCredentials.password,
     version: '1.0.0',
     checksum: '' // จะถูกสร้างหลังจากนี้
   };
   
-  // สร้าง checksum สำหรับ verification
-  const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}`;
+  // สร้าง checksum สำหรับ verification (รวม WiFi data)
+  const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}${licenseData.wifiSsid}`;
   licenseData.checksum = crypto.createHash('sha256').update(checksumData).digest('hex').slice(0, 16);
   
   console.log(chalk.green('   ✅ License data created'));
@@ -170,6 +177,8 @@ export function createLicenseData(
   console.log(chalk.gray(`   Application: ${licenseData.applicationId}`));
   console.log(chalk.gray(`   Expiry: ${licenseData.expiryDate}`));
   console.log(chalk.gray(`   MAC Address: ${licenseData.macAddress}`));
+  console.log(chalk.gray(`   WiFi SSID: ${licenseData.wifiSsid}`));
+  console.log(chalk.gray(`   WiFi Password: ${'*'.repeat(licenseData.wifiPassword.length)}`)); // ซ่อน password
   console.log(chalk.gray(`   Checksum: ${licenseData.checksum}`));
   
   return licenseData;
@@ -252,8 +261,8 @@ export function parseLicenseFile(licenseFileContent: string): LicenseData {
 export function validateLicenseData(licenseData: LicenseData): boolean {
   console.log(chalk.blue('✅ Validating license data...'));
   
-  // ตรวจสอบ required fields
-  const requiredFields = ['organization', 'customerId', 'applicationId', 'expiryDate', 'macAddress'];
+  // ตรวจสอบ required fields (รวม WiFi credentials)
+  const requiredFields = ['organization', 'customerId', 'applicationId', 'expiryDate', 'macAddress', 'wifiSsid', 'wifiPassword'];
   for (const field of requiredFields) {
     if (!licenseData[field as keyof LicenseData]) {
       throw new Error(`Missing required field: ${field}`);
@@ -268,9 +277,9 @@ export function validateLicenseData(licenseData: LicenseData): boolean {
     throw new Error('License has expired');
   }
   
-  // ตรวจสอบ checksum ถ้ามี
+  // ตรวจสอบ checksum ถ้ามี (รวม WiFi SSID)
   if (licenseData.checksum) {
-    const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}`;
+    const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}${licenseData.wifiSsid}`;
     const expectedChecksum = crypto.createHash('sha256').update(checksumData).digest('hex').slice(0, 16);
     
     if (licenseData.checksum !== expectedChecksum) {
@@ -282,4 +291,68 @@ export function validateLicenseData(licenseData: LicenseData): boolean {
   console.log(chalk.gray(`   Valid until: ${licenseData.expiryDate}`));
   
   return true;
+}
+
+/**
+ * ตรวจสอบ WiFi password strength
+ * 
+ * @param password - WiFi password to validate
+ * @param bypassCheck - Skip validation for development
+ * @returns WiFiPasswordValidation result
+ */
+export function validateWiFiPassword(password: string, bypassCheck: boolean = false): WiFiPasswordValidation {
+  const result: WiFiPasswordValidation = {
+    isValid: true,
+    strength: 'medium',
+    errors: [],
+    warnings: []
+  };
+
+  // ถ้า bypass ให้ผ่านทุกอย่าง แต่ยังแสดง warning
+  if (bypassCheck) {
+    console.log(chalk.yellow('⚠️  Password validation bypassed for development'));
+    result.warnings.push('Password validation bypassed - use strong passwords in production');
+    return result;
+  }
+
+  // ตรวจสอบความยาว
+  if (password.length < 8) {
+    result.errors.push('Password must be at least 8 characters long');
+    result.isValid = false;
+  }
+
+  if (password.length < 12) {
+    result.warnings.push('Consider using passwords longer than 12 characters');
+  }
+
+  // ตรวจสอบ complexity
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasNumbers = /\d/.test(password);
+  const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  const complexityScore = [hasLowerCase, hasUpperCase, hasNumbers, hasSpecialChars].filter(Boolean).length;
+
+  if (complexityScore < 2) {
+    result.errors.push('Password must contain at least 2 types: lowercase, uppercase, numbers, special characters');
+    result.isValid = false;
+  }
+
+  // กำหนด strength
+  if (complexityScore >= 4 && password.length >= 12) {
+    result.strength = 'strong';
+  } else if (complexityScore >= 3 && password.length >= 8) {
+    result.strength = 'medium';
+  } else {
+    result.strength = 'weak';
+  }
+
+  // ตรวจสอบ common weak passwords
+  const weakPasswords = ['password', '123456', 'wifi123', 'admin123', 'smc123'];
+  if (weakPasswords.some(weak => password.toLowerCase().includes(weak))) {
+    result.warnings.push('Avoid using common password patterns');
+    result.strength = 'weak';
+  }
+
+  return result;
 }

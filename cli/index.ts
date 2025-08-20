@@ -14,7 +14,7 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import { displayESP32Info } from './modules/esp32';
 import { generateLicenseFile, generateSampleLicenseFile, displayLicenseInfo, checkLicenseFileExists } from './modules/license-generator';
-import { parseLicenseFile, validateLicenseData } from './modules/encryption';
+import { parseLicenseFile, validateLicenseData, validateWiFiPassword } from './modules/encryption';
 import fs from 'fs/promises';
 
 const program = new Command();
@@ -25,7 +25,7 @@ program
   .version('1.0.0')
   .addHelpText('after', `
 Examples:
-  $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31"
+  $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" --wifi-ssid "SMC_ESP32_001" --wifi-password "SecurePass123!"
   $ smc-license validate -f license.lic  
   $ smc-license info -f license.lic
   $ smc-license show-key
@@ -43,19 +43,42 @@ program
   .requiredOption('-c, --customer <customerId>', 'Customer ID (e.g., "CUST001")')
   .requiredOption('-a, --app <applicationId>', 'Application ID (e.g., "SMC_Cabinet")')
   .requiredOption('-e, --expiry <date>', 'Expiry date in YYYY-MM-DD format (e.g., "2025-12-31")')
+  .requiredOption('--wifi-ssid <ssid>', 'WiFi SSID for ESP32 connection (REQUIRED)')
+  .requiredOption('--wifi-password <password>', 'WiFi password for ESP32 connection (REQUIRED)')
   .option('--esp32-ip <ip>', 'ESP32 device IP address', '192.168.4.1')
-  .option('--wifi-ssid <ssid>', 'WiFi SSID for ESP32 connection (optional)')
-  .option('--wifi-password <password>', 'WiFi password for ESP32 connection (optional)')
   .option('--output <filename>', 'Output license filename (default: license.lic)', 'license.lic')
   .option('--test-mode', 'Generate test license without ESP32 connection (uses mock MAC)')
+  .option('--bypass-password-check', 'Bypass WiFi password strength validation (development only)')
   .addHelpText('after', `
 Examples:
-  $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31"
-  $ smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-06-30" --test-mode
-  $ smc-license generate -o "Hospital ABC" -c "ABC001" -a "SMC_Pro" -e "2026-01-15" --esp32-ip "192.168.1.100"
+  $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" --wifi-ssid "SMC_ESP32_001" --wifi-password "SecurePass123!"
+  $ smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-06-30" --wifi-ssid "TEST_WIFI" --wifi-password "simple123" --test-mode --bypass-password-check
+  $ smc-license generate -o "Hospital ABC" -c "ABC001" -a "SMC_Pro" -e "2026-01-15" --wifi-ssid "HOSPITAL_ESP32" --wifi-password "HospitalSecure2024" --esp32-ip "192.168.1.100"
 `)
   .action(async (options) => {
     try {
+      // Step 1: ตรวจสอบ WiFi password strength
+      console.log(chalk.blue('🔐 Validating WiFi password...'));
+      const passwordValidation = validateWiFiPassword(options.wifiPassword, options.bypassPasswordCheck);
+      
+      // แสดงผล validation
+      if (passwordValidation.errors.length > 0) {
+        console.log(chalk.red('❌ WiFi password validation failed:'));
+        passwordValidation.errors.forEach(error => {
+          console.log(chalk.red(`   • ${error}`));
+        });
+        throw new Error('WiFi password does not meet security requirements');
+      }
+      
+      if (passwordValidation.warnings.length > 0) {
+        console.log(chalk.yellow('⚠️  WiFi password warnings:'));
+        passwordValidation.warnings.forEach(warning => {
+          console.log(chalk.yellow(`   • ${warning}`));
+        });
+      }
+      
+      console.log(chalk.green(`✅ WiFi password strength: ${passwordValidation.strength.toUpperCase()}`));
+      
       if (options.testMode) {
         console.log(chalk.yellow('🧪 Test Mode: Generating license with mock MAC address'));
         await generateSampleLicenseFile({
@@ -87,7 +110,12 @@ Examples:
       // แสดงคำแนะนำการแก้ไข
       console.log(chalk.yellow('\n🔧 Troubleshooting:'));
       
-      if (error.message.includes('ESP32')) {
+      if (error.message.includes('WiFi password')) {
+        console.log(chalk.gray('1. Use stronger passwords (8+ characters, mixed case, numbers, symbols)'));
+        console.log(chalk.gray('2. Add --bypass-password-check for development/testing'));
+        console.log(chalk.gray('3. Avoid common passwords like "password", "123456", etc.'));
+        console.log(chalk.gray('4. Example strong password: "SMC_Secure123!"'));
+      } else if (error.message.includes('ESP32')) {
         console.log(chalk.gray('1. Check ESP32 device is powered on and connected'));
         console.log(chalk.gray('2. Verify ESP32 IP address is correct'));
         console.log(chalk.gray('3. Try using --test-mode for development/testing'));
