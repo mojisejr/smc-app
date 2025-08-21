@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import CustomerForm from '@/components/CustomerForm';
 import DeviceList from '@/components/DeviceList';
+import ProgressBar from '@/components/ProgressBar';
 import { CustomerInfo, ESP32Device, DeploymentState } from '@/types';
 
 export default function Home() {
@@ -30,16 +31,90 @@ export default function Home() {
     }));
   };
 
-  const handleDeploy = () => {
-    // Phase 2 จะ implement ฟังก์ชันนี้
-    console.log('info: Deploy button clicked');
-    console.log('Customer:', deploymentState.customer);
-    console.log('Device:', deploymentState.selectedDevice);
-    
+  const handleDeploy = async () => {
+    if (!deploymentState.customer || !deploymentState.selectedDevice) return;
+
     setDeploymentState(prev => ({
       ...prev,
-      status: 'รอ Phase 2 implementation...'
+      isDeploying: true,
+      progress: 0,
+      status: 'เริ่มต้น deployment...'
     }));
+
+    try {
+      // Step 1: Deploy firmware (25% - 75%)
+      setDeploymentState(prev => ({ ...prev, progress: 25, status: 'สร้าง firmware...' }));
+      
+      const deployResponse = await fetch('/api/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: deploymentState.customer,
+          device: deploymentState.selectedDevice
+        })
+      });
+
+      const deployResult = await deployResponse.json();
+      
+      if (!deployResult.success) {
+        throw new Error(deployResult.error);
+      }
+
+      setDeploymentState(prev => ({ ...prev, progress: 75, status: 'Upload สำเร็จ, ดึง MAC address...' }));
+
+      // Step 2: Extract MAC address (75% - 90%)
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for ESP32 to boot
+      
+      const extractResponse = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceIP: '192.168.4.1' })
+      });
+
+      const extractResult = await extractResponse.json();
+      
+      if (!extractResult.success) {
+        throw new Error(extractResult.error);
+      }
+
+      setDeploymentState(prev => ({ ...prev, progress: 90, status: 'สร้าง JSON file...' }));
+
+      // Step 3: Export JSON (90% - 100%)
+      const exportResponse = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: deploymentState.customer,
+          wifi: deployResult.wifi,
+          macAddress: extractResult.macAddress,
+          ipAddress: '192.168.4.1'
+        })
+      });
+
+      const exportResult = await exportResponse.json();
+      
+      if (!exportResult.success) {
+        throw new Error(exportResult.error);
+      }
+
+      // Complete
+      setDeploymentState(prev => ({
+        ...prev,
+        progress: 100,
+        status: `เสร็จสิ้น! ไฟล์: ${exportResult.filename}`,
+        isDeploying: false
+      }));
+
+      console.log('info: Complete deployment workflow finished successfully');
+      
+    } catch (error) {
+      console.error('error: Deployment workflow failed:', error);
+      setDeploymentState(prev => ({
+        ...prev,
+        status: `ข้อผิดพลาด: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        isDeploying: false
+      }));
+    }
   };
 
   const isReadyToDeploy = deploymentState.customer && deploymentState.selectedDevice;
@@ -82,15 +157,24 @@ export default function Home() {
         />
       )}
 
+      {/* Progress Bar - show during deployment */}
+      {deploymentState.isDeploying && (
+        <ProgressBar
+          progress={deploymentState.progress}
+          status={deploymentState.status}
+          isActive={deploymentState.isDeploying}
+        />
+      )}
+
       {/* Deploy Button */}
       {isReadyToDeploy && (
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-center">
             <h3 className="text-lg font-semibold mb-2">🚀 พร้อม Deploy</h3>
             <p className="text-gray-600 mb-4">
-              ลูกค้า: {deploymentState.customer.organization} ({deploymentState.customer.customerId})
+              ลูกค้า: {deploymentState.customer?.organization} ({deploymentState.customer?.customerId})
               <br />
-              Device: {deploymentState.selectedDevice.port}
+              Device: {deploymentState.selectedDevice?.port}
             </p>
             <button
               onClick={handleDeploy}
@@ -103,15 +187,19 @@ export default function Home() {
         </div>
       )}
 
-      {/* Phase 1 Complete Message */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-medium text-blue-800 mb-2">✅ Phase 1 Complete</h4>
-        <ul className="text-blue-700 text-sm space-y-1">
-          <li>• Customer input form พร้อมใช้งาน</li>
-          <li>• ESP32 device detection ทำงานได้</li>
-          <li>• UI components เชื่อมต่อกันแล้ว</li>
-          <li>• พร้อมสำหรับ Phase 2: Core Deployment</li>
+      {/* Phase 2 Complete Message */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <h4 className="font-medium text-green-800 mb-2">✅ Phase 2 Complete: Core Deployment</h4>
+        <ul className="text-green-700 text-sm space-y-1">
+          <li>• Template system พร้อม AM2302 sensor integration</li>
+          <li>• WiFi credentials auto-generation</li>
+          <li>• PlatformIO build และ upload workflow</li>
+          <li>• MAC address extraction และ JSON export</li>
+          <li>• Complete end-to-end deployment ready!</li>
         </ul>
+        <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-800">
+          <strong>Ready for production:</strong> กรอกข้อมูล → เลือก ESP32 → Deploy → ได้ JSON file ลง Desktop
+        </div>
       </div>
     </div>
   );

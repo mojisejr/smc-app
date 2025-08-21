@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  esp32-tool:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "3000:3000"
+    volumes:
+      # USB device access for ESP32
+      - /dev:/dev:rw
+      # Export files to host Desktop (Windows/Linux compatible)
+      - ${HOME}/Desktop:/app/exports
+      # Temp files (tmpfs for performance)
+      - type: tmpfs
+        target: /app/temp
+        tmpfs:
+          size: 1G
+      # PlatformIO cache (persistent for faster builds)
+      - platformio_prod_cache:/app/.platformio
+    devices:
+      # ESP32 USB device mapping for Windows/Linux
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyUSB1:/dev/ttyUSB1
+      - /dev/ttyUSB2:/dev/ttyUSB2
+      - /dev/ttyACM0:/dev/ttyACM0
+      - /dev/ttyACM1:/dev/ttyACM1
+      # Windows COM ports (if using Docker Desktop)
+      - COM3:COM3
+      - COM4:COM4
+      - COM5:COM5
+    privileged: true
+    environment:
+      - NODE_ENV=production
+      - DOCKER_CONTAINER=true
+      - PLATFORMIO_CORE_DIR=/app/.platformio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  platformio_prod_cache:
+    driver: local
