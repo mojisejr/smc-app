@@ -17,7 +17,7 @@ This README serves as your **navigation hub** for the complete system architectu
 ├── 07-protocol-specifications.md # Complete DS12/DS16 protocol documentation
 ├── 08-testing-strategy.md       # Testing frameworks and quality assurance
 ├── 09-migration-roadmap.md      # Implementation phases and deployment plans
-└── 10-license-cli-integration.md # SMC License CLI Tool (v1.0.0) integration specs
+└── 10-license-cli-integration.md # SMC License CLI Tool with WiFi & Cross-Platform Support
 ```
 
 ## Quick Start for Agents

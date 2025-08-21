@@ -34,7 +34,7 @@ npm run test:watch            # Watch mode for development
 ```bash
 # Navigate to CLI directory first: cd cli/
 npm run test                  # Phase 1: Foundation & Project Structure
-npm run test:phase2           # Phase 2: ESP32 Communication Module  
+npm run test:phase2           # Phase 2: ESP32 Communication Module
 npm run test:phase3           # Phase 3: License Generation & Validation
 npm run test:phase4           # Phase 4: Complete CLI Implementation
 npm run test:phase5           # Phase 5: Polish & Final Testing
@@ -287,6 +287,12 @@ useEffect(() => {
   - log ที่เป็น error log ใช้ prefix ว่า error
 - เขียน log เมื่อจำเป็นเท่านั้น ไม่เขียนจนรก
 
+\*\* ชื่อเรียกส่วนต่างๆที่ผมจะใช้เรียกเวลาคุณกับคุณ
+smc-app : หมายถึง SMC application หลักที่เราสร้างด้วย Nextronjs
+ds : หมายถึง hardware ที่เชื่อมต่อกับ smc-app ของเรา
+cli : หมายถึง key-gen cli
+esp32-temp : หมายถึง hardware code ที่ใช้ deploy web server ลงใน esp32 เพื่อทำเป็น temp - serial key สำหรับผูก smc-app กับ ds
+
 **When Working with Hardware Controllers** (Production Pattern):
 
 ```typescript
@@ -408,27 +414,31 @@ import Indicator from '@/components/Indicators/baseIndicator';
 ### Key Features
 
 - **Hardware Binding**: License keys bound to ESP32 MAC addresses for secure device authentication
+- **WiFi Credentials Integration**: Encrypted WiFi SSID and password storage for automated ESP32 connection
 - **AES-256-CBC Encryption**: Production-grade encryption with proper IV handling and pre-computed keys
+- **Password Validation**: WiFi password strength checking with development bypass options
+- **Cross-Platform Development**: macOS development with Windows production deployment
+- **Development Bypass**: Automated testing without ESP32 hardware requirements on macOS
 - **Medical Device Compliance**: Audit-ready logging and security patterns
-- **Test Mode**: Development-friendly testing without ESP32 hardware requirements
-- **Cross-Platform**: Works on Windows, macOS, and Linux
 - **TypeScript**: Full type safety and modern JavaScript features
 - **Performance Optimized**: Startup time ~100ms, Memory usage 0.05 MB
 
 ### CLI Commands
 
 ```bash
-# Generate license (production mode)
-smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31"
+# Generate license (production mode) - NOW REQUIRES WiFi credentials
+smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" \
+  --wifi-ssid "SMC_ESP32_001" --wifi-password "SecurePass123!"
 
-# Generate license (test mode - no ESP32 required)  
-smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-06-30" --test-mode
+# Generate license (test mode - no ESP32 required)
+smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-06-30" \
+  --wifi-ssid "TEST_WIFI" --wifi-password "simple123" --test-mode --bypass-password-check
 
 # Validate license file
 smc-license validate -f license.lic
 
 # Display license information
-smc-license info -f license.lic  
+smc-license info -f license.lic
 
 # Test ESP32 connection
 smc-license test-esp32 --ip 192.168.4.1
@@ -443,12 +453,13 @@ smc-license export-env --stdout
 
 ### Development Workflow
 
-1. **License Generation**: Generate license.lic file with CLI tool
+1. **License Generation**: Generate license.lic file with CLI tool (now includes WiFi credentials)
 2. **Environment Setup**: Use `smc-license show-key` or `export-env` to configure application
-3. **Development Phase**: Use `--test-mode` for testing without ESP32 hardware
-4. **Production Phase**: Connect to actual ESP32 device for MAC address binding
-5. **Application Deployment**: Copy license.lic and .env to application directory
-6. **Distribution**: Use `npm run package` to create distributable .tgz file
+3. **Development Phase**: Use `--test-mode` and `--bypass-password-check` for testing without ESP32 hardware
+4. **macOS Development**: Automatic WiFi connection bypass when NODE_ENV=development
+5. **Production Phase**: Full WiFi connection and ESP32 MAC address binding on Windows
+6. **Application Deployment**: Copy license.lic and .env to application directory
+7. **Distribution**: Use `npm run package` to create distributable .tgz file
 
 ### Architecture
 
@@ -465,46 +476,205 @@ smc-license export-env --stdout
 - ✅ **All Tests Passing**: 13/13 comprehensive tests pass
 - ✅ **Performance Validated**: Startup time, memory usage, and encryption performance optimized
 - ✅ **Documentation Complete**: Full README.md with usage examples and troubleshooting
-- ✅ **Error Handling**: Context-aware error messages with troubleshooting guides  
+- ✅ **Error Handling**: Context-aware error messages with troubleshooting guides
 - ✅ **Security**: Medical-grade encryption and hardware binding
 - ✅ **Build System**: Production-optimized builds and packaging
 
 ### Application License System Integration
 
 **License Activation Flow** (Production Implementation):
+
 1. Application startup checks license activation status via `isSystemActivated()`
 2. If not activated, automatically redirects to `/activate-key` page
 3. Activation page performs 8-step validation process with real-time progress
 4. Upon success, application redirects to main interface (`/home`)
 
 **Key Application Components**:
+
 - `main/license/validator.ts` - Core license validation and database flag management
-- `main/license/file-manager.ts` - License.lic file parsing with AES-256-CBC decryption
-- `main/license/esp32-client.ts` - ESP32 WiFi connection and MAC address validation
-- `main/license/wifi-manager.ts` - Cross-platform WiFi management
+- `main/license/file-manager.ts` - License.lic file parsing with AES-256-CBC decryption and WiFi extraction
+- `main/license/esp32-client.ts` - ESP32 WiFi connection and MAC address validation with development bypass
+- `main/license/wifi-manager.ts` - Cross-platform WiFi management with macOS development bypass
+- `main/utils/environment.ts` - Environment detection for development vs production behavior
 - `renderer/pages/activate-key.tsx` - Modern step-by-step activation UI with Design System
 
 **Environment Configuration**:
+
 ```bash
 # Required in application .env file:
 SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS
 
+# Development vs Production behavior:
+NODE_ENV=development   # macOS development: enables WiFi bypass
+NODE_ENV=production    # Windows production: full WiFi functionality
+
 # Optional ESP32 configuration:
-ESP32_DEFAULT_IP=192.168.4.1
-LICENSE_FILE_PATH=license.lic
+SMC_ESP32_DEFAULT_IP=192.168.4.1
+SMC_LICENSE_FILE_PATH=license.lic
 ```
 
 **Integration Commands**:
+
 ```bash
 # Setup application environment:
 smc-license show-key >> .env
 cp license.lic /path/to/app/
 
-# Test activation workflow:
-npm run dev  # App auto-redirects to /activate-key if not activated
+# Development testing (macOS with WiFi bypass):
+NODE_ENV=development npm run dev  # Bypasses WiFi connection automatically
+
+# Production testing (Windows with full WiFi):
+NODE_ENV=production npm run dev   # Full ESP32 WiFi connection and validation
 ```
+
+## ESP32 Configuration & Deployment System
+
+**Location**: `smc-key-temp/` directory
+
+**Purpose**: ESP32-based hardware configuration system for SMC License CLI integration. Provides REST API server for hardware binding, MAC address retrieval, and environmental monitoring.
+
+### ESP32 Hardware Integration
+
+#### ESP32 REST API Server Features
+
+- **WiFi Access Point**: "ESP32_AP" with password "password123"
+- **API Endpoints**:
+  - `/mac` - Returns ESP32 MAC address for license binding
+  - `/health` - Server status and hardware information
+  - `/temp` - Environmental monitoring (temperature/humidity via DHT22)
+- **Medical Device Compliance**: Environmental monitoring for medication storage standards
+
+#### Development Commands
+
+```bash
+# Navigate to ESP32 project directory
+cd smc-key-temp/
+
+# PlatformIO Development
+pio run                          # Build ESP32 firmware
+pio run --target upload          # Upload firmware to ESP32
+pio device list                  # List available ESP32 devices
+pio device monitor              # Serial monitor for debugging
+```
+
+#### Hardware Configuration Workflow
+
+**1. ESP32 Setup:**
+
+```bash
+cd smc-key-temp/
+pio run --target upload         # Deploy firmware
+pio device monitor              # Verify ESP32 startup
+```
+
+**2. License Generation Integration:**
+
+```bash
+# Generate license with ESP32 MAC address binding
+smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" \
+  --wifi-ssid "SMC_ESP32_001" --wifi-password "SecurePass123!"
+
+# Test ESP32 connectivity
+smc-license test-esp32 --ip 192.168.4.1
+```
+
+**3. Application Integration:**
+
+```bash
+# Application automatically connects to ESP32 during license activation
+# MAC address retrieved from http://192.168.4.1/mac
+# Environmental data from http://192.168.4.1/temp
+```
+
+### ESP32 Project Structure
+
+```
+smc-key-temp/
+├── platformio.ini              # PlatformIO configuration
+├── src/main.cpp                # ESP32 firmware (WiFi AP + REST API)
+├── docs/DHT22.md              # Hardware sensor integration guide
+└── lib/                        # ESP32 libraries (auto-managed)
+```
+
+### ESP32 API Specification
+
+**GET /mac Response:**
+
+```json
+{
+  "mac_address": "24:6F:28:A0:12:34"
+}
+```
+
+**GET /health Response:**
+
+```json
+{
+  "server": {
+    "status": "healthy",
+    "uptime_ms": 123456,
+    "connected_clients": 1
+  },
+  "info": {
+    "device": "ESP32",
+    "mac_address": "24:6F:28:A0:12:34",
+    "ap_ip": "192.168.4.1",
+    "ap_ssid": "ESP32_AP"
+  }
+}
+```
+
+**GET /temp Response:**
+
+```json
+{
+  "sensor": "DHT22",
+  "temperature_c": 25.42,
+  "humidity_percent": 65.3,
+  "timestamp": 123456789
+}
+```
+
+### Hardware Requirements
+
+**ESP32 Development Board**:
+
+- WiFi capability for license communication
+- GPIO pins for sensor integration
+- USB connection for firmware upload
+
+**Optional DHT22 Sensor**:
+
+- Temperature and humidity monitoring
+- Medical device environmental compliance
+- GPIO 4 connection (configurable)
+
+### Production Deployment Considerations
+
+**ESP32 Configuration Management**:
+
+- WiFi credentials embedded in firmware
+- MAC address binding for security
+- Environmental thresholds for medical compliance
+- Automated license verification workflow
+
+**Development vs Production**:
+
+- Development: Mock ESP32 responses for testing
+- Production: Real ESP32 hardware with license binding
+- Cross-platform: Windows/macOS development support
+
+### Future UI Development
+
+**ESP32 Configuration Interface** (Planned):
+
+- Auto-detect ESP32 devices
+- Firmware upload interface
+- Configuration template management
+- Real-time monitoring dashboard
 
 \*\*Important Document Resources
 
 - Project Architecture documentation files : /docs/system-architecture
 - CLI Tool Documentation: `cli/README.md`
+- ESP32 Hardware Guide: `smc-key-temp/docs/DHT22.md`

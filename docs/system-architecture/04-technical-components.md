@@ -1044,4 +1044,269 @@ await logDispensing({
 2. **Documentation**: System documentation and comments
 3. **Development Tools**: Build and deployment scripts
 
-This technical component analysis provides the comprehensive understanding needed for safe refactoring of the Smart Medication Cart system while preserving medical device functionality, security, and compliance requirements.
+## ESP32 Configuration & Management System
+
+### ESP32 Integration Architecture
+**Location**: `smc-key-temp/` directory  
+**Purpose**: Hardware provisioning and environmental monitoring for SMC License CLI integration  
+**Technology Stack**: PlatformIO + ESP32 Arduino Framework + REST API
+
+### ESP32 Project Structure Analysis
+```
+smc-key-temp/
+├── platformio.ini              # PlatformIO project configuration
+├── src/main.cpp                # ESP32 firmware (WiFi AP + REST API server)
+├── docs/DHT22.md              # DHT22 sensor integration documentation  
+└── lib/                        # Auto-managed ESP32 libraries
+```
+
+### Core ESP32 Components
+
+#### 1. WiFi Access Point Management
+**Implementation**: ESP32 creates secure WiFi network for configuration
+```cpp
+// WiFi AP Configuration (from main.cpp)
+const char* ssid = "ESP32_AP";
+const char* password = "password123";
+IPAddress local_ip(192, 168, 4, 1);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
+
+// Medical device network isolation
+WiFi.mode(WIFI_AP);
+WiFi.softAPConfig(local_ip, gateway, subnet);
+WiFi.softAP(ssid, password);
+```
+
+#### 2. REST API Server Architecture
+**Framework**: ESPAsyncWebServer for non-blocking HTTP handling  
+**Medical Compliance**: CORS enabled for secure cross-origin communication
+
+**API Endpoints Implementation**:
+```cpp
+// MAC Address Retrieval (License Binding)
+server.on("/mac", HTTP_GET, [](AsyncWebServerRequest *request){
+  String macAddress = WiFi.macAddress();
+  JsonDocument doc;
+  doc["mac_address"] = macAddress;
+  String jsonString;
+  serializeJson(doc, jsonString);
+  request->send(200, "application/json", jsonString);
+});
+
+// Health Monitoring (System Status)
+server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
+  JsonDocument doc;
+  doc["server"]["status"] = "healthy";
+  doc["server"]["uptime_ms"] = millis();
+  doc["server"]["connected_clients"] = WiFi.softAPgetStationNum();
+  doc["info"]["device"] = "ESP32";
+  doc["info"]["mac_address"] = WiFi.macAddress();
+  doc["info"]["ap_ip"] = WiFi.softAPIP().toString();
+  doc["info"]["ap_ssid"] = ssid;
+  // JSON serialization and response
+});
+
+// Environmental Monitoring (Medical Compliance)
+server.on("/temp", HTTP_GET, [](AsyncWebServerRequest *request){
+  float temperature = getMockTemperature(); // Real DHT22 integration available
+  JsonDocument doc;
+  doc["sensor"] = "mock";  // "DHT22" when real sensor connected
+  doc["temperature_c"] = temperature;
+  doc["timestamp"] = millis();
+  // Optional: doc["humidity_percent"] = humidity; (DHT22)
+});
+```
+
+#### 3. Environmental Monitoring Integration
+**Hardware**: DHT22 Temperature/Humidity Sensor (Optional)  
+**Medical Purpose**: Medication storage environmental compliance  
+**Implementation Status**: Template code available in `docs/DHT22.md`
+
+**DHT22 Integration Pattern**:
+```cpp
+#include <DHT.h>
+#include <DHT_U.h>
+
+#define DHTPIN 4        // GPIO pin for sensor data
+#define DHTTYPE DHT22   // DHT 22 (AM2302)
+
+DHT_Unified dht(DHTPIN, DHTTYPE);
+
+// Real sensor data retrieval
+sensors_event_t event;
+dht.temperature().getEvent(&event);
+if (!isnan(event.temperature)) {
+  temperature = event.temperature;
+  // Medical compliance: Log temperature for audit trail
+}
+```
+
+### ESP32 Development Workflow Integration
+
+#### PlatformIO Build System
+**Configuration File**: `platformio.ini`
+```ini
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+monitor_speed = 115200
+lib_deps = 
+    mathieucarbou/ESP Async WebServer@^3.0.6
+    bblanchon/ArduinoJson@^7.4.2
+```
+
+**Build Commands Integration**:
+```bash
+# Navigate to ESP32 project
+cd smc-key-temp/
+
+# Development workflow
+pio run                    # Build firmware
+pio run --target upload    # Deploy to ESP32 hardware
+pio device list           # Detect ESP32 devices
+pio device monitor        # Serial debugging output
+```
+
+#### Template-Based Configuration System (Future Enhancement)
+**Purpose**: Dynamic ESP32 firmware generation for different deployments  
+**Architecture**: Template engine for `main.cpp` generation
+
+**Configuration Template Pattern**:
+```typescript
+interface ESP32Config {
+  wifiSSID: string;
+  wifiPassword: string;
+  deviceIP: string;
+  dht22Enabled: boolean;
+  dht22Pin: number;
+  temperatureThreshold: number;
+  humidityThreshold: number;
+}
+
+// Template generation for custom deployments
+export const generateESP32Firmware = (config: ESP32Config): string => {
+  return `
+    const char* ssid = "${config.wifiSSID}";
+    const char* password = "${config.wifiPassword}";
+    IPAddress local_ip(${config.deviceIP.split('.').join(', ')});
+    ${config.dht22Enabled ? `#define DHTPIN ${config.dht22Pin}` : '// DHT22 disabled'}
+    // Generated firmware template
+  `;
+};
+```
+
+### ESP32 License CLI Integration Workflow
+
+#### Hardware Binding Process
+```
+1. ESP32 boots → Creates WiFi AP "ESP32_AP"
+2. CLI connects → HTTP GET /mac
+3. MAC retrieved → License generation with binding
+4. License stored → Application activation with ESP32 verification
+5. Ongoing monitoring → Environmental data via /temp endpoint
+```
+
+#### Cross-Platform Development Support
+**Development Mode**: Mock ESP32 responses for testing
+```typescript
+// Development bypass (from SMC License CLI)
+if (process.env.NODE_ENV === 'development') {
+  return {
+    mac_address: "DEV:TEST:MAC:ADDR",  // Mock MAC for testing
+    server: { status: "healthy" },
+    temperature_c: 25.0
+  };
+}
+```
+
+**Production Mode**: Real ESP32 HTTP communication
+```typescript
+// Production ESP32 communication
+const response = await fetch('http://192.168.4.1/mac');
+const macData = await response.json();
+// Real MAC address binding for license security
+```
+
+### Medical Device Compliance Features
+
+#### Environmental Monitoring Standards
+- **Temperature Range**: Configurable thresholds for medication storage
+- **Humidity Control**: Medical facility compliance tracking
+- **Data Logging**: Integration with SMC audit trail system
+- **Alert System**: Threshold violation notifications
+
+#### Security Considerations
+- **Network Isolation**: ESP32 creates isolated WiFi network
+- **MAC Address Binding**: Hardware-based license security
+- **CORS Configuration**: Secure cross-origin communication
+- **Input Validation**: JSON response sanitization
+
+### Future ESP32 UI Development Architecture
+
+#### Planned ESP32 Configuration Interface
+**Location**: Future development in `/renderer/pages/esp32-config.tsx`  
+**Purpose**: Automated ESP32 firmware deployment and management
+
+**Component Architecture**:
+```typescript
+interface ESP32ConfigPageProps {
+  devices: ESP32Device[];        // Detected ESP32 devices
+  templates: FirmwareTemplate[]; // Configuration templates
+  deploymentStatus: DeploymentStatus;
+}
+
+// Planned components
+export const ESP32DeviceList: React.FC = () => {
+  // Auto-detect ESP32 devices via serial port scanning
+};
+
+export const FirmwareBuilder: React.FC = () => {
+  // Template-based firmware configuration UI
+};
+
+export const DeploymentManager: React.FC = () => {
+  // PlatformIO integration for automated deployment
+};
+```
+
+#### IPC Integration for ESP32 Management
+**Planned IPC Handlers**:
+```typescript
+// ESP32 device detection
+ipcMain.handle('esp32:detect-devices', async () => {
+  // Serial port scanning for ESP32 boards
+});
+
+// Firmware build and upload
+ipcMain.handle('esp32:deploy-firmware', async (event, config) => {
+  // PlatformIO CLI integration
+  // Template generation → Build → Upload workflow
+});
+
+// ESP32 monitoring
+ipcMain.handle('esp32:get-status', async (event, deviceIP) => {
+  // HTTP requests to ESP32 REST API
+});
+```
+
+### Risk Assessment for ESP32 Integration
+
+#### Low-Risk Components
+1. **ESP32 REST API**: Standard HTTP endpoints with JSON responses
+2. **PlatformIO Integration**: Established embedded development workflow
+3. **Template System**: Code generation with validation
+4. **Development Tooling**: Build automation and device detection
+
+#### Medium-Risk Components  
+1. **Hardware Communication**: Serial port management and device detection
+2. **Firmware Deployment**: Automated upload with error handling
+3. **Network Configuration**: WiFi management across platforms
+
+#### High-Risk Components
+1. **License Integration**: ESP32 MAC address binding security
+2. **Environmental Monitoring**: Medical compliance data integrity
+3. **Production Deployment**: Real hardware dependency management
+
+This technical component analysis provides the comprehensive understanding needed for safe refactoring of the Smart Medication Cart system while preserving medical device functionality, security, and compliance requirements, now enhanced with ESP32 configuration and deployment capabilities.

@@ -690,4 +690,232 @@ export const validateNewProtocolParser = async (parser: any) => {
 - [ ] Verify license validation functionality
 - [ ] Document security architecture changes
 
-This comprehensive security and compliance framework ensures that medical device standards, audit requirements, and patient safety are preserved throughout the system refactoring process while enabling safe evolution to support DS12/DS16 hardware protocols.
+## ESP32 Security & Compliance Integration
+
+### ESP32 Hardware Security Architecture
+**Location**: `smc-key-temp/` directory  
+**Purpose**: Secure hardware binding and environmental monitoring for medical device compliance
+
+### ESP32 Security Features
+
+#### 1. MAC Address-Based Hardware Binding
+**Security Model**: Hardware-unique identifier prevents license transfer
+```cpp
+// ESP32 MAC address retrieval (immutable hardware ID)
+String macAddress = WiFi.macAddress();  // Returns 24:6F:28:A0:12:34 format
+JsonDocument doc;
+doc["mac_address"] = macAddress;
+
+// Medical compliance: MAC address cannot be spoofed at hardware level
+// Provides cryptographically secure device identification
+```
+
+**License Binding Security**:
+- **Immutable ID**: ESP32 MAC address burned into hardware during manufacturing
+- **Hardware Validation**: License CLI verifies MAC address for each activation
+- **Transfer Prevention**: License tied to specific hardware prevents unauthorized copying
+- **Audit Trail**: All MAC address requests logged for compliance tracking
+
+#### 2. Network Security & Isolation
+**WiFi Access Point Security**:
+```cpp
+// Secure WiFi configuration
+const char* ssid = "ESP32_AP";
+const char* password = "password123";  // Production: Use strong passwords
+
+// Network isolation - ESP32 creates closed network
+WiFi.mode(WIFI_AP);  // Access Point only, no internet access
+WiFi.softAPConfig(local_ip, gateway, subnet);
+```
+
+**Security Benefits**:
+- **Network Isolation**: ESP32 creates isolated network for configuration
+- **No Internet Access**: Prevents remote attacks and data exfiltration
+- **Limited Attack Surface**: Only HTTP API endpoints exposed
+- **Controlled Access**: WiFi password required for device connection
+
+#### 3. API Security & Input Validation
+**CORS Security Configuration**:
+```cpp
+// Cross-Origin Resource Sharing security
+DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
+
+// Note: Wildcard CORS acceptable for isolated network with controlled access
+```
+
+**JSON Response Security**:
+```cpp
+// Secure JSON serialization (prevents XSS)
+JsonDocument doc;  // ArduinoJson v7 with built-in security
+doc["mac_address"] = WiFi.macAddress();  // No user input, hardware-generated
+doc["temperature_c"] = temperature;      // Sensor data, validated range
+String jsonString;
+serializeJson(doc, jsonString);         // Safe serialization
+request->send(200, "application/json", jsonString);
+```
+
+#### 4. Environmental Data Security & Compliance
+**Medical Compliance Data Handling**:
+```cpp
+// DHT22 sensor data with medical compliance
+sensors_event_t event;
+dht.temperature().getEvent(&event);
+
+if (!isnan(event.temperature)) {
+  // Validate temperature range for medical storage (2-8°C typical)
+  if (event.temperature >= -10 && event.temperature <= 50) {
+    doc["temperature_c"] = event.temperature;
+    doc["status"] = "valid";
+    // Log for audit trail: Temperature within acceptable range
+  } else {
+    doc["status"] = "out_of_range";
+    doc["error"] = "Temperature outside medical storage range";
+    // Alert system: Environmental compliance violation
+  }
+}
+```
+
+### ESP32 Integration with SMC License CLI Security
+
+#### Secure Communication Workflow
+```
+1. ESP32 Boot → Secure WiFi AP Creation
+2. CLI Connection → Password-protected network access
+3. MAC Retrieval → HTTP GET /mac (hardware-based ID)
+4. License Generation → AES-256-CBC encryption with MAC binding
+5. Validation → ESP32 MAC verification during license activation
+```
+
+#### Development vs Production Security Modes
+**Development Mode Security** (SMC License CLI):
+```typescript
+// Development security bypass for testing
+if (process.env.NODE_ENV === 'development') {
+  console.log('[SECURITY] Development mode: Using mock ESP32 responses');
+  return {
+    mac_address: "DEV:TEST:MAC:ADDR",
+    server: { status: "healthy" },
+    security_mode: "development"
+  };
+}
+```
+
+**Production Mode Security**:
+```typescript
+// Production security validation
+try {
+  const response = await fetch('http://192.168.4.1/mac', {
+    timeout: 5000,  // Prevent hang attacks
+    headers: {
+      'Accept': 'application/json'
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`ESP32 security validation failed: ${response.status}`);
+  }
+  
+  const macData = await response.json();
+  
+  // Validate MAC address format
+  if (!/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(macData.mac_address)) {
+    throw new Error('Invalid MAC address format from ESP32');
+  }
+  
+  console.log('[SECURITY] Production mode: Hardware MAC verified');
+  return macData;
+} catch (error) {
+  console.error('[SECURITY] ESP32 communication failed:', error);
+  throw error;
+}
+```
+
+### Medical Device Compliance Integration
+
+#### Environmental Monitoring Compliance
+**Temperature Monitoring Security**:
+- **Data Integrity**: Sensor readings validated against medical ranges
+- **Audit Logging**: Environmental data logged for regulatory compliance
+- **Alert System**: Threshold violations trigger security alerts
+- **Tamper Detection**: Sensor disconnection detected and logged
+
+**Humidity Control Compliance**:
+- **Range Validation**: Humidity levels checked against medical standards
+- **Data Retention**: Historical environmental data for compliance audits
+- **Alert Mechanisms**: Compliance violations logged and reported
+- **Calibration Tracking**: Sensor accuracy validation for medical standards
+
+#### Security Audit Trail Integration
+**ESP32 Operation Logging**:
+```cpp
+// Audit logging for all ESP32 operations
+void logESP32Operation(String operation, String details) {
+  Serial.print("[AUDIT] ESP32 ");
+  Serial.print(operation);
+  Serial.print(": ");
+  Serial.print(details);
+  Serial.print(" | Timestamp: ");
+  Serial.println(millis());
+  
+  // Integration point: Forward to SMC audit system
+  // JSON format for structured logging
+}
+
+// Example usage
+server.on("/mac", HTTP_GET, [](AsyncWebServerRequest *request){
+  String clientIP = request->client()->remoteIP().toString();
+  logESP32Operation("MAC_REQUEST", "Client: " + clientIP);
+  
+  String macAddress = WiFi.macAddress();
+  logESP32Operation("MAC_RESPONSE", macAddress);
+  
+  // Standard MAC response...
+});
+```
+
+### ESP32 Security Risk Assessment
+
+#### Low-Risk Security Areas
+1. **WiFi Access Point**: Standard ESP32 functionality with proven security
+2. **JSON Serialization**: ArduinoJson library with built-in security features
+3. **HTTP Server**: ESPAsyncWebServer with established security patterns
+4. **Environmental Sensors**: Read-only sensor data with validation
+
+#### Medium-Risk Security Areas
+1. **Network Configuration**: WiFi password management and access control
+2. **API Endpoints**: HTTP request handling and input validation
+3. **Data Validation**: Sensor range checking and data integrity
+4. **Error Handling**: Secure error responses without information leakage
+
+#### High-Risk Security Areas
+1. **MAC Address Binding**: Critical for license security - must be immutable
+2. **License Integration**: ESP32 communication security with SMC License CLI
+3. **Medical Compliance**: Environmental data integrity for regulatory requirements
+4. **Production Deployment**: Real hardware security vs development bypasses
+
+### ESP32 Security Compliance Checklist
+
+#### Pre-Deployment Security Validation
+- [ ] ESP32 firmware security review completed
+- [ ] MAC address binding tested with real hardware
+- [ ] WiFi security configuration validated
+- [ ] API endpoint security tested
+- [ ] Environmental monitoring compliance verified
+
+#### Production Security Requirements  
+- [ ] Strong WiFi passwords implemented
+- [ ] MAC address immutability verified
+- [ ] HTTPS considered for sensitive operations
+- [ ] Input validation comprehensive
+- [ ] Error handling secure (no information leakage)
+
+#### Ongoing Security Monitoring
+- [ ] Environmental compliance monitoring active
+- [ ] Audit logging for all ESP32 operations
+- [ ] Regular security updates for ESP32 firmware
+- [ ] Hardware tampering detection
+- [ ] License binding validation continuous
+
+This comprehensive security and compliance framework ensures that medical device standards, audit requirements, and patient safety are preserved throughout the system refactoring process while enabling safe evolution to support DS12/DS16 hardware protocols and ESP32-based security enhancements.

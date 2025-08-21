@@ -49,12 +49,25 @@ This document provides comprehensive system understanding for safe refactoring o
 │ • Build-time Device Configuration                     │
 │ • ESP32 License Hardware (MAC address binding)        │
 └─────────────────────────────────────────────────────────┘
-                            │ HTTP/WiFi
+                            │ HTTP/WiFi + RS485/Serial
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│           ESP32 Configuration & Deployment System      │
+├─────────────────────────────────────────────────────────┤
+│ • ESP32 REST API Server (WiFi Access Point)           │
+│ • MAC Address Retrieval (/mac endpoint)               │
+│ • Environmental Monitoring (/temp, /health endpoints)  │
+│ • PlatformIO-based Firmware Management                │
+│ • Template-based Configuration System                 │
+│ • DHT22 Sensor Integration (Temperature/Humidity)     │
+└─────────────────────────────────────────────────────────┘
+                            │ CLI Integration
                             ▼
 ┌─────────────────────────────────────────────────────────┐
 │             SMC License CLI Tool (v1.0.0)              │
 ├─────────────────────────────────────────────────────────┤
 │ • ESP32 MAC Address Binding (Production Ready)         │
+│ • ESP32 HTTP Communication (test-esp32 command)       │
 │ • AES-256-CBC Encryption with Hardware Binding         │
 │ • License Generation & Validation                      │
 │ • Cross-platform TypeScript CLI                       │
@@ -225,6 +238,41 @@ const slots = generateSlotArray(config.slotCount);
 3. **Performance Optimization**: Medical device response time improvements
 4. **Extended Compliance**: Additional regulatory feature implementations
 5. **License Management Integration**: Seamless CLI tool integration for automated licensing workflows
+6. **ESP32 Configuration UI**: Automated firmware deployment and configuration management interface
+
+## ESP32 Configuration & Deployment System Integration
+
+### System Architecture Enhancement
+The ESP32 Configuration System extends the SMC architecture with hardware provisioning and environmental monitoring capabilities:
+
+```
+SMC Desktop App → ESP32 REST API → License CLI → Hardware Binding
+```
+
+### ESP32 Integration Features
+- **MAC Address Binding**: Automatic retrieval for license generation
+- **Environmental Monitoring**: Temperature and humidity tracking via DHT22 sensor
+- **Configuration Management**: PlatformIO-based firmware deployment
+- **WiFi Communication**: Access Point mode for secure configuration
+- **Medical Compliance**: Environmental thresholds for medication storage standards
+
+### ESP32 API Endpoints Integration
+```
+GET /mac → MAC address for license binding
+GET /health → Hardware status and connection info  
+GET /temp → Environmental data for medical compliance
+```
+
+### Production Deployment Workflow
+1. **Hardware Setup**: Deploy ESP32 firmware via PlatformIO
+2. **License Generation**: CLI tool retrieves MAC address for binding
+3. **Application Integration**: Automatic ESP32 connection during license activation
+4. **Environmental Monitoring**: Real-time temperature/humidity tracking
+
+### Development vs Production Modes
+- **Development**: Mock ESP32 responses for testing without hardware
+- **Production**: Real ESP32 hardware with license binding and environmental monitoring
+- **Cross-Platform**: Windows/macOS development with unified deployment
 
 ## SMC License CLI Tool Integration (Production Ready v1.0.0)
 
