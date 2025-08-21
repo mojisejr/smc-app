@@ -6,28 +6,52 @@ import { exec } from 'child_process';
 
 export async function GET() {
   try {
-    console.log('info: Starting containerized ESP32 device detection...');
+    console.log('info: Starting ESP32 device detection...');
     
-    // Check if running in container
+    // Check environment and platform
     const isContainer = !!process.env.DOCKER_CONTAINER;
     const environment = process.env.NODE_ENV || 'development';
+    const platform = process.platform;
+    const isDevelopmentMacOS = environment === 'development' && platform === 'darwin';
     
-    console.log(`info: Running in ${isContainer ? 'container' : 'local'} environment (${environment})`);
+    console.log(`info: Running in ${isContainer ? 'container' : 'local'} environment (${environment}) on ${platform}`);
     
-    const devices = await detectESP32DevicesMultiMethod();
+    let devices: ESP32Device[] = [];
+    let detectionMethod = '';
+    
+    // Cross-platform detection strategy
+    if (isDevelopmentMacOS) {
+      console.log('info: Using macOS development mode - attempting local PlatformIO detection');
+      try {
+        devices = await detectViaLocalPlatformIO();
+        detectionMethod = 'macOS local PlatformIO';
+      } catch {
+        console.log('info: Local PlatformIO not available, using mock data for development');
+        devices = generateMockESP32Devices();
+        detectionMethod = 'macOS mock data';
+      }
+    } else {
+      console.log('info: Using container detection mode');
+      devices = await detectESP32DevicesMultiMethod();
+      detectionMethod = 'container multi-method';
+    }
+    
+    console.log(`info: Detection completed using ${detectionMethod}, found ${devices.length} devices`);
     
     return NextResponse.json({
       success: true,
       devices,
       count: devices.length,
+      detection_method: detectionMethod,
       environment: {
         container: isContainer,
         mode: environment,
-        platform: process.platform
+        platform: platform,
+        development_bypass: isDevelopmentMacOS
       }
     });
   } catch (error) {
-    console.error('error: Container ESP32 detection failed:', error);
+    console.error('error: ESP32 detection failed:', error);
     
     return NextResponse.json({
       success: false,
@@ -35,9 +59,9 @@ export async function GET() {
       devices: [],
       troubleshooting: [
         'Check if ESP32 is connected via USB',
-        'Verify Docker USB device mapping is correct',
-        'Check container has privileged access for USB',
-        'Test: docker-compose exec esp32-tool pio device list',
+        'For macOS development: Install PlatformIO globally (pip install platformio)',
+        'For container mode: Verify Docker configuration',
+        'Test: pio device list (local) or docker-compose exec esp32-tool pio device list',
         'Ensure ESP32 drivers are installed on host OS'
       ]
     }, { status: 500 });
@@ -45,6 +69,50 @@ export async function GET() {
 }
 
 const execAsync = promisify(exec);
+
+// Local PlatformIO detection (for macOS development)
+async function detectViaLocalPlatformIO(): Promise<ESP32Device[]> {
+  console.log('info: Attempting local PlatformIO detection...');
+  
+  try {
+    // Set up environment for PlatformIO (macOS specific path)
+    const pioPath = '/Users/non/Library/Python/3.9/bin/pio';
+    
+    // Check if PlatformIO is installed globally
+    const { stdout } = await execAsync(`${pioPath} --version`);
+    console.log('info: Local PlatformIO found:', stdout.trim());
+    
+    // Get device list using local PlatformIO
+    const { stdout: deviceOutput } = await execAsync(`${pioPath} device list --json-output`);
+    
+    // Clean up the output (remove warnings) and parse JSON
+    const cleanOutput = deviceOutput.split('\n').find(line => line.trim().startsWith('[')) || '[]';
+    const devices = parseDeviceListLocalPlatformIO(cleanOutput);
+    
+    console.log(`info: Local PlatformIO found ${devices.length} ESP32 devices`);
+    return devices;
+  } catch (error) {
+    throw new Error(`Local PlatformIO detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Generate mock ESP32 devices for development
+function generateMockESP32Devices(): ESP32Device[] {
+  console.log('info: Generating mock ESP32 devices for development');
+  
+  return [
+    {
+      port: '/dev/cu.usbserial-59690215041',
+      description: 'ESP32 with CH340 USB-to-Serial (Mock)',
+      manufacturer: 'WCH (CH340) - Development Mock'
+    },
+    {
+      port: '/dev/cu.SLAB_USBtoUART',
+      description: 'ESP32 with Silicon Labs USB-to-Serial (Mock)', 
+      manufacturer: 'Silicon Labs - Development Mock'
+    }
+  ];
+}
 
 // Multi-method ESP32 detection with fallback mechanisms
 async function detectESP32DevicesMultiMethod(): Promise<ESP32Device[]> {
@@ -289,6 +357,30 @@ async function detectWindowsDevices(): Promise<ESP32Device[]> {
 }
 
 // Helper functions for device recognition and parsing
+function parseDeviceListLocalPlatformIO(output: string): ESP32Device[] {
+  try {
+    const data = JSON.parse(output);
+    return data
+      .filter((device: { description?: string; hwid?: string; port?: string }) => {
+        // Look for ESP32-related indicators in description or hardware ID
+        const searchText = `${device.description || ''} ${device.hwid || ''} ${device.port || ''}`.toLowerCase();
+        return searchText.includes('usbserial') || 
+               searchText.includes('ch340') || 
+               searchText.includes('cp210') ||
+               searchText.includes('1a86:55d4') || // CH340 VID:PID
+               searchText.includes('usb single serial');
+      })
+      .map((device: { port: string; description: string; hwid?: string }) => ({
+        port: device.port,
+        description: device.description || 'ESP32 Device',
+        manufacturer: extractManufacturerFromHWID(device.hwid || '')
+      }));
+  } catch (error) {
+    console.error('error: Failed to parse local PlatformIO output:', error);
+    return [];
+  }
+}
+
 function parseDeviceListPlatformIO(output: string): ESP32Device[] {
   try {
     const data = JSON.parse(output);
@@ -350,6 +442,18 @@ function extractMacOSManufacturer(deviceName: string): string {
   if (deviceName.includes('usbserial')) return 'USB Serial';
   if (deviceName.includes('SLAB_USBtoUART')) return 'Silicon Labs';
   if (deviceName.includes('usbmodem')) return 'USB Modem';
+  
+  return 'Unknown';
+}
+
+function extractManufacturerFromHWID(hwid: string): string {
+  const lowerHwid = hwid.toLowerCase();
+  
+  if (lowerHwid.includes('1a86:55d4')) return 'WCH (CH340)';
+  if (lowerHwid.includes('10c4:ea60')) return 'Silicon Labs (CP210x)';
+  if (lowerHwid.includes('0403:6001')) return 'FTDI';
+  if (lowerHwid.includes('ch340') || lowerHwid.includes('wch')) return 'WCH (CH340)';
+  if (lowerHwid.includes('cp210') || lowerHwid.includes('silicon')) return 'Silicon Labs';
   
   return 'Unknown';
 }

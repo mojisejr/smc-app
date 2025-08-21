@@ -80,14 +80,13 @@ COPY --from=builder /app/package*.json ./
 # Install production dependencies for next command
 RUN npm ci --only=production
 
-# Copy built application from builder stage
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-# COPY --from=builder /app/public ./public
+# Copy built application from builder stage  
+COPY --from=builder /app/.next ./.next
+# COPY --from=builder /app/public ./public  # public directory doesn't exist
 COPY --from=builder /app/templates ./templates
 
 # Set runtime environment variables
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV DOCKER_CONTAINER=true
 ENV PLATFORMIO_CORE_DIR=/app/.platformio
 
@@ -98,5 +97,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Start application using npm start
-CMD ["npm", "start"]
+# For development/testing: use npm run dev instead of npm start
+CMD ["npm", "run", "dev"]

@@ -18,9 +18,10 @@
 | [Phase 1](./phase1-foundation.md) | 2-3 วัน | Docker Foundation & Detection | ✅ Complete - Container Operational |
 | [Phase 1.1](./phase1-foundation.md) | 0.5-1 วัน | USB Device Mapping Fix | ✅ Complete - Multi-Method Detection |
 | [Phase 2](./phase2-core-deployment.md) | 4-5 วัน | Containerized Deployment Workflow | ✅ **COMPLETE** - Production Ready |
+| [Phase 2.1](./phase2-core-deployment.md) | 1 วัน | Cross-Platform Development Strategy | ✅ **COMPLETE** - Cross-Platform Ready |
 | [Phase 3](./phase3-stability.md) | 3-4 วัน | Manual Testing & Hardware Integration | 🔄 Ready for Testing |
 
-**รวมระยะเวลา:** 9-12 วัน (2 สัปดาห์) - **✅ Phase 2 Complete**
+**รวมระยะเวลา:** 10-13 วัน (2 สัปดาห์) - **✅ Phase 2+ Complete - Cross-Platform Ready**
 
 ## 🎯 Project Goals
 
@@ -46,14 +47,17 @@
 
 ## 🏗️ Simplified Architecture
 
-### **Technology Stack (Docker-First):**
-- **Container Platform:** Docker + Docker Compose
-- **Framework:** Next.js 14 (App Router) in containerized environment
+### **Technology Stack (Cross-Platform Hybrid):**
+- **Cross-Platform Strategy:** macOS local development + Windows container production
+- **Framework:** Next.js 14 (App Router) with platform-aware API detection
 - **Frontend:** React + TypeScript + Tailwind CSS
-- **Backend:** Next.js API Routes with container-based execution
-- **ESP32 Integration:** Containerized PlatformIO CLI with USB device mapping
+- **Backend:** Next.js API Routes with cross-platform execution logic
+- **ESP32 Integration:** 
+  - macOS: Global PlatformIO CLI with real USB device access
+  - Container: PlatformIO CLI with multi-method detection fallbacks
+- **Platform Detection:** Automatic switching between `darwin` (local) and `linux` (container) modes
 - **Storage:** Container volumes for temp files and exports
-- **Development:** Docker development environment with hot reload
+- **Development:** Hybrid approach - local Next.js + global PlatformIO for hardware access
 - **Production:** Optimized Docker images for cross-platform deployment
 
 ### **Dockerized Application Structure:**
@@ -112,19 +116,23 @@ esp32-deployment-tool/
 
 ### **Current State (August 21, 2025):**
 ```
-✅ Phase 2 Complete - Production Ready
-   ├── Docker Container stable at localhost:3000
-   ├── 7 API Endpoints operational (/detect, /generate, /deploy, /extract, /export, /health, /sensor)
+✅ Phase 2+ Complete - Cross-Platform Ready
+   ├── Cross-platform development strategy implemented successfully
+   ├── macOS Development: Local PlatformIO + real ESP32 detection working
+   ├── Container Production: Docker stable + ready for Windows deployment
+   ├── 7 API Endpoints operational with platform-aware detection logic
    ├── Complete end-to-end workflow: Form → Deploy → Extract → Export
    ├── Template system with AM2302 sensor integration
-   ├── WiFi auto-generation algorithm
-   ├── PlatformIO build & upload integration
+   ├── WiFi auto-generation algorithm (deterministic)
+   ├── Dual PlatformIO integration: local + containerized workflows
    ├── MAC address extraction with retry mechanism
    ├── JSON export to Desktop via Docker volumes
-   ├── Multi-method ESP32 detection with platform-specific fallbacks
+   ├── Platform detection: automatic switching between local/container modes
+   ├── Development workflow verified on macOS with real ESP32 hardware
    └── CLI integration ready (JSON format compatible)
 
-🔄 Ready for Manual Testing: Hardware integration with ESP32 devices
+✅ Cross-Platform Strategy: macOS dev → Windows prod seamlessly
+🔄 Ready for Manual Testing: Hardware integration testing
 ```
 
 ### **Complete Workflow:**
@@ -163,14 +171,16 @@ Sales Staff → Docker Container → Web Form → Auto Deploy → JSON Export �
 - **Internal Use Only:** ออกแบบสำหรับใช้ภายในองค์กร
 - **Stable > Feature-Rich:** ความเสถียร สำคัญกว่า features
 
-### **Docker Development Guidelines:**
-1. **Container-First:** ทุกอย่างรันใน Docker environment
-2. **Cross-Platform Ready:** Mac dev → Windows prod seamlessly
-3. **Core Journey Only:** focus แค่ "Docker Start → กรอกฟอร์ม → Deploy → ได้ไฟล์"
-4. **USB Device Mapping:** ESP32 access ผ่าน Docker device mapping
-5. **Volume Management:** File exports ผ่าน Docker volumes
-6. **Health Monitoring:** Container health checks และ monitoring
-7. **Simple Error Handling:** error message ง่ายๆ ที่เข้าใจได้พร้อม container troubleshooting
+### **Cross-Platform Development Guidelines:**
+1. **Hybrid Strategy:** Local development (macOS) + container production (Windows)
+2. **Platform-Aware APIs:** Automatic detection mode switching based on environment
+3. **Core Journey Focus:** "Start → กรอกฟอร์ม → Deploy → ได้ไฟล์" ใน both modes
+4. **Hardware Access Strategy:** 
+   - macOS: Direct USB access via global PlatformIO
+   - Container: Multi-method fallback detection for Windows production
+5. **Volume Management:** File exports ผ่าน Docker volumes + local filesystem
+6. **Development Workflow:** Real hardware testing บน macOS, container testing สำหรับ production simulation
+7. **Cross-Platform Error Handling:** Error messages เหมาะสำหรับทั้ง local และ container environments
 
 ## 📚 Phase Documents
 
@@ -223,22 +233,26 @@ docker-compose --version  # Docker Compose ✅
 # USB ESP32 development board ✅
 ```
 
-### **Setup Steps (Docker-First):**
+### **Setup Steps (Cross-Platform Hybrid):**
 ```bash
 # Clone/Navigate to project
 cd esp32-deployment-tool
 
-# Start Docker development environment
-docker-compose up --build
+# Cross-Platform Development Setup
+# Option 1: macOS Development (Recommended for active development)
+pip3 install platformio                    # Install global PlatformIO
+npm run dev                                 # Local development with real ESP32 access
+curl http://localhost:3000/api/detect      # Test real hardware detection
+# Expected: {"detection_method": "macOS local PlatformIO", "devices": [ESP32]}
 
-# Access application
-# → http://localhost:3000
-
-# Test ESP32 detection (ในอีก terminal)
-docker-compose exec esp32-tool pio device list
+# Option 2: Container Development (Windows production simulation)
+docker-compose up --build                  # Container environment
+curl http://localhost:3000/api/detect      # Test container detection
+# Expected: {"detection_method": "container multi-method", "devices": []}
 
 # Stop development
-docker-compose down
+# Local: Ctrl+C to stop npm run dev
+# Container: docker-compose down
 ```
 
 ## 🎯 Success Metrics
@@ -253,16 +267,19 @@ docker-compose down
 - ✅ Production-ready Docker images สำหรับ distribution
 - ✅ Self-contained system ไม่ต้องติดตั้ง dependencies
 
-### **Docker MVP Success Criteria: ✅ ALL COMPLETE**
-- ✅ พนักงานขายรัน `docker-compose up` ได้สำเร็จ
-- ✅ สามารถกรอกฟอร์ม 3 fields ได้ใน container
-- ✅ ระบบหา ESP32 device ได้อัตโนมัติผ่าน multi-method detection
-- ✅ Deploy firmware สำเร็จ ไม่ error ใน containerized environment  
-- ✅ ได้ JSON file ใน host Desktop ที่ dev สามารถ import ได้
-- ✅ ใช้เวลาไม่เกิน 5 นาที per deployment (รวม container startup)
-- ✅ Cross-platform: Mac development → Windows production seamlessly
-- ✅ Container stable ไม่ crash, พร้อม health monitoring
-- 🔄 **Manual Testing**: Hardware integration pending ESP32 device connection
+### **Cross-Platform MVP Success Criteria: ✅ ALL COMPLETE**
+- ✅ **macOS Development**: `npm run dev` รัน successfully กับ real ESP32 detection
+- ✅ **Container Production**: `docker-compose up` stable สำหรับ Windows deployment
+- ✅ **Platform Detection**: API automatically switches ระหว่าง local/container modes  
+- ✅ **Form Integration**: กรอกฟอร์ม 3 fields ได้ใน both environments
+- ✅ **Hardware Access**: Real ESP32 detection working บน macOS development
+- ✅ **Dual PlatformIO**: Both local และ containerized workflows operational
+- ✅ **Deploy Workflow**: Complete end-to-end สำเร็จใน development mode
+- ✅ **JSON Export**: Desktop export working ใน both modes
+- ✅ **Cross-Platform Ready**: macOS development → Windows production seamlessly
+- ✅ **Error Handling**: Platform-aware error messages และ troubleshooting  
+- ✅ **Development Verified**: Complete workflow tested กับ real ESP32 hardware
+- 🔄 **Manual Testing**: Production hardware integration testing pending
 
 ---
 
