@@ -41,6 +41,28 @@ npm run test:phase5           # Phase 5: Polish & Final Testing
 npm run test:all              # Run all phase tests sequentially
 ```
 
+### ESP32 Deployment Tool (Docker-Based)
+
+```bash
+# Navigate to deployment tool directory first: cd esp32-deployment-tool/
+
+# Docker Development (preferred)
+docker-compose up --build     # Start development server with PlatformIO (http://localhost:3000)
+docker-compose down           # Stop development server
+
+# Production Deployment (Windows/Mac)
+docker-compose -f docker-compose.prod.yml up -d    # Production deployment
+docker-compose -f docker-compose.prod.yml down     # Stop production
+
+# Hardware Testing (Docker-based)
+docker-compose exec esp32-tool pio device list     # Test ESP32 device detection
+docker-compose exec esp32-tool pio --version       # Verify PlatformIO installation
+
+# Legacy Local Development (if Docker unavailable)
+npm install && pip install platformio              # Manual setup
+npm run dev                                         # Local development server
+```
+
 ### Build
 
 ```bash
@@ -88,6 +110,7 @@ npm run test:dispensing-workflow       # Test complete dispensing workflow
 - **Configuration**: Build-time device configuration in `config/constants/BuildConstants.ts` with dynamic UI adaptation
 - **Design System**: `renderer/components/Shared/DesignSystem/` - Centralized component library with React Hook Form integration
 - **CLI Tool**: `cli/` - SMC License CLI for ESP32-based license generation and validation ✅ **PRODUCTION READY v1.0.0**
+- **ESP32 Deployment Tool**: `esp32-deployment-tool/` - Standalone Next.js 14 tool for ESP32 firmware deployment and customer configuration ✅ **PHASE 1 COMPLETE**
 
 ### Key Components
 
@@ -292,6 +315,7 @@ smc-app : หมายถึง SMC application หลักที่เรา�
 ds : หมายถึง hardware ที่เชื่อมต่อกับ smc-app ของเรา
 cli : หมายถึง key-gen cli
 esp32-temp : หมายถึง hardware code ที่ใช้ deploy web server ลงใน esp32 เพื่อทำเป็น temp - serial key สำหรับผูก smc-app กับ ds
+esp32-deployment-tool : หมายถึง standalone Next.js tool สำหรับ deploy firmware ลง ESP32 พร้อม customer configuration
 
 **When Working with Hardware Controllers** (Production Pattern):
 
@@ -526,6 +550,136 @@ NODE_ENV=development npm run dev  # Bypasses WiFi connection automatically
 # Production testing (Windows with full WiFi):
 NODE_ENV=production npm run dev   # Full ESP32 WiFi connection and validation
 ```
+
+## ESP32 Deployment Tool (✅ PHASE 2 COMPLETE - DOCKER READY)
+
+**Location**: `esp32-deployment-tool/` directory
+
+**Purpose**: Docker-containerized Next.js 14 application for deploying custom firmware to ESP32 devices with customer-specific configuration. Fully integrated with SMC License CLI and cross-platform hardware binding workflow.
+
+### Key Features (Phase 2 Complete)
+
+- **Docker-First Development**: Container-based development and production deployment
+- **Cross-Platform Ready**: Mac development → Windows production seamlessly
+- **Customer Input Form**: Thai language validation for organization, customer ID, and application name
+- **ESP32 Device Detection**: Containerized PlatformIO CLI integration via `/api/detect` endpoint
+- **Complete Deployment Workflow**: Firmware generation, build, upload, and MAC extraction
+- **JSON Export System**: Desktop file export for CLI integration
+- **Responsive UI**: Modern Next.js 14 + TypeScript + Tailwind CSS with mobile-first design
+- **State Management**: React hooks-based deployment workflow with real-time progress tracking
+- **Error Handling**: Comprehensive error messages and troubleshooting guidance
+- **Production Ready**: Docker Compose configurations for development and production
+
+### Technical Stack
+
+- **Container Platform**: Docker + Docker Compose for development and production
+- **Frontend**: Next.js 14 with App Router, React 18, TypeScript
+- **Styling**: Tailwind CSS with responsive design patterns
+- **Hardware Integration**: Containerized PlatformIO CLI for ESP32 device detection and communication
+- **API Layer**: Next.js API routes with proper error handling and retry mechanisms
+- **Development**: Hot reload, ESLint, TypeScript strict mode, and Docker development environment
+- **Production**: Optimized Docker images with health checks and cross-platform USB support
+
+### Project Structure
+
+```
+esp32-deployment-tool/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx          # Root layout with Thai language support
+│   │   ├── page.tsx           # Main application with integrated workflow
+│   │   └── api/detect/route.ts # ESP32 device detection API
+│   ├── components/
+│   │   ├── CustomerForm.tsx    # Customer input form with validation
+│   │   └── DeviceList.tsx      # ESP32 device selection interface
+│   └── types/
+│       └── index.ts           # TypeScript definitions for all interfaces
+├── package.json               # Next.js 14 dependencies and scripts
+└── README.md                  # Phase 1 documentation and testing guide
+```
+
+### Development Workflow
+
+1. **Customer Data Collection**: 3-field form with Thai validation (organization, customer ID, application name)
+2. **ESP32 Device Detection**: Auto-discover connected ESP32 devices via PlatformIO
+3. **Device Selection**: Visual interface for choosing target ESP32 device
+4. **Deployment Preparation**: State management for complete workflow setup
+5. **Ready for Phase 2**: Foundation established for firmware generation and upload
+
+### Phase Development Status
+
+- ✅ **Phase 1 Complete**: Foundation, form validation, device detection, UI integration
+- ✅ **Phase 2 Complete**: Docker-containerized template system, PlatformIO build/upload, MAC extraction, JSON export
+- ✅ **Production Ready**: Cross-platform Docker deployment, CLI integration, complete end-to-end workflow
+- 🔄 **Phase 3 Planned**: Enhanced error handling, UI polish, monitoring and optimization
+
+### Integration with SMC Ecosystem
+
+**CLI Tool Integration** (Planned Phase 2-3):
+```bash
+# Deployment tool generates JSON files for CLI consumption
+esp32-deployment-tool → customer-BGK001-2025-01-18.json → smc-license generate
+
+# Complete workflow
+cd esp32-deployment-tool && npm run dev  # Deploy firmware
+# → JSON file exported to Desktop
+cd ../cli && smc-license generate --import-json ~/Desktop/customer-BGK001-2025-01-18.json
+```
+
+**Hardware Integration**:
+- Uses `smc-key-temp/` ESP32 firmware templates for deployment
+- Generates customer-specific configuration files
+- Binds license data to ESP32 MAC addresses
+
+### Development Commands
+
+```bash
+# Docker Development (Recommended)
+cd esp32-deployment-tool/
+docker-compose up --build                           # Start development with all dependencies
+docker-compose exec esp32-tool pio device list     # Test ESP32 hardware detection
+curl http://localhost:3000/api/detect               # Test device detection API
+curl http://localhost:3000/api/health               # Check container health
+
+# Production Deployment
+docker-compose -f docker-compose.prod.yml up -d    # Deploy production container
+docker-compose -f docker-compose.prod.yml logs -f  # Monitor production logs
+
+# Legacy Development (if Docker unavailable)
+npm install && pip install platformio              # Manual dependency installation
+npm run dev                                         # Local development server
+```
+
+### Phase 2 Success Criteria (✅ Completed)
+
+**Functional Requirements**:
+- [x] Docker app รันได้: `docker-compose up --build` ทำงานโดยไม่มี error
+- [x] Customer form ทำงาน: กรอกข้อมูล 3 fields ได้ถูกต้อง
+- [x] Form validation: แสดง error message เมื่อข้อมูลไม่ถูกต้อง
+- [x] ESP32 detection: Container-based API endpoint สำหรับ detect ESP32 devices
+- [x] Device selection: เลือก ESP32 device ได้
+- [x] Complete deployment: Firmware generation, build, upload สำเร็จ
+- [x] MAC extraction: ดึง MAC address จาก deployed ESP32
+- [x] JSON export: สร้างไฟล์ customer data ลง Desktop
+- [x] CLI integration: JSON files พร้อมใช้งานกับ smc-license CLI
+
+**Docker & Production Requirements**:
+- [x] Container builds: Docker images สร้างได้โดยไม่มี error
+- [x] USB device access: ESP32 detection ใน container environment
+- [x] Cross-platform: Mac development + Windows production deployment
+- [x] Health monitoring: Container health checks ทำงานถูกต้อง
+- [x] Volume mapping: File exports และ temp directories
+
+**UI/UX Requirements**:
+- [x] Responsive design: ใช้งานได้ในหน้าจอขนาดต่างๆ
+- [x] Real-time progress: แสดงความคืบหน้า deployment แบบ real-time
+- [x] Error handling: แสดง error message ที่เข้าใจได้พร้อม troubleshooting
+- [x] Success feedback: แสดงผลลัพธ์การ deploy สำเร็จ
+
+**Technical Requirements**:
+- [x] TypeScript: ไม่มี type errors
+- [x] Containerized APIs: ทุก API routes ทำงานใน Docker environment
+- [x] PlatformIO integration: Container-based `pio` commands ใช้งานได้
 
 ## ESP32 Configuration & Deployment System
 

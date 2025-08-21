@@ -1,37 +1,48 @@
-# Phase 3: Error Handling & Stability
+# Phase 3: Docker Production & Stability
 
-**ระยะเวลา:** 2-3 วัน  
-**เป้าหมาย:** Error handling + UI polish + Production readiness
+**ระยะเวลา:** 3-4 วัน  
+**เป้าหมาย:** Docker production deployment + Error handling + Cross-platform stability
 
 ## 📖 Overview & Goals
 
 ### **วัตถุประสงค์:**
-- **Day 1:** Error handling & recovery mechanisms
-- **Day 2:** UI polish & user experience improvements  
-- **Day 3:** Production deployment setup + final testing
-- สร้าง stable, production-ready application
+- **Day 1:** Docker production optimization & container error handling
+- **Day 2:** Cross-platform deployment testing (Mac → Windows)
+- **Day 3:** UI polish & container monitoring integration
+- **Day 4:** Production Docker deployment + final cross-platform testing
+- สร้าง production-ready containerized application for cross-platform deployment
 
 ### **Deliverables:**
-- ✅ Comprehensive error handling
-- ✅ User-friendly error messages
-- ✅ UI polish & improvements
-- ✅ Production deployment setup
-- ✅ Complete testing & validation
+- ✅ Docker production images with optimized performance
+- ✅ Cross-platform deployment validation (Mac development → Windows production)
+- ✅ Container-aware error handling with troubleshooting guides
+- ✅ Production Docker Compose configurations
+- ✅ Container health monitoring & logging
+- ✅ UI polish with container status indicators
+- ✅ Complete cross-platform testing & validation
 
 ## 🔧 Technical Requirements
 
-### **Error Handling Targets:**
-- Network connectivity issues
-- PlatformIO execution failures
-- ESP32 communication timeouts
-- File system permission errors
-- Invalid user input scenarios
+### **Docker Production Targets:**
+- Container build optimization and multi-stage builds
+- Cross-platform Docker image compatibility (amd64/arm64)
+- USB device mapping reliability across host OS
+- Container-to-host file export validation
+- Production container security and permissions
+
+### **Container Error Handling:**
+- Docker daemon connectivity issues
+- Container USB device access failures
+- Container-to-ESP32 network communication errors
+- Volume mapping and file permission errors
+- Cross-platform container compatibility issues
 
 ### **Production Requirements:**
-- Docker container setup
-- Environment configuration
-- Logging system
-- Performance optimization
+- Optimized Docker production images
+- Cross-platform Docker Compose configurations
+- Container health checks and monitoring
+- Production logging and debugging
+- Windows deployment validation
 
 ## 📝 Implementation Steps
 
@@ -528,49 +539,52 @@ const handleNewDeployment = () => {
 };
 ```
 
-### **Step 3.3: Production Setup (Day 3)**
+### **Step 3.3: Docker Production Optimization (Day 3-4)**
 
-#### **Step 3.3a: Docker Configuration (60 นาที)**
+#### **Step 3.3a: Multi-Stage Production Dockerfile (90 นาที)**
 
 สร้าง `Dockerfile`:
 
 ```dockerfile
-# Production Dockerfile for ESP32 Deployment Tool
-FROM node:18-alpine
+# Multi-stage build for optimized production
+# Stage 1: Build stage
+FROM node:18-alpine AS builder
 
-# Install system dependencies
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+RUN npm run build
+
+# Stage 2: Production stage
+FROM node:18-alpine AS production
+
+# Install system dependencies + PlatformIO
 RUN apk add --no-cache \
-    python3 \
-    py3-pip \
-    build-base \
-    linux-headers \
-    udev
+    python3 py3-pip curl \
+    build-base linux-headers \
+    udev eudev-dev libusb-dev
 
-# Install PlatformIO
+# Install PlatformIO globally
 RUN pip3 install platformio
+
+# Create non-root user early
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy built application from builder stage
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy application code
-COPY . .
-
-# Build application
-RUN npm run build
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-
-# Create necessary directories
-RUN mkdir -p /app/temp /app/exports
-RUN chown -R nextjs:nodejs /app
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/temp /app/exports /app/.platformio && \
+    chown -R nextjs:nodejs /app
 
 # Switch to non-root user
 USER nextjs
@@ -578,42 +592,102 @@ USER nextjs
 # Expose port
 EXPOSE 3000
 
-# Health check
+# Enhanced health check for production
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3000/api/health || exit 1
+    CMD curl -f http://localhost:3000/api/health && \
+        pio --version > /dev/null || exit 1
 
-# Start application
+# Production start command
 CMD ["npm", "start"]
 ```
 
-สร้าง `docker-compose.yml`:
+สร้าง `docker-compose.prod.yml` (Production):
 
 ```yaml
 version: '3.8'
 
 services:
   esp32-deployment-tool:
-    build: .
+    build:
+      context: .
+      target: production
+    image: esp32-deployment-tool:production
+    container_name: esp32-deployment-prod
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Bangkok
+      - DOCKER_CONTAINER=true
+      - PLATFORMIO_CORE_DIR=/app/.platformio
     volumes:
-      - /dev:/dev
-      - ./exports:/app/exports
+      # Cross-platform USB device mapping
+      - /dev:/dev:rw
+      # Production exports to host Desktop
+      - ~/Desktop/esp32-exports:/app/exports:rw
+      # Optimized tmpfs for temp files
       - type: tmpfs
         target: /app/temp
         tmpfs:
-          size: 1G
+          size: 2G
+          mode: 1777
+    devices:
+      # Linux/Mac USB device mapping
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyUSB1:/dev/ttyUSB1
+      - /dev/ttyACM0:/dev/ttyACM0
     privileged: true
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+
+สร้าง `docker-compose.windows.yml` (Windows Production):
+
+```yaml
+version: '3.8'
+
+services:
+  esp32-deployment-tool:
+    build:
+      context: .
+      target: production
+    image: esp32-deployment-tool:production
+    container_name: esp32-deployment-windows
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Bangkok
+      - DOCKER_CONTAINER=true
+      - PLATFORMIO_CORE_DIR=/app/.platformio
+      - PLATFORM=windows
+    volumes:
+      # Windows-specific export path
+      - C:/Users/Public/Desktop/esp32-exports:/app/exports:rw
+      # Temp files
+      - type: tmpfs
+        target: /app/temp
+        tmpfs:
+          size: 2G
+    # Windows Docker Desktop handles USB differently
+    privileged: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
 ```
 
 #### **Step 3.3b: Environment Configuration (30 นาที)**
@@ -870,31 +944,43 @@ curl http://localhost:3000/api/health
 
 เมื่อ Phase 3 เสร็จเรียบร้อย จะได้:
 
-### **MVP Application ที่สมบูรณ์:**
-- ✅ **Customer Input Form** - กรอกข้อมูล 3 fields
-- ✅ **ESP32 Detection** - หา device อัตโนมัติ
-- ✅ **WiFi Auto-Generate** - สร้าง credentials
-- ✅ **Firmware Generation** - สร้างจาก template
-- ✅ **ESP32 Programming** - upload firmware
-- ✅ **MAC Address Extract** - ดึงข้อมูลจาก ESP32
-- ✅ **JSON Export** - สร้างไฟล์ให้ dev
+### **Docker Production Application ที่สมบูรณ์:**
+- ✅ **Container Customer Form** - กรอกข้อมูล 3 fields ใน containerized environment
+- ✅ **Container ESP32 Detection** - หา device ผ่าน Docker USB mapping
+- ✅ **Container WiFi Generation** - สร้าง credentials ใน container
+- ✅ **Container Firmware Generation** - สร้างจาก template ใน container
+- ✅ **Container ESP32 Programming** - upload firmware ผ่าน container USB mapping
+- ✅ **Container-to-ESP32 MAC Extract** - ดึง MAC จาก ESP32 via container network
+- ✅ **Container-to-Host Export** - สร้างไฟล์ลง host Desktop via volume mapping
 
-### **Production Features:**
-- ✅ **Error Handling** - จัดการ error ครบถ้วน
-- ✅ **User Experience** - UI ใช้งานง่าย
-- ✅ **Docker Deployment** - production ready
-- ✅ **Health Monitoring** - ตรวจสอบระบบ
-- ✅ **Performance Optimized** - รวดเร็วเสถียร
+### **Docker Production Features:**
+- ✅ **Container Error Handling** - Docker-aware error handling พร้อม troubleshooting
+- ✅ **Cross-Platform Ready** - Mac development → Windows production seamlessly
+- ✅ **Optimized Docker Images** - Multi-stage builds, reduced image size
+- ✅ **Production Monitoring** - Container health checks, logging, metrics
+- ✅ **USB Device Reliability** - Robust container-to-host USB device mapping
+- ✅ **Volume Management** - Reliable file export container → host filesystem
+- ✅ **Container Security** - Non-root user, minimal attack surface
 
-### **Ready for Internal Use:**
-🎯 **Core User Journey สำเร็จ: กรอกฟอร์ม → เสียบ ESP32 → กดปุ่ม → ได้ไฟล์**
+### **Ready for Cross-Platform Production Deployment:**
+🎯 **Docker Core Journey สำเร็จ: docker-compose up → กรอกฟอร์ม → เสียบ ESP32 → กดปุ่ม → ได้ไฟล์**
 
-พนักงานขายสามารถใช้งานได้ทันที!
+**Cross-Platform Deployment:**
+- ✅ **Mac Development:** `docker-compose up --build` for development
+- ✅ **Windows Production:** `docker-compose -f docker-compose.windows.yml up -d` for sales team
+- ✅ **Linux Server:** `docker-compose -f docker-compose.prod.yml up -d` for enterprise
+
+พนักงานขายสามารถ deploy ได้ทั่วโลกโดยไม่ต้องติดตั้ง dependencies!
 
 ---
 
-**Timeline Summary:**
-- **Phase 1 (3-4 วัน)**: Foundation & Detection
-- **Phase 2 (4-5 วัน)**: Core Deployment
-- **Phase 3 (2-3 วัน)**: Stability & Production
-- **Total: 9-12 วัน** ✅ **MVP Complete!**
+**Docker Timeline Summary:**
+- **Phase 1 (2-3 วัน)**: Docker Foundation & Detection
+- **Phase 2 (4-5 วัน)**: Containerized Deployment
+- **Phase 3 (3-4 วัน)**: Docker Production & Cross-Platform
+- **Total: 9-12 วัน** ✅ **Docker Production MVP Complete!**
+
+**พร้อมสำหรับ Cross-Platform Distribution:**
+- Mac developers: ใช้ docker-compose.yml สำหรับ development
+- Windows sales team: ใช้ docker-compose.windows.yml สำหรับ production
+- Enterprise deployment: ใช้ docker-compose.prod.yml สำหรับ server deployment

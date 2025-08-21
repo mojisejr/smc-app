@@ -1,114 +1,168 @@
-# Phase 1: Foundation & Form & Detection
+# Phase 1: Docker Foundation & Detection
 
-**ระยะเวลา:** 3-4 วัน  
-**เป้าหมาย:** Next.js setup + Customer form + ESP32 device detection
+**ระยะเวลา:** 2-3 วัน  
+**เป้าหมาย:** Docker containerized Next.js setup + Customer form + ESP32 device detection
 
 ## 📖 Overview & Goals
 
 ### **วัตถุประสงค์:**
-- **Day 1-2:** Setup Next.js 14 project พร้อม basic UI
-- **Day 3-4:** Customer input form + ESP32 detection system
-- สร้าง foundation ที่แข็งแรงสำหรับ Phase 2-3
+- **Day 1:** Docker containerized Next.js 14 setup พร้อม basic UI
+- **Day 2:** Customer input form + Docker-based ESP32 detection
+- **Day 3:** Docker Compose configuration + cross-platform testing
+- สร้าง containerized foundation ที่แข็งแรงสำหรับ Phase 2-3
 
 ### **Deliverables:**
-- ✅ Next.js 14 project พร้อม TypeScript + Tailwind
-- ✅ Single page application layout
-- ✅ Customer input form (3 fields เท่านั้น)
-- ✅ ESP32 device detection + selection
-- ✅ Basic UI components
+- ✅ Docker containerized Next.js 14 project พร้อม TypeScript + Tailwind
+- ✅ Docker Compose development environment
+- ✅ Single page application layout in container
+- ✅ Customer input form (3 fields เท่านั้น) with container validation
+- ✅ Container-based ESP32 device detection + selection with USB mapping
+- ✅ Basic UI components with Docker hot-reload support
 
 ## 🔧 Technical Requirements
 
-### **Software Dependencies:**
-```json
-{
-  "next": "14.x",
-  "react": "^18.x", 
-  "typescript": "^5.x",
-  "tailwindcss": "^3.x"
-}
+### **Docker Dependencies:**
+```yaml
+# docker-compose.yml
+services:
+  esp32-tool:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - /dev:/dev:rw  # USB device access
+    privileged: true  # Required for USB
+```
+
+```dockerfile
+# Dockerfile
+FROM node:18-alpine
+RUN apk add --no-cache python3 py3-pip
+RUN pip3 install platformio
 ```
 
 ### **Development Tools:**
-- Node.js v18+
-- PlatformIO Core (สำหรับ ESP32 detection)
+- Docker Desktop
+- Docker Compose
+- ESP32 USB drivers (host OS)
 
 ### **Hardware Requirements:**
 - ESP32 development board (สำหรับทดสอบ detection)
-- USB cable
+- USB cable with proper drivers on host OS
 
 ## 📝 Implementation Steps
 
-### **Step 1.1: Next.js Project Setup (Day 1 - 4 hours)**
+### **Step 1.1: Docker Next.js Setup (Day 1 - 4 hours)**
 
-#### **Step 1.1a: Create Project (30 นาที)**
+#### **Step 1.1a: Create Dockerized Project (45 นาที)**
 
 ```bash
-# Create Next.js 14 project
+# Create Next.js 14 project structure
 npx create-next-app@14 esp32-deployment-tool --typescript --tailwind --app
 cd esp32-deployment-tool
 
-# Install additional dependencies
-npm install
+# Create Docker configuration files
+touch Dockerfile docker-compose.yml docker-compose.prod.yml
 ```
 
-#### **Step 1.1b: Project Structure (30 นาที)**
+#### **Step 1.1b: Dockerized Project Structure (30 นาที)**
 
 ```
 esp32-deployment-tool/
-├── app/
-│   ├── page.tsx              # Main single page
-│   ├── layout.tsx            # Root layout
-│   └── api/
-│       └── detect/route.ts   # ESP32 detection API
-├── components/
-│   ├── CustomerForm.tsx      # Input form
-│   ├── DeviceList.tsx        # ESP32 devices
-│   └── ProgressBar.tsx       # Progress indicator
-├── lib/
-│   └── esp32.ts             # ESP32 utilities
-└── types/
-    └── index.ts             # TypeScript definitions
+├── Dockerfile                    # Container image definition
+├── docker-compose.yml            # Development environment
+├── docker-compose.prod.yml       # Production deployment
+├── .dockerignore                 # Docker ignore file
+├── src/
+│   ├── app/
+│   │   ├── page.tsx              # Main single page
+│   │   ├── layout.tsx            # Root layout
+│   │   └── api/
+│   │       ├── detect/route.ts   # ESP32 detection API (containerized)
+│   │       └── health/route.ts   # Container health check
+│   ├── components/
+│   │   ├── CustomerForm.tsx      # Input form
+│   │   ├── DeviceList.tsx        # ESP32 devices
+│   │   └── ProgressBar.tsx       # Progress indicator
+│   ├── lib/
+│   │   └── esp32.ts              # Container-based ESP32 utilities
+│   └── types/
+│       └── index.ts              # TypeScript definitions
+├── exports/                      # Volume mount for exports
+└── temp/                         # Volume mount for temp files
 ```
 
-#### **Step 1.1c: Basic Layout (60 นาที)**
+#### **Step 1.1c: Docker Configuration (90 นาที)**
 
-สร้าง `app/layout.tsx`:
+สร้าง `Dockerfile`:
 
-```typescript
-import './globals.css'
-import { Inter } from 'next/font/google'
+```dockerfile
+FROM node:18-alpine
 
-const inter = Inter({ subsets: ['latin'] })
+# Install system dependencies + PlatformIO
+RUN apk add --no-cache \
+    python3 py3-pip \
+    build-base linux-headers \
+    udev eudev-dev libusb-dev
 
-export const metadata = {
-  title: 'ESP32 Deployment Tool',
-  description: 'SMC Customer ESP32 Configuration Tool',
-}
+# Install PlatformIO
+RUN pip3 install platformio
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="th">
-      <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50">
-          <header className="bg-blue-600 text-white p-4">
-            <h1 className="text-xl font-bold">ESP32 Deployment Tool</h1>
-          </header>
-          <main className="container mx-auto p-6">
-            {children}
-          </main>
-        </div>
-      </body>
-    </html>
-  )
-}
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci
+
+# Copy application code
+COPY . .
+
+# Build application
+RUN npm run build
+
+# Expose port
+EXPOSE 3000
+
+# Start application
+CMD ["npm", "start"]
 ```
 
-### **Step 1.2: Customer Input Form (Day 2 - 4 hours)**
+สร้าง `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  esp32-tool:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # USB device access
+      - /dev:/dev:rw
+      # File exports to host Desktop
+      - ~/Desktop:/app/exports
+      # Temp files (tmpfs for performance)
+      - type: tmpfs
+        target: /app/temp
+        tmpfs:
+          size: 1G
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyUSB1:/dev/ttyUSB1
+    privileged: true
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### **Step 1.2: Container-based Customer Form (Day 2 - 4 hours)**
 
 #### **Step 1.2a: TypeScript Types (30 นาที)**
 
@@ -268,11 +322,11 @@ export default function CustomerForm({ onSubmit, disabled }: CustomerFormProps) 
 }
 ```
 
-### **Step 1.3: ESP32 Device Detection (Day 3 - 4 hours)**
+### **Step 1.3: Container ESP32 Detection (Day 2-3 - 4 hours)**
 
-#### **Step 1.3a: ESP32 Detection API (90 นาที)**
+#### **Step 1.3a: Container-based ESP32 Detection API (120 นาที)**
 
-สร้าง `app/api/detect/route.ts`:
+สร้าง `src/app/api/detect/route.ts`:
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
@@ -281,30 +335,46 @@ import { ESP32Device } from '@/types';
 
 export async function GET() {
   try {
-    console.log('info: Starting ESP32 device detection...');
+    console.log('info: Starting containerized ESP32 device detection...');
+    
+    // Check if running in container
+    const isContainer = process.env.NODE_ENV === 'production' || process.env.DOCKER_CONTAINER;
+    console.log(`info: Running in ${isContainer ? 'container' : 'local'} environment`);
     
     const devices = await detectESP32Devices();
     
     return NextResponse.json({
       success: true,
       devices,
-      count: devices.length
+      count: devices.length,
+      environment: isContainer ? 'container' : 'local'
     });
   } catch (error) {
-    console.error('error: ESP32 detection failed:', error);
+    console.error('error: Container ESP32 detection failed:', error);
     
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
-      devices: []
+      devices: [],
+      troubleshooting: [
+        'Check if ESP32 is connected via USB',
+        'Verify Docker USB device mapping is correct',
+        'Check container has privileged access for USB',
+        'Test: docker-compose exec esp32-tool pio device list'
+      ]
     }, { status: 500 });
   }
 }
 
 async function detectESP32Devices(): Promise<ESP32Device[]> {
   return new Promise((resolve, reject) => {
-    // ใช้ PlatformIO device list
-    const platformio = spawn('pio', ['device', 'list', '--json-output']);
+    // Container-based PlatformIO device list
+    const platformio = spawn('pio', ['device', 'list', '--json-output'], {
+      env: {
+        ...process.env,
+        PLATFORMIO_CORE_DIR: '/app/.platformio'  // Container-specific path
+      }
+    });
     let output = '';
     let errorOutput = '';
 
@@ -320,17 +390,18 @@ async function detectESP32Devices(): Promise<ESP32Device[]> {
       if (code === 0) {
         try {
           const devices = parseDeviceList(output);
+          console.log(`info: Found ${devices.length} ESP32 devices in container`);
           resolve(devices);
         } catch (error) {
-          reject(new Error(`Failed to parse device list: ${error.message}`));
+          reject(new Error(`Container: Failed to parse device list: ${error.message}`));
         }
       } else {
-        reject(new Error(`PlatformIO command failed: ${errorOutput}`));
+        reject(new Error(`Container PlatformIO command failed: ${errorOutput}`));
       }
     });
 
     platformio.on('error', (error) => {
-      reject(new Error(`Failed to execute PlatformIO: ${error.message}`));
+      reject(new Error(`Container: Failed to execute PlatformIO: ${error.message}`));
     });
   });
 }
@@ -478,7 +549,57 @@ export default function DeviceList({ onDeviceSelect, selectedDevice, disabled }:
 }
 ```
 
-### **Step 1.4: Main Page Integration (Day 4 - 4 hours)**
+### **Step 1.4: Container Health & Integration (Day 3 - 4 hours)**
+
+#### **Step 1.4a: Container Health Check API (60 นาที)**
+
+สร้าง `src/app/api/health/route.ts`:
+
+```typescript
+import { NextResponse } from 'next/server';
+import { spawn } from 'child_process';
+
+export async function GET() {
+  const health = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    container: {
+      node_version: process.version,
+      platform: process.platform,
+      docker: !!process.env.DOCKER_CONTAINER
+    },
+    checks: {
+      platformio: false,
+      usb_devices: false,
+      file_system: false
+    }
+  };
+
+  try {
+    // Check PlatformIO
+    await checkPlatformIO();
+    health.checks.platformio = true;
+  } catch (error) {
+    console.warn('warn: PlatformIO check failed:', error.message);
+  }
+
+  try {
+    // Check USB device access
+    const devices = await checkUSBDevices();
+    health.checks.usb_devices = devices > 0;
+  } catch (error) {
+    console.warn('warn: USB devices check failed:', error.message);
+  }
+
+  // Overall status
+  const allChecks = Object.values(health.checks);
+  health.status = allChecks.some(check => check) ? 'healthy' : 'degraded';
+
+  return NextResponse.json(health, { 
+    status: health.status === 'healthy' ? 200 : 503 
+  });
+}
+```
 
 #### **Step 1.4a: Main Page Component (120 นาที)**
 
@@ -605,14 +726,21 @@ export default function Home() {
 }
 ```
 
-## ✅ Success Criteria
+## ✅ Docker Success Criteria
+
+### **Container Requirements:**
+- [ ] **Docker build สำเร็จ**: `docker-compose up --build` ทำงานโดยไม่มี error
+- [ ] **Container health check**: `/api/health` ตอบสนอง healthy status
+- [ ] **USB device mapping**: Container สามารถเข้าถึง host USB devices
+- [ ] **Volume mapping**: File exports และ temp directories ทำงานถูกต้อง
+- [ ] **Hot reload**: Code changes สะท้อนใน container ทันที
 
 ### **Functional Requirements:**
-- [ ] **Next.js app รันได้**: `npm run dev` ทำงานโดยไม่มี error
-- [ ] **Customer form ทำงาน**: กรอกข้อมูล 3 fields ได้ถูกต้อง
+- [ ] **Container Next.js app**: รันใน container เข้าถึงได้ที่ http://localhost:3000
+- [ ] **Customer form ทำงาน**: กรอกข้อมูล 3 fields ได้ถูกต้องใน container
 - [ ] **Form validation**: แสดง error message เมื่อข้อมูลไม่ถูกต้อง
-- [ ] **ESP32 detection**: สามารถ detect ESP32 devices ได้ (ถ้ามีเสียบอยู่)
-- [ ] **Device selection**: เลือก ESP32 device ได้
+- [ ] **Container ESP32 detection**: Container สามารถ detect ESP32 ผ่าน USB mapping
+- [ ] **Device selection**: เลือก ESP32 device ได้ใน container environment
 - [ ] **State management**: Customer + Device state เชื่อมต่อกันถูกต้อง
 - [ ] **Deploy button**: แสดงเมื่อมีข้อมูลครบแล้ว
 
@@ -622,26 +750,36 @@ export default function Home() {
 - [ ] **Error handling**: แสดง error message ที่เข้าใจได้
 - [ ] **Visual feedback**: แสดงสถานะการเลือก device ชัดเจน
 
-### **Technical Requirements:**
-- [ ] **TypeScript**: ไม่มี type errors
-- [ ] **API routes**: `/api/detect` ทำงานถูกต้อง
-- [ ] **PlatformIO integration**: `pio device list` execute ได้ผ่าน API
+### **Container Technical Requirements:**
+- [ ] **TypeScript**: ไม่มี type errors ใน container build
+- [ ] **Container API routes**: `/api/detect` และ `/api/health` ทำงานใน container
+- [ ] **Container PlatformIO**: `docker-compose exec esp32-tool pio device list` ทำงาน
+- [ ] **Cross-platform**: Container รันได้ทั้ง Mac/Linux/Windows Docker
 
 ## 🧪 Testing Guidelines
 
-### **Manual Testing:**
-1. **Form validation:**
-   ```
-   - ทดสอบ submit form เปล่า (ต้องมี error)
-   - ทดสอบรหัสลูกค้าผิดรูปแบบ (ต้องมี error)
-   - ทดสอบกรอกครบถูกต้อง (ต้องผ่าน)
+### **Docker Manual Testing:**
+1. **Container startup:**
+   ```bash
+   # Test Docker environment
+   docker-compose up --build
+   # ตรวจสอบ: Container starts without errors
+   # เข้าถึงได้ที่ http://localhost:3000
    ```
 
-2. **Device detection:**
+2. **Container health check:**
    ```bash
-   # เสียบ ESP32 เข้า USB
-   # เปิด app และดู device list
-   # ตรวจสอบ: ต้องเจอ ESP32 device ในรายการ
+   # Test health endpoint
+   curl http://localhost:3000/api/health
+   # ต้องได้ healthy status
+   ```
+
+3. **Container ESP32 detection:**
+   ```bash
+   # เสียบ ESP32 เข้า USB ของ host
+   # Test container device access
+   docker-compose exec esp32-tool pio device list
+   # ตรวจสอบ: Container เห็น ESP32 device
    ```
 
 3. **State management:**
@@ -657,19 +795,35 @@ export default function Home() {
 
 ## 🚨 Common Issues
 
-**1. `pio: command not found`**
+**1. Container build fails**
 ```bash
-# แก้ไข: Install PlatformIO Core
-pip install platformio
+# แก้ไข: Check Docker Desktop is running
+docker --version
+docker-compose --version
+# แก้ไข: Clear Docker cache
+docker system prune -a
+```
+
+**2. USB devices not detected in container**
+```bash
+# แก้ไข: Check privileged mode and device mapping
+# Verify docker-compose.yml has:
+# privileged: true
+# devices: ['/dev/ttyUSB0:/dev/ttyUSB0']
 ```
 
 **2. Form validation ไม่ทำงาน**
 - ตรวจสอบ TypeScript types
 - ตรวจสอบ state management logic
 
-**3. Device detection ไม่เจออะไร**
-- ตรวจสอบ ESP32 driver installation
-- ทดสอบ `pio device list` ใน terminal
+**3. Container ESP32 detection fails**
+```bash
+# ตรวจสอบ ESP32 driver บน host OS
+# ทดสอบ container access
+docker-compose exec esp32-tool ls -la /dev/tty*
+# ตรวจสอบ container PlatformIO
+docker-compose exec esp32-tool pio --version
+```
 
 ---
 

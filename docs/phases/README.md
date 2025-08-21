@@ -1,6 +1,6 @@
 # ESP32 Deployment Tool - MVP Implementation Plan
 
-การพัฒนา ESP32 Deployment Tool แบบ Minimal & Stable สำหรับ SMC Medical Device Customer Deployment Pipeline
+การพัฒนา ESP32 Deployment Tool แบบ Docker-First & Cross-Platform สำหรับ SMC Medical Device Customer Deployment Pipeline
 
 ## 🎯 MVP Vision
 
@@ -15,11 +15,11 @@
 
 | Phase | ระยะเวลา | หน้าที่หลัก | Status |
 |-------|---------|------------|--------|
-| [Phase 1](./phase1-foundation.md) | 3-4 วัน | Foundation & Form & Detection | ⏳ Not Started |
-| [Phase 2](./phase2-core-deployment.md) | 4-5 วัน | Core Deployment Workflow | ⏳ Not Started |
-| [Phase 3](./phase3-stability.md) | 2-3 วัน | Error Handling & Polish | ⏳ Not Started |
+| [Phase 1](./phase1-foundation.md) | 2-3 วัน | Docker Foundation & Detection | ✅ Complete |
+| [Phase 2](./phase2-core-deployment.md) | 4-5 วัน | Containerized Deployment Workflow | ✅ Complete |
+| [Phase 3](./phase3-stability.md) | 3-4 วัน | Docker Production & Polish | ⏳ In Progress |
 
-**รวมระยะเวลา:** 9-12 วัน (2 สัปดาห์)
+**รวมระยะเวลา:** 9-12 วัน (2 สัปดาห์) - **Docker approach ทำให้ deployment ง่ายขึ้น**
 
 ## 🎯 Project Goals
 
@@ -45,35 +45,43 @@
 
 ## 🏗️ Simplified Architecture
 
-### **Technology Stack:**
-- **Framework:** Next.js 14 (App Router)
+### **Technology Stack (Docker-First):**
+- **Container Platform:** Docker + Docker Compose
+- **Framework:** Next.js 14 (App Router) in containerized environment
 - **Frontend:** React + TypeScript + Tailwind CSS
-- **Backend:** Next.js API Routes
-- **ESP32 Integration:** PlatformIO CLI (direct execution)
-- **Storage:** SQLite (single table สำหรับ log เท่านั้น)
-- **Deployment:** Docker container (internal use)
+- **Backend:** Next.js API Routes with container-based execution
+- **ESP32 Integration:** Containerized PlatformIO CLI with USB device mapping
+- **Storage:** Container volumes for temp files and exports
+- **Development:** Docker development environment with hot reload
+- **Production:** Optimized Docker images for cross-platform deployment
 
-### **Single Page Application Structure:**
+### **Dockerized Application Structure:**
 ```
 esp32-deployment-tool/
-├── app/
-│   ├── page.tsx              # Single page application
-│   ├── api/
-│   │   ├── detect/route.ts   # ESP32 detection
-│   │   ├── deploy/route.ts   # Complete deploy workflow
-│   │   └── extract/route.ts  # MAC extraction
-│   └── layout.tsx
-├── components/
-│   ├── CustomerForm.tsx      # Input form (3 fields)
-│   ├── DeviceList.tsx        # ESP32 device selection
-│   └── ProgressBar.tsx       # Simple progress indicator
-├── lib/
-│   ├── esp32.ts             # ESP32 hardware functions
-│   ├── template.ts          # Template processing
-│   └── export.ts            # JSON file generation
-├── templates/
-│   └── main.cpp.template    # Single firmware template
-└── package.json
+├── Dockerfile               # Container image definition
+├── docker-compose.yml       # Development environment
+├── docker-compose.prod.yml  # Production deployment
+├── src/
+│   ├── app/
+│   │   ├── page.tsx          # Single page application
+│   │   ├── api/
+│   │   │   ├── detect/route.ts   # ESP32 detection (containerized)
+│   │   │   ├── deploy/route.ts   # Complete deploy workflow
+│   │   │   ├── extract/route.ts  # MAC extraction
+│   │   │   └── health/route.ts   # Container health check
+│   │   └── layout.tsx
+│   ├── components/
+│   │   ├── CustomerForm.tsx      # Input form (3 fields)
+│   │   ├── DeviceList.tsx        # ESP32 device selection
+│   │   └── ProgressBar.tsx       # Real-time progress indicator
+│   ├── lib/
+│   │   ├── esp32.ts              # ESP32 hardware functions
+│   │   ├── template.ts           # Template processing
+│   │   └── export.ts             # JSON file generation
+│   └── templates/
+│       └── main.cpp.template     # ESP32 firmware template
+├── exports/                  # Volume for JSON exports
+└── temp/                     # Volume for build temp files
 ```
 
 ### **UI Layout (Single Page):**
@@ -106,24 +114,26 @@ esp32-deployment-tool/
 Sales Staff → Manual ESP32 setup → Manual data collection → Dev Manual CLI
 ```
 
-### **MVP Target State:**
+### **Docker MVP Target State:**
 ```
-Sales Staff → Web Form → Auto Deploy → JSON Export → Dev CLI Auto-import
+Sales Staff → Docker Container → Web Form → Auto Deploy → JSON Export → Dev CLI Auto-import
 ```
 
-### **Technical Flow (Minimal):**
+### **Containerized Technical Flow:**
 ```
-1. [Web Form] 3 fields: องค์กร, รหัสลูกค้า, แอป
+1. [Docker Start] docker-compose up → Container with PlatformIO ready
          ↓
-2. [Auto Generate] WiFi SSID/Password + Template
+2. [Web Form] 3 fields: องค์กร, รหัสลูกค้า, แอป
+         ↓
+3. [Auto Generate] WiFi SSID/Password + Template (in container)
          ↓  
-3. [PlatformIO] Build + Upload firmware (direct)
+4. [Container PlatformIO] Build + Upload firmware via USB mapping
          ↓
-4. [Extract] MAC address via HTTP
+5. [Extract] MAC address via HTTP (container → ESP32)
          ↓
-5. [Export] Generate customer-{id}.json → Desktop
+6. [Export] Generate customer-{id}.json → Host Desktop
          ↓
-6. [CLI Integration] smc-license --from-json customer-{id}.json
+7. [CLI Integration] smc-license --from-json customer-{id}.json
 ```
 
 ## 🎨 MVP Development Approach
@@ -135,12 +145,14 @@ Sales Staff → Web Form → Auto Deploy → JSON Export → Dev CLI Auto-import
 - **Internal Use Only:** ออกแบบสำหรับใช้ภายในองค์กร
 - **Stable > Feature-Rich:** ความเสถียร สำคัญกว่า features
 
-### **Development Guidelines:**
-1. **Core Journey Only:** focus แค่ "กรอกฟอร์ม → Deploy → ได้ไฟล์"
-2. **No Nice-to-Have:** ถ้าไม่จำเป็นต่อ core journey ไม่ทำ
-3. **Simple Error Handling:** error message ง่ายๆ ที่เข้าใจได้
-4. **Fixed Locations:** save file ตำแหน่งเดียว (Desktop)
-5. **Trust & Deploy:** ไม่มี preview หรือ confirmation ซับซ้อน
+### **Docker Development Guidelines:**
+1. **Container-First:** ทุกอย่างรันใน Docker environment
+2. **Cross-Platform Ready:** Mac dev → Windows prod seamlessly
+3. **Core Journey Only:** focus แค่ "Docker Start → กรอกฟอร์ม → Deploy → ได้ไฟล์"
+4. **USB Device Mapping:** ESP32 access ผ่าน Docker device mapping
+5. **Volume Management:** File exports ผ่าน Docker volumes
+6. **Health Monitoring:** Container health checks และ monitoring
+7. **Simple Error Handling:** error message ง่ายๆ ที่เข้าใจได้พร้อม container troubleshooting
 
 ## 📚 Phase Documents
 
@@ -154,47 +166,55 @@ Sales Staff → Web Form → Auto Deploy → JSON Export → Dev CLI Auto-import
 
 ## ⚡ Quick Start
 
-### **Development Environment:**
+### **Docker Development Environment:**
 ```bash
 # Required tools
-node -v          # v18+
-npm -v           # v8+
-pio --version    # PlatformIO Core
+docker --version          # Docker Desktop
+docker-compose --version  # Docker Compose
 
-# ESP32 development
-pio device list  # ตรวจสอบ ESP32 connection
+# ESP32 hardware (for testing)
+# USB ESP32 development board
 ```
 
-### **Setup Steps:**
+### **Setup Steps (Docker-First):**
 ```bash
-# Create Next.js project
-npx create-next-app@14 esp32-deployment-tool --typescript --tailwind --app
+# Clone/Navigate to project
 cd esp32-deployment-tool
 
-# Install dependencies
-npm install
+# Start Docker development environment
+docker-compose up --build
 
-# Start development
-npm run dev
+# Access application
+# → http://localhost:3000
+
+# Test ESP32 detection (ในอีก terminal)
+docker-compose exec esp32-tool pio device list
+
+# Stop development
+docker-compose down
 ```
 
 ## 🎯 Success Metrics
 
 ### **เมื่อจบทุก Phase จะได้:**
-- ✅ Web app ที่พนักงานขายใช้งานได้จริง (single page)
-- ✅ ESP32 deployment เป็น one-click operation  
-- ✅ JSON export system พร้อมใช้งาน (save to Desktop)
+- ✅ Docker-containerized web app ที่พนักงานขายใช้งานได้จริง
+- ✅ Cross-platform deployment (Mac dev → Windows prod)
+- ✅ ESP32 deployment เป็น one-click operation ใน container
+- ✅ JSON export system พร้อมใช้งาน (container → host Desktop)
 - ✅ smc-license CLI integration สมบูรณ์
-- ✅ End-to-end workflow ทำงานไม่มีปัญหา
-- ✅ Stable & reliable สำหรับใช้งานภายในองค์กร
+- ✅ End-to-end containerized workflow ทำงานไม่มีปัญหา
+- ✅ Production-ready Docker images สำหรับ distribution
+- ✅ Self-contained system ไม่ต้องติดตั้ง dependencies
 
-### **MVP Success Criteria:**
-- ✅ พนักงานขายสามารถกรอกฟอร์ม 3 fields ได้
-- ✅ ระบบหา ESP32 device ได้อัตโนมัติ
-- ✅ Deploy firmware สำเร็จ ไม่ error
-- ✅ ได้ JSON file ที่ dev สามารถ import ได้
-- ✅ ใช้เวลาไม่เกิน 5 นาที per deployment
-- ✅ Stable ไม่ crash บ่อย
+### **Docker MVP Success Criteria:**
+- ✅ พนักงานขายรัน `docker-compose up` ได้สำเร็จ
+- ✅ สามารถกรอกฟอร์ม 3 fields ได้ใน container
+- ✅ ระบบหา ESP32 device ได้อัตโนมัติผ่าน Docker USB mapping
+- ✅ Deploy firmware สำเร็จ ไม่ error ใน containerized environment
+- ✅ ได้ JSON file ใน host Desktop ที่ dev สามารถ import ได้
+- ✅ ใช้เวลาไม่เกิน 5 นาที per deployment (รวม container startup)
+- ✅ Cross-platform: Mac development → Windows production seamlessly
+- ✅ Container stable ไม่ crash, พร้อม health monitoring
 
 ---
 

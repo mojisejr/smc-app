@@ -1,22 +1,22 @@
-# Phase 2: Core Deployment Workflow
+# Phase 2: Containerized Deployment Workflow
 
 **ระยะเวลา:** 4-5 วัน  
-**เป้าหมาย:** Template system + Deploy workflow + MAC extraction + Export
+**เป้าหมาย:** Docker-based template system + Container deployment workflow + MAC extraction + Export
 
 ## 📖 Overview & Goals
 
 ### **วัตถุประสงค์:**
-- **Day 1-2:** Template system + WiFi auto-generation
-- **Day 3-4:** PlatformIO build + upload workflow
-- **Day 5:** MAC address extraction + JSON export
-- สร้าง complete end-to-end deployment workflow
+- **Day 1-2:** Container-based template system + WiFi auto-generation
+- **Day 3-4:** Containerized PlatformIO build + upload workflow with USB mapping
+- **Day 5:** Container-to-ESP32 MAC extraction + Host file export
+- สร้าง complete containerized end-to-end deployment workflow
 
 ### **Deliverables:**
-- ✅ Single firmware template พร้อม customer placeholders
-- ✅ WiFi credential auto-generation (fixed algorithm)
-- ✅ PlatformIO build + upload integration
-- ✅ MAC address extraction via HTTP
-- ✅ JSON export to Desktop folder
+- ✅ Container-processed firmware template พร้อม customer placeholders
+- ✅ Container-based WiFi credential auto-generation (fixed algorithm)
+- ✅ Containerized PlatformIO build + upload integration with USB device mapping
+- ✅ Container-to-ESP32 MAC address extraction via HTTP
+- ✅ Container-to-host JSON export to Desktop folder via volume mapping
 
 ## 🔧 Technical Requirements
 
@@ -29,12 +29,14 @@
 }
 ```
 
-### **Hardware Requirements:**
-- ESP32 development board
-- USB cable สำหรับ programming
+### **Container & Hardware Requirements:**
+- Docker Desktop with USB device support
+- ESP32 development board with proper host OS drivers
+- USB cable สำหรับ programming (mapped to container)
 - AM2302 (DHT22) Temperature/Humidity Sensor
 - GPIO 4 connection สำหรับ sensor (fixed สำหรับทุกชิ้น)
-- Stable internet (สำหรับ MAC extraction)
+- Container network access for MAC extraction
+- Host filesystem access for Desktop file export
 
 ## 📝 Implementation Steps
 
