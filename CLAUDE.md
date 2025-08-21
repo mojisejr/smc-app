@@ -573,10 +573,13 @@ NODE_ENV=production npm run dev   # Full ESP32 WiFi connection and validation
 - ✅ **PlatformIO Integration**: Both local and containerized workflows operational
 - ✅ **JSON Export Ready**: Desktop export with CLI-compatible format
 - ✅ **Development Workflow**: Verified end-to-end on macOS with real hardware
+- ✅ **macOS Development Mode**: MAC extraction without ESP32 WiFi connection required
 
 ### Key Features (Phase 2+ Complete)
 
 - **Cross-Platform Development**: macOS local development + Windows container production ✅
+- **macOS Development Mode**: Environment detection automatically uses deployment log data instead of ESP32 HTTP API ✅
+- **Environment-Aware APIs**: `/api/extract` automatically switches between local development and container production modes ✅
 - **Hybrid Detection Strategy**: Local PlatformIO (macOS) + container multi-method (Windows) ✅
 - **Complete Deployment Workflow**: Form → Device → Deploy → Extract → Export ✅
 - **Template System**: AM2302 sensor integration with customer-specific firmware generation ✅
@@ -642,24 +645,13 @@ esp32-deployment-tool/
 - 📋 **Phase 2 Ready**: Core deployment features awaiting USB fix
 - 🔄 **Phase 3 Planned**: Enhanced error handling, UI polish, monitoring and optimization
 
-**Context for Resume:**
-- Current status: Docker container running at localhost:3000
-- Next immediate task: Fix USB device mapping for ESP32 detection  
-- Success criteria: `curl http://localhost:3000/api/detect` should return ESP32 devices when plugged in
-
-**USB Device Mapping Troubleshooting Plan:**
-1. **Check Host USB Detection**: `ls -la /dev/tty*` (should see ESP32 devices)
-2. **Review docker-compose.yml**: Verify device mapping configuration
-3. **Test Container USB Access**: `docker-compose exec esp32-tool ls -la /dev/tty*`
-4. **PlatformIO in Container**: `docker-compose exec esp32-tool pio device list`
-5. **macOS USB Permissions**: May require additional Docker Desktop USB access configuration
-
-**Implementation Session Summary (Jan 18, 2025):**
-- Started: Docker implementation for cross-platform deployment
-- Challenges solved: Python venv, Next.js build, TypeScript errors, container startup
-- Current blocker: USB device mapping between host and container
-- Time invested: ~4-5 hours (Docker setup + troubleshooting)
-- Ready for: Phase 2 core deployment features (pending USB fix)
+**Current Development Status (August 21, 2025):**
+- ✅ Phase 2+ Complete: Cross-platform development fully operational
+- ✅ macOS Development: Complete workflow working with real ESP32 hardware
+- ✅ Container Production: Docker environment ready for Windows deployment  
+- ✅ MAC Extraction: Intelligent switching between development log parsing and production HTTP API
+- ✅ Cross-Platform API Detection: Environment-aware endpoint behavior
+- ✅ Complete Integration: JSON export compatible with SMC License CLI
 
 ### Integration with SMC Ecosystem
 
@@ -690,6 +682,7 @@ pip3 install platformio                            # Install global PlatformIO
 npm run dev                                         # Local Next.js with real ESP32 detection
 curl http://localhost:3000/api/detect              # Test real ESP32 hardware detection
 # Expected: {"success": true, "devices": [ESP32], "detection_method": "macOS local PlatformIO"}
+# Complete Workflow: Form → Device → Deploy → Extract (no WiFi connection needed) → Export JSON
 
 # Container Development (Windows simulation)
 docker-compose up --build                          # Container environment

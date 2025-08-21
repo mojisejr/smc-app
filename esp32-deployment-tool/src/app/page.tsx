@@ -68,7 +68,11 @@ export default function Home() {
       const extractResponse = await fetch('/api/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceIP: '192.168.4.1' })
+        body: JSON.stringify({ 
+          deviceIP: '192.168.4.1',
+          customerInfo: deploymentState.customer,
+          deploymentLog: deployResult.buildOutput // Pass deployment log for MAC extraction
+        })
       });
 
       const extractResult = await extractResponse.json();

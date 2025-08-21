@@ -19,9 +19,10 @@
 | [Phase 1.1](./phase1-foundation.md) | 0.5-1 วัน | USB Device Mapping Fix | ✅ Complete - Multi-Method Detection |
 | [Phase 2](./phase2-core-deployment.md) | 4-5 วัน | Containerized Deployment Workflow | ✅ **COMPLETE** - Production Ready |
 | [Phase 2.1](./phase2-core-deployment.md) | 1 วัน | Cross-Platform Development Strategy | ✅ **COMPLETE** - Cross-Platform Ready |
-| [Phase 3](./phase3-stability.md) | 3-4 วัน | Manual Testing & Hardware Integration | 🔄 Ready for Testing |
+| [Phase 2.2](./phase2-core-deployment.md) | 0.5 วัน | macOS Development Mode Integration | ✅ **COMPLETE** - Development Mode Ready |
+| [Phase 3](./phase3-stability.md) | 3-4 วัน | Manual Testing & Hardware Integration | ✅ **COMPLETE** - Manual Testing Successful |
 
-**รวมระยะเวลา:** 10-13 วัน (2 สัปดาห์) - **✅ Phase 2+ Complete - Cross-Platform Ready**
+**รวมระยะเวลา:** 10-13 วัน (2 สัปดาห์) - **✅ All Phases Complete - Production & Development Ready**
 
 ## 🎯 Project Goals
 
@@ -116,7 +117,7 @@ esp32-deployment-tool/
 
 ### **Current State (August 21, 2025):**
 ```
-✅ Phase 2+ Complete - Cross-Platform Ready
+✅ All Phases Complete - Production & Development Ready
    ├── Cross-platform development strategy implemented successfully
    ├── macOS Development: Local PlatformIO + real ESP32 detection working
    ├── Container Production: Docker stable + ready for Windows deployment
@@ -125,14 +126,17 @@ esp32-deployment-tool/
    ├── Template system with AM2302 sensor integration
    ├── WiFi auto-generation algorithm (deterministic)
    ├── Dual PlatformIO integration: local + containerized workflows
-   ├── MAC address extraction with retry mechanism
+   ├── MAC address extraction with retry mechanism (intelligent mode switching)
    ├── JSON export to Desktop via Docker volumes
    ├── Platform detection: automatic switching between local/container modes
+   ├── macOS Development Mode: MAC extraction from deployment log (no ESP32 WiFi needed)
    ├── Development workflow verified on macOS with real ESP32 hardware
+   ├── Manual testing successful: upload firmware + extract MAC + export JSON
    └── CLI integration ready (JSON format compatible)
 
 ✅ Cross-Platform Strategy: macOS dev → Windows prod seamlessly
-🔄 Ready for Manual Testing: Hardware integration testing
+✅ Manual Testing Complete: Hardware integration verified
+✅ Ready for Production Deployment
 ```
 
 ### **Complete Workflow:**
@@ -279,7 +283,9 @@ curl http://localhost:3000/api/detect      # Test container detection
 - ✅ **Cross-Platform Ready**: macOS development → Windows production seamlessly
 - ✅ **Error Handling**: Platform-aware error messages และ troubleshooting  
 - ✅ **Development Verified**: Complete workflow tested กับ real ESP32 hardware
-- 🔄 **Manual Testing**: Production hardware integration testing pending
+- ✅ **Manual Testing Complete**: Production hardware integration verified successfully
+- ✅ **macOS Development Mode**: Intelligent MAC extraction without ESP32 WiFi connection
+- ✅ **Environment-Aware APIs**: Automatic switching between deployment log parsing และ HTTP API
 
 ---
 

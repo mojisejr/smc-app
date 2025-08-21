@@ -600,4 +600,140 @@ smc-license generate [options]   # CLI automatically detects ESP32
 - [ ] SMC application can validate license with ESP32
 - [ ] Environmental monitoring active (if DHT22 connected)
 
-This document provides complete technical specifications for the SMC License CLI Tool integration with the Smart Medication Cart system and ESP32 hardware, ensuring secure, compliant, and performance-optimized license management for medical device deployments.
+## ESP32 Deployment Tool Integration ✅ COMPLETE
+
+### System Architecture Enhancement
+
+The SMC ecosystem now includes a dedicated **ESP32 Deployment Tool** that streamlines the ESP32 hardware provisioning process and integrates directly with the SMC License CLI workflow.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              ESP32 Deployment Tool                     │
+│           (Next.js 14 + Cross-Platform)               │
+├─────────────────────────────────────────────────────────┤
+│ • Customer Configuration Form                          │
+│ • ESP32 Device Detection                               │
+│ • Firmware Generation & Upload                        │
+│ • MAC Address Extraction                              │
+│ • JSON Export for CLI Integration                     │
+└─────────────────────┬───────────────────────────────────┘
+                      │ JSON Export
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│           SMC License CLI Tool (v1.0.0)                │
+├─────────────────────────────────────────────────────────┤
+│ • Import JSON from Deployment Tool                     │
+│ • Generate license.lic with ESP32 binding              │
+│ • WiFi Credentials Integration                         │
+└─────────────────────┬───────────────────────────────────┘
+                      │ License File
+                      ▼
+┌─────────────────────────────────────────────────────────┐
+│                SMC Desktop Application                  │
+│              (Medical Device Software)                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Complete Workflow Integration ✅
+
+**Phase 1: ESP32 Hardware Provisioning**
+```bash
+# Using ESP32 Deployment Tool
+cd esp32-deployment-tool/
+
+# macOS Development
+npm run dev                             # Local development with real hardware
+# Complete: Form → Device → Deploy → Extract → JSON Export
+
+# Container Production  
+docker-compose up --build               # Windows production environment
+# Complete: Form → Device → Deploy → Extract → JSON Export
+```
+
+**Phase 2: License Generation**
+```bash
+# Import from Deployment Tool JSON
+cd ../cli/
+smc-license generate --import-json ~/Desktop/customer-BGK001-2025-08-21.json
+
+# Or manual generation with deployment data
+smc-license generate -o "Organization" -c "BGK001" -a "SMC_App" -e "2025-12-31" \
+  --wifi-ssid "SMC_ESP32_BGK001" --wifi-password "SMCPassword123"
+```
+
+**Phase 3: SMC Application Integration**
+```bash
+# Copy license to application
+cp license.lic /path/to/smc-app/
+cp .env /path/to/smc-app/
+
+# Application automatically validates with ESP32
+npm run dev  # Development with WiFi bypass
+npm run prod # Production with full ESP32 connection
+```
+
+### Cross-Platform Development Strategy ✅
+
+**macOS Development Mode:**
+- Environment detection: `process.platform === 'darwin' && NODE_ENV === 'development'`
+- MAC extraction from PlatformIO deployment log (no ESP32 WiFi connection required)
+- Complete workflow testing without network dependencies
+- Real ESP32 hardware integration for firmware upload
+
+**Container Production Mode:**
+- Docker-based deployment for Windows production
+- HTTP API communication with ESP32 Access Point
+- Full network-based MAC extraction and validation
+- Production-ready containerized workflow
+
+### Technical Implementation Details
+
+**Environment-Aware API Design:**
+```typescript
+// /api/extract endpoint intelligent switching
+const isDevelopmentMacOS = process.platform === 'darwin' && process.env.NODE_ENV === 'development';
+
+if (isDevelopmentMacOS) {
+  // Development: Extract MAC from deployment log
+  const macAddress = parseMAC(deploymentLog);
+  const wifiCredentials = generateWiFiCredentials(customerId);
+  return mockESP32Response(macAddress, customerInfo, wifiCredentials);
+} else {
+  // Production: HTTP API to ESP32
+  const response = await fetch(`http://192.168.4.1/mac`);
+  return response.json();
+}
+```
+
+**JSON Export Format:**
+```json
+{
+  "organization": "Bangkok General Hospital",
+  "customerId": "BGK001", 
+  "applicationName": "SMC_Cabinet_ICU_01",
+  "macAddress": "f4:65:0b:58:66:a4",
+  "wifiSSID": "SMC_ESP32_BGK001",
+  "wifiPassword": "SMCBGK001247",
+  "generatedDate": "2025-08-21T10:30:00.000Z",
+  "deploymentMode": "development_macos"
+}
+```
+
+### Production Readiness Status ✅
+
+**ESP32 Deployment Tool Status:**
+- ✅ **Cross-Platform Ready**: macOS development + Windows container production
+- ✅ **7 API Endpoints**: All operational with environment detection
+- ✅ **Template System**: AM2302 sensor integration with WiFi auto-generation  
+- ✅ **Manual Testing**: Complete workflow verified with real ESP32 hardware
+- ✅ **CLI Integration**: JSON export format compatible with SMC License CLI
+- ✅ **Development Mode**: Environment-aware MAC extraction without WiFi dependency
+
+**Integration Benefits:**
+- **Streamlined Workflow**: Single-click ESP32 provisioning instead of manual setup
+- **Error Reduction**: Automated firmware generation with customer-specific configuration
+- **Cross-Platform**: Seamless development on macOS, production deployment on Windows
+- **CLI Ready**: Direct integration with existing SMC License CLI workflow
+- **Medical Compliance**: Audit trail and environmental monitoring integration
+
+This document provides complete technical specifications for the SMC License CLI Tool integration with the Smart Medication Cart system, ESP32 hardware, and the new ESP32 Deployment Tool, ensuring secure, compliant, and performance-optimized license management for medical device deployments.

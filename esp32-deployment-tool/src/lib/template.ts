@@ -1,6 +1,6 @@
-import { CustomerInfo } from '@/types';
-import fs from 'fs';
-import path from 'path';
+import { CustomerInfo } from "@/types";
+import fs from "fs";
+import path from "path";
 
 export interface TemplateConfig {
   customer: CustomerInfo;
@@ -10,29 +10,38 @@ export interface TemplateConfig {
 }
 
 export class TemplateProcessor {
-  private static templatePath = path.join(process.cwd(), 'templates', 'main.cpp.template');
+  private static templatePath = path.join(
+    process.cwd(),
+    "templates",
+    "main.cpp.template"
+  );
 
-  static generateWiFiCredentials(customerId: string): { ssid: string; password: string } {
+  static generateWiFiCredentials(customerId: string): {
+    ssid: string;
+    password: string;
+  } {
     // Fixed algorithm - no customization
     const ssid = `SMC_ESP32_${customerId}`;
     const password = this.generatePassword(customerId);
-    
+
     return { ssid, password };
   }
 
   private static generatePassword(customerId: string): string {
     // Simple deterministic password generation
     // Format: SMC + customerId + 3 digits based on customerId hash
-    const hash = customerId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const suffix = String(hash % 1000).padStart(3, '0');
+    const hash = customerId
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const suffix = String(hash % 1000).padStart(3, "0");
     return `SMC${customerId}${suffix}`;
   }
 
   static async generateFirmware(config: TemplateConfig): Promise<string> {
     try {
       // Read template file
-      const template = await fs.promises.readFile(this.templatePath, 'utf8');
-      
+      const template = await fs.promises.readFile(this.templatePath, "utf8");
+
       // Replace placeholders
       const firmware = template
         .replace(/\{\{ORGANIZATION\}\}/g, config.customer.organization)
@@ -44,7 +53,11 @@ export class TemplateProcessor {
 
       return firmware;
     } catch (error) {
-      throw new Error(`Failed to generate firmware: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to generate firmware: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -57,7 +70,7 @@ platform = espressif32
 board = esp32dev
 framework = arduino
 monitor_speed = 115200
-upload_speed = 921600
+upload_speed = 115200 
 
 ; Dependencies
 lib_deps = 
