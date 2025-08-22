@@ -235,9 +235,151 @@ export async function validateOrganizationData(licenseData: any): Promise<boolea
 
 /**
  * ฟังก์ชันหลักสำหรับการตรวจสอบ license
- * ใช้แทน validateLicense() เดิม
+ * รองรับ development bypass และ production validation
  */
 export async function validateLicense(): Promise<boolean> {
-  // ใช้ quick validation เป็นหลัก เพื่อ performance
+  // Environment detection
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const bypassLicense = isDevelopment && process.env.BYPASS_LICENSE === 'true';
+  
+  console.log(`debug: License validation - Mode: ${isDevelopment ? 'development' : 'production'}`);
+  console.log(`debug: License bypass: ${bypassLicense ? 'enabled' : 'disabled'}`);
+
+  // Development bypass
+  if (bypassLicense) {
+    console.log('info: 🔓 License validation bypassed for development');
+    await logger({
+      user: 'system',
+      message: 'License validation bypassed (development mode)'
+    });
+    return true;
+  }
+
+  // Production validation (or development without bypass)
+  if (isDevelopment) {
+    console.log('info: Running license validation in development mode (no bypass)');
+  }
+  
   return await validateLicenseQuick();
+}
+
+/**
+ * Enhanced validation สำหรับ production deployment
+ * รวม ESP32 และ network connectivity validation
+ */
+export async function validateLicenseForProduction(): Promise<{
+  valid: boolean;
+  error?: string;
+  details?: {
+    licenseFileFound: boolean;
+    databaseActivated: boolean;
+    esp32Connected: boolean;
+    macAddressMatched: boolean;
+    licenseExpired: boolean;
+  };
+}> {
+  console.log('info: Running production license validation...');
+  
+  const details = {
+    licenseFileFound: false,
+    databaseActivated: false,
+    esp32Connected: false,
+    macAddressMatched: false,
+    licenseExpired: false,
+  };
+
+  try {
+    // 1. ตรวจสอบ database activation flag
+    const isActivated = await isSystemActivated();
+    details.databaseActivated = isActivated;
+    
+    if (!isActivated) {
+      return {
+        valid: false,
+        error: 'System not activated - no license found in database',
+        details
+      };
+    }
+
+    // 2. ตรวจสอบ license file
+    const { LicenseFileManager } = await import('./file-manager');
+    const licenseFile = await LicenseFileManager.findLicenseFile();
+    details.licenseFileFound = !!licenseFile;
+    
+    if (!licenseFile) {
+      return {
+        valid: false,
+        error: 'License file not found in expected locations',
+        details
+      };
+    }
+
+    // 3. Parse license data
+    const licenseData = await LicenseFileManager.parseLicenseFile(licenseFile);
+    if (!licenseData) {
+      return {
+        valid: false,
+        error: 'Unable to parse license file',
+        details
+      };
+    }
+
+    // 4. ตรวจสอบวันหมดอายุ
+    const expiryDate = new Date(licenseData.expiryDate);
+    const today = new Date();
+    details.licenseExpired = expiryDate < today;
+    
+    if (details.licenseExpired) {
+      return {
+        valid: false,
+        error: `License expired on ${licenseData.expiryDate}`,
+        details
+      };
+    }
+
+    // 5. ตรวจสอบ ESP32 connection (optional for production)
+    try {
+      const { ESP32Client } = await import('./esp32-client');
+      const esp32Mac = await ESP32Client.getMacAddress();
+      details.esp32Connected = !!esp32Mac;
+      
+      if (esp32Mac) {
+        details.macAddressMatched = licenseData.macAddress.toUpperCase() === esp32Mac.toUpperCase();
+        
+        if (!details.macAddressMatched) {
+          console.warn(`warn: MAC address mismatch - License: ${licenseData.macAddress}, ESP32: ${esp32Mac}`);
+          // In production, MAC mismatch is a warning, not a failure
+        }
+      }
+      
+    } catch (esp32Error) {
+      console.warn('warn: ESP32 connection failed during production validation:', esp32Error);
+      // ESP32 connection failure is not critical for production validation
+      details.esp32Connected = false;
+    }
+
+    await logger({
+      user: 'system',
+      message: `Production license validation successful - expires: ${licenseData.expiryDate}, ESP32: ${details.esp32Connected ? 'connected' : 'offline'}`
+    });
+
+    return {
+      valid: true,
+      details
+    };
+
+  } catch (error: any) {
+    console.error('error: Production license validation failed:', error);
+    
+    await logger({
+      user: 'system',
+      message: `Production license validation error: ${error.message}`
+    });
+
+    return {
+      valid: false,
+      error: error.message,
+      details
+    };
+  }
 }

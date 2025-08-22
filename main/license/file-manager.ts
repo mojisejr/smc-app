@@ -50,14 +50,27 @@ export interface LicenseFile {
 }
 
 export class LicenseFileManager {
-  // Default license file paths
+  // Default license file paths - ordered by priority
   static readonly LICENSE_FILE_PATHS = [
+    // 1. Production resources paths (highest priority)
+    path.join(process.cwd(), 'resources', 'license.lic'),
+    path.join(process.cwd(), 'Resources', 'license.lic'),
+    path.join(process.cwd(), 'dist', 'resources', 'license.lic'),
+    path.join(process.cwd(), 'build', 'resources', 'license.lic'),
+    
+    // 2. Electron app resources (production build)
+    path.join((process as any).resourcesPath || '', 'license.lic'),
+    path.join((process as any).resourcesPath || '', 'app', 'license.lic'),
+    
+    // 3. Current working directory paths
+    path.join(process.cwd(), 'license.lic'), 
+    path.join(process.cwd(), 'License.lic'),
     './license.lic',
     './License.lic',
-    path.join(process.cwd(), 'license.lic'),
-    path.join(process.cwd(), 'License.lic'),
-    path.join(process.cwd(), 'resources', 'license.lic'),
-    path.join(process.cwd(), 'Resources', 'license.lic')
+    
+    // 4. Legacy/fallback paths
+    path.join(process.cwd(), 'app', 'license.lic'),
+    path.join(process.cwd(), 'src', 'license.lic')
   ];
 
   /**
@@ -66,8 +79,10 @@ export class LicenseFileManager {
    */
   static async findLicenseFile(): Promise<string | null> {
     try {
-      console.log(`debug: Starting license file search...`);
+      const isProduction = process.env.NODE_ENV === 'production';
+      console.log(`debug: Starting license file search... (mode: ${isProduction ? 'production' : 'development'})`);
       console.log(`debug: Current working directory: ${process.cwd()}`);
+      console.log(`debug: Process resources path: ${(process as any).resourcesPath || 'not available'}`);
       
       // ตรวจสอบ custom path จาก environment variable ก่อน
       const customPath = process.env.SMC_LICENSE_FILE_PATH;
@@ -77,32 +92,67 @@ export class LicenseFileManager {
         try {
           await fs.access(customPath);
           console.log(`info: Found license file at custom path: ${customPath}`);
-          return customPath;
-        } catch {
-          console.log(`debug: Custom license path not found: ${customPath}`);
+          return path.resolve(customPath);
+        } catch (error: any) {
+          console.log(`debug: Custom license path not accessible: ${customPath} (${error.code || error.message})`);
         }
       }
 
       // ค้นหาตาม default paths
-      console.log(`debug: Searching in default paths...`);
+      console.log(`debug: Searching in ${this.LICENSE_FILE_PATHS.length} default paths...`);
+      
+      let searchAttempts = 0;
       for (const filePath of this.LICENSE_FILE_PATHS) {
-        console.log(`debug: Checking path: ${filePath}`);
+        searchAttempts++;
+        const resolvedPath = path.resolve(filePath);
+        console.log(`debug: [${searchAttempts}/${this.LICENSE_FILE_PATHS.length}] Checking: ${resolvedPath}`);
+        
         try {
-          await fs.access(filePath);
-          console.log(`info: Found license file at: ${filePath}`);
-          return path.resolve(filePath);
+          await fs.access(resolvedPath);
+          console.log(`info: ✅ Found license file at: ${resolvedPath}`);
+          
+          // Additional validation for production
+          if (isProduction) {
+            const stats = await fs.stat(resolvedPath);
+            if (stats.size === 0) {
+              console.log(`warn: License file is empty, continuing search...`);
+              continue;
+            }
+            console.log(`info: License file size: ${stats.size} bytes`);
+          }
+          
+          return resolvedPath;
         } catch (err: any) {
           console.log(`debug: Not found at ${filePath}: ${err.code || err.message || 'ENOENT'}`);
           continue;
         }
       }
 
-      console.log("debug: No license.lic file found in any default location");
-      console.log(`debug: Searched paths:`, this.LICENSE_FILE_PATHS);
+      // Production-specific suggestions
+      if (isProduction) {
+        console.log("warn: ❌ No license.lic file found for production deployment");
+        console.log("warn: Production deployment requires license.lic file in resources directory");
+        console.log("warn: Solutions:");
+        console.log("  1. Generate license using: smc-license generate [options]");
+        console.log("  2. Copy license.lic to resources/ directory");
+        console.log("  3. Set SMC_LICENSE_FILE_PATH environment variable");
+      } else {
+        console.log("debug: No license.lic file found in any location");
+        console.log("debug: For development, this is normal - license validation will be bypassed");
+      }
+      
+      console.log(`debug: Searched ${searchAttempts} paths total`);
       return null;
 
     } catch (error) {
       console.error("error: Failed to search for license file:", error);
+      
+      // Production error handling
+      if (process.env.NODE_ENV === 'production') {
+        console.error("error: Critical failure in production license file search");
+        console.error("error: This may prevent application startup");
+      }
+      
       return null;
     }
   }
@@ -180,7 +230,7 @@ export class LicenseFileManager {
       // สร้าง decipher
       const decipher = crypto.createDecipheriv(
         ENCRYPTION_CONFIG.algorithm, 
-        ENCRYPTION_CONFIG.key, 
+        ENCRYPTION_CONFIG.key as any, 
         iv
       );
       

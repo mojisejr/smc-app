@@ -1,0 +1,9 @@
+{
+  "buildDate": "2025-08-22T15:55:58.229Z",
+  "buildVersion": "1.0.0",
+  "deviceType": "DS12",
+  "platform": "darwin",
+  "nodeVersion": "v20.19.3",
+  "organizationSetup": true,
+  "databaseInitialized": true
+}
