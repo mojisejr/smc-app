@@ -20,3 +20,35 @@ export interface DeploymentState {
   progress: number;
   status: string;
 }
+
+// CSV Export related types
+export interface CSVExportData {
+  timestamp: string;
+  organization: string;
+  customer_id: string;
+  application_name: string;
+  wifi_ssid: string;
+  wifi_password: string;
+  mac_address: string;
+  ip_address: string;
+}
+
+export interface CSVExportResult {
+  success: boolean;
+  filePath: string;
+  filename: string;
+  isNewFile: boolean;
+  rowsTotal: number;
+  error?: string;
+}
+
+// Dual export result (JSON + CSV)
+export interface DualExportResult {
+  json: {
+    success: boolean;
+    filePath: string;
+    filename: string;
+    error?: string;
+  };
+  csv: CSVExportResult;
+}

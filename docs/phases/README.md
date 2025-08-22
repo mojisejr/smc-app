@@ -20,9 +20,10 @@
 | [Phase 2](./phase2-core-deployment.md) | 4-5 วัน | Containerized Deployment Workflow | ✅ **COMPLETE** - Production Ready |
 | [Phase 2.1](./phase2-core-deployment.md) | 1 วัน | Cross-Platform Development Strategy | ✅ **COMPLETE** - Cross-Platform Ready |
 | [Phase 2.2](./phase2-core-deployment.md) | 0.5 วัน | macOS Development Mode Integration | ✅ **COMPLETE** - Development Mode Ready |
-| [Phase 3](./phase3-stability.md) | 3-4 วัน | Manual Testing & Hardware Integration | ✅ **COMPLETE** - Manual Testing Successful |
+| [Phase 2.3](./phase3-stability.md) | 1 วัน | Manual Testing & Hardware Integration | ✅ **COMPLETE** - Manual Testing Successful |
+| [Phase 3](./phase3-csv-export-enhancement.md) | 1-1.5 ชั่วโมง | CSV Export Enhancement & Daily Batch System | ✅ **COMPLETE** - Sales Team Workflow Ready |
 
-**รวมระยะเวลา:** 10-13 วัน (2 สัปดาห์) - **✅ All Phases Complete - Production & Development Ready**
+**รวมระยะเวลา:** 11-14 วัน + 1.5 ชั่วโมง - **✅ Phase 3 Complete - Ready for Phase 4 CLI Enhancement**
 
 ## 🎯 Project Goals
 
@@ -37,14 +38,15 @@
 2. เสียบ ESP32 เข้า USB → กดปุ่ม Deploy
 3. ได้ ESP32 ที่ configured แล้ว + JSON file สำหรับ dev
 
-### **MVP Features (7 Features เท่านั้น):**
-1. **Customer Input Form** - กรอกข้อมูลลูกค้า
-2. **ESP32 Detection** - หา ESP32 ที่เสียบอยู่
-3. **WiFi Auto-Generate** - สร้าง SSID/Password อัตโนมัติ
-4. **Firmware Generation** - สร้าง firmware จาก template
-5. **ESP32 Programming** - upload firmware ลง ESP32
-6. **MAC Address Extract** - ดึง MAC address หลัง deploy
-7. **JSON Export** - สร้างไฟล์ให้ dev import
+### **MVP Features (8 Features):***
+1. **Customer Input Form** - กรอกข้อมูลลูกค้า ✅
+2. **ESP32 Detection** - หา ESP32 ที่เสียบอยู่ ✅
+3. **WiFi Auto-Generate** - สร้าง SSID/Password อัตโนมัติ ✅
+4. **Firmware Generation** - สร้าง firmware จาก template ✅
+5. **ESP32 Programming** - upload firmware ลง ESP32 ✅
+6. **MAC Address Extract** - ดึง MAC address หลัง deploy ✅
+7. **JSON Export** - สร้างไฟล์ให้ dev import (individual) ✅
+8. **CSV Export** - สร้างไฟล์รายวันสำหรับ batch processing ✅ **Phase 3 Complete**
 
 ## 🏗️ Simplified Architecture
 
@@ -115,28 +117,36 @@ esp32-deployment-tool/
 
 ## 🔄 Simplified Workflow
 
-### **Current State (August 21, 2025):**
+### **Current State (August 22, 2025):**
 ```
-✅ All Phases Complete - Production & Development Ready
+✅ Phase 3 Complete - CSV Export Enhancement Implemented Successfully
    ├── Cross-platform development strategy implemented successfully
    ├── macOS Development: Local PlatformIO + real ESP32 detection working
+   ├── Windows Development: npm run dev working with Desktop export (C:\Users\[user]\Desktop\esp32-exports\)
    ├── Container Production: Docker stable + ready for Windows deployment
    ├── 7 API Endpoints operational with platform-aware detection logic
-   ├── Complete end-to-end workflow: Form → Deploy → Extract → Export
+   ├── Complete end-to-end workflow: Form → Deploy → Extract → Export JSON + CSV
    ├── Template system with AM2302 sensor integration
    ├── WiFi auto-generation algorithm (deterministic)
    ├── Dual PlatformIO integration: local + containerized workflows
    ├── MAC address extraction with retry mechanism (intelligent mode switching)
-   ├── JSON export to Desktop via Docker volumes
+   ├── Dual export system: JSON (individual) + CSV (daily batch) to Desktop
+   ├── CSV export features: date rollover, append mode, field escaping
    ├── Platform detection: automatic switching between local/container modes
    ├── macOS Development Mode: MAC extraction from deployment log (no ESP32 WiFi needed)
    ├── Development workflow verified on macOS with real ESP32 hardware
-   ├── Manual testing successful: upload firmware + extract MAC + export JSON
-   └── CLI integration ready (JSON format compatible)
+   ├── Manual testing successful: upload firmware + extract MAC + export JSON + CSV
+   └── CLI integration ready (JSON + CSV formats compatible)
 
-✅ Cross-Platform Strategy: macOS dev → Windows prod seamlessly
+✅ Phase 3 Complete: CSV export enhancement for sales team workflow
+   ├── Implementation complete: Dual export system operational
+   ├── Daily CSV files: esp32-deployments-YYYY-MM-DD.csv format
+   ├── Sales workflow ready: Daily batch files for CLI processing
+   └── Cross-platform compatibility: Windows npm run dev working
+
+✅ Cross-Platform Strategy: macOS dev + Windows dev + Container prod seamlessly
 ✅ Manual Testing Complete: Hardware integration verified
-✅ Ready for Production Deployment
+✅ Phase 3 Complete: Ready for Phase 4 CLI Enhancement
 ```
 
 ### **Complete Workflow:**
@@ -144,36 +154,37 @@ esp32-deployment-tool/
 Sales Staff → Manual ESP32 setup → Manual data collection → Dev Manual CLI
 ```
 
-### **Docker MVP Target State:**
+### **Achieved MVP State (Phase 3 Complete):**
 ```
-Sales Staff → Docker Container → Web Form → Auto Deploy → JSON Export → Dev CLI Auto-import
+Sales Staff → Cross-Platform Tool → Web Form → Auto Deploy → JSON + CSV Export → Dev CLI Batch Import
 ```
 
-### **Containerized Technical Flow:**
+### **Cross-Platform Technical Flow (Phase 3 Complete):**
 ```
-1. [Docker Start] docker-compose up → Container with PlatformIO ready
+1. [Platform Setup] npm run dev (Windows/macOS) หรือ docker-compose up (Container)
          ↓
 2. [Web Form] 3 fields: องค์กร, รหัสลูกค้า, แอป
          ↓
-3. [Auto Generate] WiFi SSID/Password + Template (in container)
+3. [Auto Generate] WiFi SSID/Password + Template (platform-aware)
          ↓  
-4. [Container PlatformIO] Build + Upload firmware via USB mapping
+4. [Cross-Platform PlatformIO] Build + Upload firmware (local/container)
          ↓
-5. [Extract] MAC address via HTTP (container → ESP32)
+5. [Extract] MAC address via deployment log (macOS) หรือ HTTP (production)
          ↓
-6. [Export] Generate customer-{id}.json → Host Desktop
-         ↓
-7. [CLI Integration] smc-license --from-json customer-{id}.json
+6. [Dual Export] Generate customer-{id}.json + daily CSV → Desktop export
+         ↓  
+7. [Ready for Phase 4] smc-license batch --input daily-csv-file.csv
 ```
 
 ## 🎨 MVP Development Approach
 
 ### **Minimal & Stable Principles:**
-- **7 Features เท่านั้น:** ไม่เพิ่ม feature ใดๆ นอกเหนือจากนี้
+- **8 Features Core:** CSV export enhancement เป็น feature สุดท้าย
 - **Single Page App:** ไม่มี routing ซับซ้อน
 - **Fixed Settings:** ไม่มี customization options
 - **Internal Use Only:** ออกแบบสำหรับใช้ภายในองค์กร
 - **Stable > Feature-Rich:** ความเสถียร สำคัญกว่า features
+- **Backward Compatibility:** CSV export ไม่กระทบ existing JSON functionality
 
 ### **Cross-Platform Development Guidelines:**
 1. **Hybrid Strategy:** Local development (macOS) + container production (Windows)
@@ -225,7 +236,14 @@ curl http://localhost:3000/api/detect       # Should detect ESP32 (⚠️ curren
 - ✅ MAC address extraction with retry mechanism
 - ✅ JSON export to Desktop via Docker volumes
 - ✅ 7 API endpoints all functional
-- 🔄 **Ready for Manual Testing with ESP32 hardware**
+- ✅ **Manual Testing Complete with ESP32 hardware**
+
+### **Phase 3 Ready Checklist:**
+- ✅ Documentation complete: phase3-csv-export-enhancement.md
+- ✅ Technical specifications prepared
+- ✅ Implementation plan defined (1-1.5 hour timeline)
+- ✅ Backward compatibility strategy confirmed
+- 🔄 **Ready for CSV Export Implementation**
 
 ### **Docker Development Environment:**
 ```bash
@@ -261,15 +279,17 @@ curl http://localhost:3000/api/detect      # Test container detection
 
 ## 🎯 Success Metrics
 
-### **เมื่อจบทุก Phase จะได้:**
+### **เมื่อจบ Phase 3 จะได้:**
 - ✅ Docker-containerized web app ที่พนักงานขายใช้งานได้จริง
 - ✅ Cross-platform deployment (Mac dev → Windows prod)
 - ✅ ESP32 deployment เป็น one-click operation ใน container
-- ✅ JSON export system พร้อมใช้งาน (container → host Desktop)
-- ✅ smc-license CLI integration สมบูรณ์
+- ✅ Dual export system: JSON (individual) + CSV (daily batch)
+- ✅ Sales team workflow optimization: daily CSV files for batch processing
+- ✅ smc-license CLI integration พร้อมสำหรับ batch import
 - ✅ End-to-end containerized workflow ทำงานไม่มีปัญหา
 - ✅ Production-ready Docker images สำหรับ distribution
 - ✅ Self-contained system ไม่ต้องติดตั้ง dependencies
+- 🆕 **CSV Export Enhancement**: พร้อมสำหรับ Phase 4 CLI batch processing
 
 ### **Cross-Platform MVP Success Criteria: ✅ ALL COMPLETE**
 - ✅ **macOS Development**: `npm run dev` รัน successfully กับ real ESP32 detection
@@ -286,6 +306,13 @@ curl http://localhost:3000/api/detect      # Test container detection
 - ✅ **Manual Testing Complete**: Production hardware integration verified successfully
 - ✅ **macOS Development Mode**: Intelligent MAC extraction without ESP32 WiFi connection
 - ✅ **Environment-Aware APIs**: Automatic switching between deployment log parsing และ HTTP API
+
+### **Phase 3 Success Criteria: 🔄 READY FOR IMPLEMENTATION**
+- 🔄 **CSV Export System**: Daily CSV files พร้อม date rollover และ append mode
+- 🔄 **Dual Export**: JSON + CSV export ทำงานควบคู่กัน
+- 🔄 **Sales Workflow**: พนักงานขายได้ daily batch files สำหรับส่ง developer
+- 🔄 **CLI Integration Ready**: CSV format พร้อมสำหรับ Phase 4 batch processing
+- 🔄 **Backward Compatibility**: Existing JSON functionality ไม่เสีย
 
 ---
 

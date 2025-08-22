@@ -600,7 +600,7 @@ smc-license generate [options]   # CLI automatically detects ESP32
 - [ ] SMC application can validate license with ESP32
 - [ ] Environmental monitoring active (if DHT22 connected)
 
-## ESP32 Deployment Tool Integration ✅ COMPLETE
+## ESP32 Deployment Tool Integration ✅ PHASE 3 COMPLETE - CSV Export Enhancement
 
 ### System Architecture Enhancement
 
@@ -609,20 +609,21 @@ The SMC ecosystem now includes a dedicated **ESP32 Deployment Tool** that stream
 ```
 ┌─────────────────────────────────────────────────────────┐
 │              ESP32 Deployment Tool                     │
-│           (Next.js 14 + Cross-Platform)               │
+│    (Next.js 14 + Cross-Platform + CSV Export)         │
 ├─────────────────────────────────────────────────────────┤
 │ • Customer Configuration Form                          │
-│ • ESP32 Device Detection                               │
+│ • ESP32 Device Detection (Windows/macOS/Container)     │
 │ • Firmware Generation & Upload                        │
 │ • MAC Address Extraction                              │
-│ • JSON Export for CLI Integration                     │
+│ • Dual Export: JSON (individual) + CSV (daily batch)  │
 └─────────────────────┬───────────────────────────────────┘
-                      │ JSON Export
+                      │ JSON + CSV Export
                       ▼
 ┌─────────────────────────────────────────────────────────┐
 │           SMC License CLI Tool (v1.0.0)                │
 ├─────────────────────────────────────────────────────────┤
 │ • Import JSON from Deployment Tool                     │
+│ • Batch Process CSV files (Phase 4)                   │
 │ • Generate license.lic with ESP32 binding              │
 │ • WiFi Credentials Integration                         │
 └─────────────────────┬───────────────────────────────────┘
@@ -634,29 +635,41 @@ The SMC ecosystem now includes a dedicated **ESP32 Deployment Tool** that stream
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Complete Workflow Integration ✅
+### Complete Workflow Integration ✅ Phase 3 Complete
 
-**Phase 1: ESP32 Hardware Provisioning**
+**Phase 1: ESP32 Hardware Provisioning (Cross-Platform)**
 ```bash
 # Using ESP32 Deployment Tool
 cd esp32-deployment-tool/
 
-# macOS Development
+# Windows Development (Native Support)
+npm install                             # Install dependencies
+npm run dev                             # Local development
+# Complete: Form → Device → Deploy → Extract → JSON + CSV Export
+# Export Location: C:\Users\[user]\Desktop\esp32-exports\
+
+# macOS Development  
 npm run dev                             # Local development with real hardware
-# Complete: Form → Device → Deploy → Extract → JSON Export
+# Complete: Form → Device → Deploy → Extract → JSON + CSV Export
+# Export Location: ~/Desktop/esp32-exports/
 
 # Container Production  
-docker-compose up --build               # Windows production environment
-# Complete: Form → Device → Deploy → Extract → JSON Export
+docker-compose up --build               # Container environment
+# Complete: Form → Device → Deploy → Extract → JSON + CSV Export
+# Export Location: Container volume mapped to host Desktop
 ```
 
-**Phase 2: License Generation**
+**Phase 2: License Generation (Individual & Batch)**
 ```bash
-# Import from Deployment Tool JSON
+# Individual JSON Import (Existing)
 cd ../cli/
-smc-license generate --import-json ~/Desktop/customer-BGK001-2025-08-21.json
+smc-license generate --import-json ~/Desktop/esp32-exports/customer-BGK001-2025-08-22.json
 
-# Or manual generation with deployment data
+# Daily CSV Batch Processing (Phase 4 Ready)
+smc-license batch --input ~/Desktop/esp32-exports/esp32-deployments-2025-08-22.csv
+# → Processes all deployments from a single day
+
+# Manual generation with deployment data
 smc-license generate -o "Organization" -c "BGK001" -a "SMC_App" -e "2025-12-31" \
   --wifi-ssid "SMC_ESP32_BGK001" --wifi-password "SMCPassword123"
 ```
@@ -719,21 +732,59 @@ if (isDevelopmentMacOS) {
 }
 ```
 
-### Production Readiness Status ✅
+### Production Readiness Status ✅ Phase 3 Complete
 
 **ESP32 Deployment Tool Status:**
-- ✅ **Cross-Platform Ready**: macOS development + Windows container production
+- ✅ **Cross-Platform Ready**: macOS development + Windows native + container production
+- ✅ **Windows Native Support**: `npm run dev` works directly on Windows with Desktop export
 - ✅ **7 API Endpoints**: All operational with environment detection
 - ✅ **Template System**: AM2302 sensor integration with WiFi auto-generation  
 - ✅ **Manual Testing**: Complete workflow verified with real ESP32 hardware
-- ✅ **CLI Integration**: JSON export format compatible with SMC License CLI
+- ✅ **Dual Export System**: JSON (individual) + CSV (daily batch) operational
+- ✅ **CSV Export Features**: Date rollover, append mode, field escaping
+- ✅ **CLI Integration**: JSON + CSV formats compatible with SMC License CLI
 - ✅ **Development Mode**: Environment-aware MAC extraction without WiFi dependency
+- ✅ **Sales Team Workflow**: Daily CSV files ready for CLI batch processing
+
+### CSV Export System Specification ✅ Phase 3 Complete
+
+**CSV File Format:**
+```csv
+timestamp,organization,customer_id,application_name,wifi_ssid,wifi_password,mac_address,ip_address
+2025-08-22T10:30:00.000Z,SMC Medical,TEST001,SMC_Cabinet,SMC_ESP32_TEST001,SecurePass123!,24:6F:28:A0:12:34,192.168.4.1
+2025-08-22T10:45:15.123Z,Bangkok Hospital,BGK002,BMC_System,SMC_ESP32_BGK002,HospitalPass456!,24:6F:28:B1:56:78,192.168.4.1
+```
+
+**File Management:**
+- **File Naming**: `esp32-deployments-YYYY-MM-DD.csv`
+- **Date Rollover**: New file created automatically when date changes
+- **Append Mode**: Same-day deployments append to existing file
+- **Export Location**: 
+  - Windows: `C:\Users\[user]\Desktop\esp32-exports\`
+  - macOS: `~/Desktop/esp32-exports/`
+  - Container: Volume mapped to host Desktop
+
+**Field Escaping Features:**
+- Commas in data fields automatically quoted: `"Hospital, Bangkok"`
+- Double quotes escaped: `"Organization ""Quoted"""`
+- Special characters preserved in WiFi passwords and organization names
+
+**Sales Team Workflow:**
+```
+Daily Process:
+1. Sales staff deploy multiple ESP32s throughout the day
+2. Each deployment creates individual JSON + appends to daily CSV
+3. End of day: Sales team copies daily CSV file
+4. CSV file sent to development team for batch license generation
+5. Phase 4: CLI batch command processes entire CSV file automatically
+```
 
 **Integration Benefits:**
 - **Streamlined Workflow**: Single-click ESP32 provisioning instead of manual setup
 - **Error Reduction**: Automated firmware generation with customer-specific configuration
-- **Cross-Platform**: Seamless development on macOS, production deployment on Windows
-- **CLI Ready**: Direct integration with existing SMC License CLI workflow
+- **Cross-Platform**: Seamless development on macOS, Windows native, production deployment
+- **Dual Export**: Individual JSON + daily batch CSV for sales workflow optimization
+- **CLI Ready**: Direct integration with existing SMC License CLI workflow (Phase 4 batch processing)
 - **Medical Compliance**: Audit trail and environmental monitoring integration
 
 This document provides complete technical specifications for the SMC License CLI Tool integration with the Smart Medication Cart system, ESP32 hardware, and the new ESP32 Deployment Tool, ensuring secure, compliant, and performance-optimized license management for medical device deployments.

@@ -556,39 +556,46 @@ NODE_ENV=development npm run dev  # Bypasses WiFi connection automatically
 NODE_ENV=production npm run dev   # Full ESP32 WiFi connection and validation
 ```
 
-## ESP32 Deployment Tool (✅ PHASE 2+ COMPLETE - Cross-Platform Ready)
+## ESP32 Deployment Tool (✅ PHASE 3 COMPLETE - CSV Export Enhancement)
 
 **Location**: `esp32-deployment-tool/` directory
 
 **Purpose**: Cross-platform Next.js 14 application for deploying custom firmware to ESP32 devices with customer-specific configuration. Implements hybrid development strategy: macOS local development + Windows container production.
 
-### Current Status (August 21, 2025)
+### Current Status (August 22, 2025)
 
-- ✅ **Phase 2+ Complete**: Cross-platform development strategy implemented successfully
+- ✅ **Phase 3 Complete**: CSV Export Enhancement implemented successfully
+- ✅ **Cross-Platform Ready**: Both Windows `npm run dev` and macOS development working
+- ✅ **Dual Export System**: JSON (individual) + CSV (daily batch) files operational
 - ✅ **macOS Development**: Local PlatformIO + real ESP32 detection working
-- ✅ **Container Production**: Docker container stable and ready for Windows deployment
+- ✅ **Windows Development**: `npm run dev` works with Desktop export to `C:\Users\[user]\Desktop\esp32-exports\`
+- ✅ **Container Production**: Docker container stable and ready for production deployment
 - ✅ **Complete API Implementation**: 7/7 endpoints operational with platform detection
 - ✅ **Cross-Platform Detection**: API automatically switches between local/container modes
 - ✅ **Template System Complete**: AM2302 sensor integration with WiFi auto-generation
 - ✅ **PlatformIO Integration**: Both local and containerized workflows operational
-- ✅ **JSON Export Ready**: Desktop export with CLI-compatible format
+- ✅ **JSON + CSV Export**: Desktop export with CLI-compatible format and daily batch processing
 - ✅ **Development Workflow**: Verified end-to-end on macOS with real hardware
 - ✅ **macOS Development Mode**: MAC extraction without ESP32 WiFi connection required
+- ✅ **Phase 3 Complete**: CSV export enhancement for sales team workflow optimization
 
-### Key Features (Phase 2+ Complete)
+### Key Features (Phase 3 Complete)
 
-- **Cross-Platform Development**: macOS local development + Windows container production ✅
+- **Cross-Platform Development**: macOS local development + Windows native development + Container production ✅
+- **Windows Native Support**: `npm run dev` works directly on Windows with Desktop export ✅
 - **macOS Development Mode**: Environment detection automatically uses deployment log data instead of ESP32 HTTP API ✅
 - **Environment-Aware APIs**: `/api/extract` automatically switches between local development and container production modes ✅
 - **Hybrid Detection Strategy**: Local PlatformIO (macOS) + container multi-method (Windows) ✅
-- **Complete Deployment Workflow**: Form → Device → Deploy → Extract → Export ✅
+- **Complete Deployment Workflow**: Form → Device → Deploy → Extract → Export JSON + CSV ✅
 - **Template System**: AM2302 sensor integration with customer-specific firmware generation ✅
 - **WiFi Auto-Generation**: Deterministic SSID/Password algorithm based on customer ID ✅
 - **Dual PlatformIO Integration**: Local installation + containerized build workflows ✅
 - **MAC Address Extraction**: Retry mechanism with ESP32 communication ✅
-- **JSON Export System**: CLI-ready format exported to Desktop via Docker volumes ✅
+- **Dual Export System**: JSON (individual) + CSV (daily batch) exported to Desktop ✅
+- **CSV Export Enhancement**: Daily batch CSV files with date rollover and append mode ✅
 - **Platform-Aware Detection**: Automatic switching between detection methods ✅
 - **Real-Time Progress**: Live deployment tracking with error handling ✅
+- **Sales Team Workflow**: Daily CSV files ready for CLI batch processing ✅
 
 ### Technical Stack
 
@@ -682,9 +689,17 @@ pip3 install platformio                            # Install global PlatformIO
 npm run dev                                         # Local Next.js with real ESP32 detection
 curl http://localhost:3000/api/detect              # Test real ESP32 hardware detection
 # Expected: {"success": true, "devices": [ESP32], "detection_method": "macOS local PlatformIO"}
-# Complete Workflow: Form → Device → Deploy → Extract (no WiFi connection needed) → Export JSON
+# Complete Workflow: Form → Device → Deploy → Extract (no WiFi connection needed) → Export JSON + CSV
 
-# Container Development (Windows simulation)
+# Windows Development (Native support)
+npm install                                         # Install dependencies
+npm run dev                                         # Local Next.js development
+curl http://localhost:3000/api/detect              # Test ESP32 detection
+# Expected: {"success": true, "devices": [], "detection_method": "Windows local"}
+# Export Location: C:\Users\[user]\Desktop\esp32-exports\
+# Complete Workflow: Form → Device → Deploy → Extract → Export JSON + CSV
+
+# Container Development (Production simulation)
 docker-compose up --build                          # Container environment
 curl http://localhost:3000/api/detect              # Test container multi-method detection  
 # Expected: {"success": true, "devices": [], "detection_method": "container multi-method"}
@@ -699,10 +714,11 @@ docker-compose -f docker-compose.prod.yml up -d    # Deploy production container
 docker-compose -f docker-compose.prod.yml logs -f  # Monitor production logs
 ```
 
-### Production Ready Status (✅ Phase 2+ Complete - Cross-Platform)
+### Production Ready Status (✅ Phase 3 Complete - Cross-Platform + CSV Export)
 
 **Cross-Platform Implementation (100% Complete)**:
-- ✅ **Hybrid Strategy**: macOS local development + Windows container production
+- ✅ **Hybrid Strategy**: macOS local development + Windows native + container production
+- ✅ **Windows Native Support**: `npm run dev` works directly on Windows with PlatformIO
 - ✅ **Platform Detection**: Automatic switching between local/container modes
 - ✅ **7 API Endpoints**: /detect, /generate, /deploy, /extract, /export, /health, /sensor
 - ✅ **Real Hardware Support**: Local PlatformIO working with actual ESP32 devices
@@ -711,8 +727,10 @@ docker-compose -f docker-compose.prod.yml logs -f  # Monitor production logs
 - ✅ **WiFi Generation**: Deterministic algorithm SMC_ESP32_{ID} + password
 - ✅ **Dual PlatformIO**: Both local installation and containerized workflows
 - ✅ **MAC Extraction**: Retry mechanism with ESP32 communication
-- ✅ **JSON Export**: Desktop export via Docker volume mapping
+- ✅ **Dual Export System**: JSON (individual) + CSV (daily batch) export to Desktop
+- ✅ **CSV Export Features**: Date rollover, append mode, field escaping
 - ✅ **Complete UI**: End-to-end workflow with real-time progress
+- ✅ **Sales Team Ready**: Daily CSV files for CLI batch processing workflow
 
 **Technical Architecture**:
 - ✅ **Cross-Platform API**: `/api/detect` with platform-aware logic
