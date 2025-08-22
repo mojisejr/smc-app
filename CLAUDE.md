@@ -320,7 +320,7 @@ smc-app : หมายถึง SMC application หลักที่เรา�
 ds : หมายถึง hardware ที่เชื่อมต่อกับ smc-app ของเรา
 cli : หมายถึง key-gen cli
 esp32-temp : หมายถึง hardware code ที่ใช้ deploy web server ลงใน esp32 เพื่อทำเป็น temp - serial key สำหรับผูก smc-app กับ ds
-esp32-deployment-tool : หมายถึง standalone Next.js tool สำหรับ deploy firmware ลง ESP32 พร้อม customer configuration
+esp32-dev-tool : หมายถึง standalone Next.js tool สำหรับ deploy firmware ลง ESP32 พร้อม customer configuration
 
 **When Working with Hardware Controllers** (Production Pattern):
 
@@ -602,7 +602,7 @@ NODE_ENV=production npm run dev   # Full ESP32 WiFi connection and validation
 - **Cross-Platform Architecture**: Hybrid local development + container production strategy
 - **Frontend**: Next.js 14 with App Router, React 18, TypeScript
 - **Styling**: Tailwind CSS with responsive design patterns
-- **Hardware Integration**: 
+- **Hardware Integration**:
   - macOS: Global PlatformIO CLI for real ESP32 device detection
   - Container: PlatformIO CLI with multi-method ESP32 detection fallbacks
 - **Platform Detection**: Automatic switching between `darwin` (local) and `linux` (container) modes
@@ -639,6 +639,7 @@ esp32-deployment-tool/
 ### Implementation History & Phase Status
 
 **Docker Implementation Complete (January 18, 2025):**
+
 - ✅ Multi-stage Dockerfile: Node.js + PlatformIO + Python virtual environment
 - ✅ Fixed: Python externally-managed environment error with virtual env
 - ✅ Fixed: Next.js build errors (TypeScript + missing devDependencies)
@@ -647,15 +648,17 @@ esp32-deployment-tool/
 - ⚠️ USB Mapping Issue: ESP32 devices not detected in container (requires troubleshooting)
 
 **Phase Development Status:**
+
 - ✅ **Phase 1 Complete - Docker Operational**: Container working, web interface accessible
-- 🔄 **Phase 1.1 Pending**: USB device mapping for ESP32 detection in container 
+- 🔄 **Phase 1.1 Pending**: USB device mapping for ESP32 detection in container
 - 📋 **Phase 2 Ready**: Core deployment features awaiting USB fix
 - 🔄 **Phase 3 Planned**: Enhanced error handling, UI polish, monitoring and optimization
 
 **Current Development Status (August 21, 2025):**
+
 - ✅ Phase 2+ Complete: Cross-platform development fully operational
 - ✅ macOS Development: Complete workflow working with real ESP32 hardware
-- ✅ Container Production: Docker environment ready for Windows deployment  
+- ✅ Container Production: Docker environment ready for Windows deployment
 - ✅ MAC Extraction: Intelligent switching between development log parsing and production HTTP API
 - ✅ Cross-Platform API Detection: Environment-aware endpoint behavior
 - ✅ Complete Integration: JSON export compatible with SMC License CLI
@@ -663,6 +666,7 @@ esp32-deployment-tool/
 ### Integration with SMC Ecosystem
 
 **CLI Tool Integration** (Planned Phase 2-3):
+
 ```bash
 # Deployment tool generates JSON files for CLI consumption
 esp32-deployment-tool → customer-BGK001-2025-01-18.json → smc-license generate
@@ -674,6 +678,7 @@ cd ../cli && smc-license generate --import-json ~/Desktop/customer-BGK001-2025-0
 ```
 
 **Hardware Integration**:
+
 - Uses `smc-key-temp/` ESP32 firmware templates for deployment
 - Generates customer-specific configuration files
 - Binds license data to ESP32 MAC addresses
@@ -701,7 +706,7 @@ curl http://localhost:3000/api/detect              # Test ESP32 detection
 
 # Container Development (Production simulation)
 docker-compose up --build                          # Container environment
-curl http://localhost:3000/api/detect              # Test container multi-method detection  
+curl http://localhost:3000/api/detect              # Test container multi-method detection
 # Expected: {"success": true, "devices": [], "detection_method": "container multi-method"}
 
 # Container Management
@@ -717,6 +722,7 @@ docker-compose -f docker-compose.prod.yml logs -f  # Monitor production logs
 ### Production Ready Status (✅ Phase 3 Complete - Cross-Platform + CSV Export)
 
 **Cross-Platform Implementation (100% Complete)**:
+
 - ✅ **Hybrid Strategy**: macOS local development + Windows native + container production
 - ✅ **Windows Native Support**: `npm run dev` works directly on Windows with PlatformIO
 - ✅ **Platform Detection**: Automatic switching between local/container modes
@@ -724,7 +730,7 @@ docker-compose -f docker-compose.prod.yml logs -f  # Monitor production logs
 - ✅ **Real Hardware Support**: Local PlatformIO working with actual ESP32 devices
 - ✅ **Container Operational**: Docker environment stable and ready for production
 - ✅ **Template System**: main.cpp.template with AM2302 sensor + WiFi credentials
-- ✅ **WiFi Generation**: Deterministic algorithm SMC_ESP32_{ID} + password
+- ✅ **WiFi Generation**: Deterministic algorithm SMC*ESP32*{ID} + password
 - ✅ **Dual PlatformIO**: Both local installation and containerized workflows
 - ✅ **MAC Extraction**: Retry mechanism with ESP32 communication
 - ✅ **Dual Export System**: JSON (individual) + CSV (daily batch) export to Desktop
@@ -733,6 +739,7 @@ docker-compose -f docker-compose.prod.yml logs -f  # Monitor production logs
 - ✅ **Sales Team Ready**: Daily CSV files for CLI batch processing workflow
 
 **Technical Architecture**:
+
 - ✅ **Cross-Platform API**: `/api/detect` with platform-aware logic
 - ✅ **TypeScript**: Full type safety across all components
 - ✅ **Error Handling**: Comprehensive with cross-platform troubleshooting
@@ -742,6 +749,7 @@ docker-compose -f docker-compose.prod.yml logs -f  # Monitor production logs
 - ✅ **Health Monitoring**: Container health checks operational
 
 **Production Deployment Ready**:
+
 - ✅ **SMC License CLI**: JSON format compatible for import
 - ✅ **ESP32 Hardware**: Template ready for deployment
 - ✅ **Customer Workflow**: Organization → Customer ID → Application Name
