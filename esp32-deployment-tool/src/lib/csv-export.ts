@@ -2,17 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { ExportData } from './export';
-
-export interface CSVExportData {
-  timestamp: string;
-  organization: string;
-  customer_id: string;
-  application_name: string;
-  wifi_ssid: string;
-  wifi_password: string;
-  mac_address: string;
-  ip_address: string;
-}
+import { CSVExportData } from '@/types';
 
 export interface CSVExportResult {
   success: boolean;
@@ -24,8 +14,8 @@ export interface CSVExportResult {
 }
 
 export class CSVExporter {
-  // CSV Header สำหรับไฟล์ใหม่
-  private static readonly CSV_HEADER = 'timestamp,organization,customer_id,application_name,wifi_ssid,wifi_password,mac_address,ip_address';
+  // CSV Header สำหรับไฟล์ใหม่ (รวม columns ใหม่สำหรับ license management)
+  private static readonly CSV_HEADER = 'timestamp,organization,customer_id,application_name,wifi_ssid,wifi_password,mac_address,ip_address,expiry_date,license_status,license_file,notes';
 
   /**
    * Export data to daily CSV file with date rollover and append functionality
@@ -85,7 +75,7 @@ export class CSVExporter {
           const existingRows = existingContent.split('\n').filter(line => line.trim() !== '');
           rowsTotal = existingRows.length; // total after adding new row
           console.log(`info: Appending to existing CSV file (${existingRows.length - 1} data rows + header)`);
-        } catch (error) {
+        } catch {
           console.log('warn: Could not count existing rows, using default count');
         }
       }
@@ -127,6 +117,14 @@ export class CSVExporter {
    * แปลง ExportData เป็น CSVExportData format
    */
   private static convertExportDataToCSV(data: ExportData): CSVExportData {
+    // Handle no expiry case - export empty string for CLI to interpret as no expiry
+    let expiryDate: string;
+    if (data.customer.noExpiry) {
+      expiryDate = ''; // Empty string indicates no expiry
+    } else {
+      expiryDate = data.customer.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // Default 1 year
+    }
+
     return {
       timestamp: data.deployment.timestamp,
       organization: data.customer.organization,
@@ -135,7 +133,11 @@ export class CSVExporter {
       wifi_ssid: data.wifi.ssid,
       wifi_password: data.wifi.password,
       mac_address: data.esp32.macAddress,
-      ip_address: data.esp32.ipAddress
+      ip_address: data.esp32.ipAddress,
+      expiry_date: expiryDate,
+      license_status: 'pending',
+      license_file: '',
+      notes: data.customer.noExpiry ? 'No expiry (permanent license)' : ''
     };
   }
   
@@ -151,7 +153,11 @@ export class CSVExporter {
       data.wifi_ssid,
       data.wifi_password,
       data.mac_address,
-      data.ip_address
+      data.ip_address,
+      data.expiry_date,
+      data.license_status,
+      data.license_file,
+      data.notes
     ];
     
     return fields.map(field => CSVExporter.escapeCSVField(field)).join(',');
@@ -203,8 +209,8 @@ export class CSVExporter {
         const fields = row.split(',');
         
         // Basic field count check (อาจมี quotes ทำให้ count ไม่ตรง แต่เป็น basic validation)
-        if (fields.length < 8) {
-          console.error(`error: CSV row ${i} has insufficient fields: ${row}`);
+        if (fields.length < 12) { // Updated to expect 12 fields
+          console.error(`error: CSV row ${i} has insufficient fields (expected 12): ${row}`);
           return false;
         }
       }

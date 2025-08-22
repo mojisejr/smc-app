@@ -4,7 +4,7 @@
  * for macOS local development and container production environments
  */
 
-import { spawn, ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 
@@ -72,10 +72,8 @@ export class CrossPlatformPlatformIO {
 
       let output = '';
       let errorOutput = '';
-      let timeoutHandle: NodeJS.Timeout;
-
       // Set timeout
-      timeoutHandle = setTimeout(() => {
+      const timeoutHandle = setTimeout(() => {
         platformio.kill();
         resolve({
           success: false,

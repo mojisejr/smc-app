@@ -9,10 +9,19 @@ interface CustomerFormProps {
 }
 
 export default function CustomerForm({ onSubmit, disabled }: CustomerFormProps) {
+  // Calculate default expiry date (1 year from now)
+  const calculateDefaultExpiry = (): string => {
+    const oneYearFromNow = new Date();
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+    return oneYearFromNow.toISOString().split('T')[0];
+  };
+
   const [formData, setFormData] = useState<CustomerInfo>({
     organization: '',
     customerId: '',
-    applicationName: ''
+    applicationName: '',
+    expiryDate: calculateDefaultExpiry(),
+    noExpiry: false
   });
 
   const [errors, setErrors] = useState<Partial<CustomerInfo>>({});
@@ -34,6 +43,21 @@ export default function CustomerForm({ onSubmit, disabled }: CustomerFormProps) 
       newErrors.applicationName = 'กรุณากรอกชื่อแอปพลิเคชัน';
     }
 
+    // Validate expiry date only if no expiry is not checked
+    if (!formData.noExpiry) {
+      if (!formData.expiryDate) {
+        newErrors.expiryDate = 'กรุณาเลือกวันหมดอายุ License';
+      } else {
+        const selectedDate = new Date(formData.expiryDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+        
+        if (selectedDate <= today) {
+          newErrors.expiryDate = 'วันหมดอายุต้องเป็นวันในอนาคต';
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -45,11 +69,24 @@ export default function CustomerForm({ onSubmit, disabled }: CustomerFormProps) 
     }
   };
 
-  const handleChange = (field: keyof CustomerInfo, value: string) => {
+  const handleChange = (field: keyof CustomerInfo, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleNoExpiryChange = (checked: boolean) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      noExpiry: checked,
+      // Reset expiry date to default when unchecking no expiry
+      expiryDate: checked ? '' : calculateDefaultExpiry()
+    }));
+    // Clear expiry date error when checking no expiry
+    if (checked && errors.expiryDate) {
+      setErrors(prev => ({ ...prev, expiryDate: undefined }));
     }
   };
 
@@ -106,6 +143,56 @@ export default function CustomerForm({ onSubmit, disabled }: CustomerFormProps) 
           />
           {errors.applicationName && (
             <p className="text-red-500 text-sm mt-1">{errors.applicationName}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            วันหมดอายุ License
+          </label>
+          
+          {/* No Expiry Checkbox */}
+          <div className="flex items-center mb-3">
+            <input
+              type="checkbox"
+              id="noExpiry"
+              checked={formData.noExpiry || false}
+              onChange={(e) => handleNoExpiryChange(e.target.checked)}
+              disabled={disabled}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="noExpiry" className="ml-2 block text-sm text-gray-700">
+              ไม่มีวันหมดอายุ (Permanent License)
+            </label>
+          </div>
+
+          {/* Date Input */}
+          <input
+            type="date"
+            value={formData.expiryDate}
+            onChange={(e) => handleChange('expiryDate', e.target.value)}
+            disabled={disabled || formData.noExpiry}
+            min={new Date().toISOString().split('T')[0]} // ไม่ให้เลือกวันที่ผ่านมาแล้ว
+            className={`w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+              disabled || formData.noExpiry 
+                ? 'disabled:bg-gray-100 text-gray-400' 
+                : ''
+            }`}
+          />
+          
+          {errors.expiryDate && (
+            <p className="text-red-500 text-sm mt-1">{errors.expiryDate}</p>
+          )}
+          
+          {/* Help Text */}
+          {!formData.noExpiry ? (
+            <p className="text-gray-500 text-sm mt-1">
+              ค่าเริ่มต้น: 1 ปีนับจากวันนี้
+            </p>
+          ) : (
+            <p className="text-blue-600 text-sm mt-1">
+              ✓ License นี้จะไม่มีวันหมดอายุ
+            </p>
           )}
         </div>
 

@@ -3,6 +3,8 @@ export interface CustomerInfo {
   organization: string;
   customerId: string;
   applicationName: string;
+  expiryDate: string; // YYYY-MM-DD format
+  noExpiry?: boolean; // True for permanent licenses (no expiry)
 }
 
 // ESP32 device info
@@ -31,6 +33,10 @@ export interface CSVExportData {
   wifi_password: string;
   mac_address: string;
   ip_address: string;
+  expiry_date: string;
+  license_status: 'pending' | 'completed' | 'failed' | 'skipped';
+  license_file: string;
+  notes: string;
 }
 
 export interface CSVExportResult {

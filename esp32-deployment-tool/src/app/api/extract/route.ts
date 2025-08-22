@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TemplateProcessor } from '@/lib/template';
+import { CustomerInfo } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
 }
 
 // macOS Development Mode Handler
-async function handleMacOSDevelopment(customerInfo: any, deploymentLog?: string): Promise<NextResponse> {
+async function handleMacOSDevelopment(customerInfo: CustomerInfo, deploymentLog?: string): Promise<NextResponse> {
   try {
     console.log('info: Using macOS Development Mode for MAC extraction');
     

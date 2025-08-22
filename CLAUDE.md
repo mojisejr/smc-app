@@ -102,8 +102,8 @@ npm run test:dispensing-workflow       # Test complete dispensing workflow
 - **Hardware Controllers**: `main/ku-controllers/` - BuildTimeController with DS12/DS16 abstraction (DS12 production, DS16 ready)
 - **Configuration**: Build-time device configuration in `config/constants/BuildConstants.ts` with dynamic UI adaptation
 - **Design System**: `renderer/components/Shared/DesignSystem/` - Centralized component library with React Hook Form integration
-- **CLI Tool**: `cli/` - SMC License CLI ✅ **PRODUCTION READY v1.0.0**
-- **ESP32 Deployment Tool**: `esp32-deployment-tool/` - Cross-platform ESP32 deployment ✅ **TEMPLATE CONSOLIDATION COMPLETE**
+- **CLI Tool**: `cli/` - SMC License CLI ✅ **PRODUCTION READY v1.1.0 - CSV BATCH READY**
+- **ESP32 Deployment Tool**: `esp32-deployment-tool/` - Cross-platform ESP32 deployment ✅ **PHASE 4.5 COMPLETE - NO EXPIRY SUPPORT**
 
 ### Key Components
 
@@ -290,7 +290,7 @@ useEffect(() => {
 
 - เขียน code โดยการใช้ code pattern ที่ง่ายต่อการเข้าใจ และมีประสิทธิภาพ เหมาะสำหรับ solo dev
 - โค้ดที่มีความยากและซับซ้อน ต้อง comment ขั้นตอนการทำงานต่างๆ ให้ชัดเจน
-- ไม่ใช้ code pattern ที่ซับซ้อน
+- ไม่ใช้ code pattern ที่ซับซ้อน เน้น clean code architecture
 - ตอบคำถามผมเป็นภาษาไทยเท่านั้น ยกเว้น technical term เป็นภาษาอังกฤษได้
 - พยายาม commit checkpoint เมื่อจบ แต่ละ phase
 - หลังจากจบแต่ละ phase ถ้ามี run dev server ให้ kill ด้วย
@@ -308,6 +308,14 @@ smc-app : หมายถึง SMC application หลักที่เรา�
 ds : หมายถึง hardware ที่เชื่อมต่อกับ smc-app ของเรา
 cli : หมายถึง key-gen cli
 esp32-dev-tool : หมายถึง standalone Next.js tool สำหรับ deploy firmware ลง ESP32 พร้อม customer configuration (รวม template management แล้ว)
+
+\*\* Visual Development (ถ้าคุณอยากเห็นหน้าตาของสิ่งที่ทำ หรือ UI)
+
+- ถ้าคุณต้องทำการกับ UI ต่างๆ ให้คุณใช้ playwright MCP ทุกครั้งเมื่อสามารถใช้ได้
+- ถ้าคุณอยากไปที่หน้าที่กำลังทำงานอยู่จะใช้ `mcp__playwright__browser_navigate` เพื่อไปดูได้
+- คุณจะใช้มันตรวจสอบการทำงานหรือทำ end to end test เสมอถ้าจำเป็น
+- คุณจะ takescreen short ของ screen เมื่อคุณต้องการที่จะวิเคราะห์สิ่งที่เกิดขึ้นได้
+- คุณสามารถเชค error message ด้วย `mcp__playwright__browser_console_messages`
 
 **When Working with Hardware Controllers** (Production Pattern):
 
@@ -345,6 +353,51 @@ const MyComponent = () => (
     <DialogButton variant="primary">ปุ่มยืนยัน</DialogButton>
   </DialogBase>
 );
+```
+
+**When Working with CSV Batch Processing**:
+
+```typescript
+// CLI batch processing pattern
+import { processBatchLicenses, BatchOptions } from '@/modules/batch-license-generator';
+import { CSVProcessor } from '@/modules/csv-parser';
+
+// Process CSV from ESP32 Deployment Tool
+const batchOptions: BatchOptions = {
+  inputCSV: 'esp32-deployments-2025-08-22.csv',
+  outputDir: './licenses/',
+  updateCSV: true,
+  skipExisting: true,
+  expiryYears: 2,  // Override CSV expiry
+  verbose: true
+};
+
+const result = await processBatchLicenses(batchOptions);
+console.log(`Processed: ${result.processed}, Failed: ${result.failed}`);
+```
+
+**When Working with No Expiry Licenses**:
+
+```typescript
+// ESP32 Deployment Tool - No Expiry Pattern
+const handleNoExpiryChange = (checked: boolean) => {
+  setFormData(prev => ({
+    ...prev,
+    noExpiry: checked,
+    expiryDate: checked ? '' : calculateDefaultExpiry()
+  }));
+};
+
+// CLI Parser - No Expiry Detection
+if (!obj.expiryDate || obj.expiryDate.trim() === '') {
+  expiryDate = '2099-12-31';  // Far future for permanent
+  noExpiry = true;
+} else {
+  expiryDate = obj.expiryDate;
+}
+
+// Display Logic - Show permanent status
+console.log(`Expiry: ${record.noExpiry ? 'No expiry (permanent)' : record.expiryDate}`);
 ```
 
 **When Working with Responsive Grid**:
@@ -421,21 +474,25 @@ import Indicator from '@/components/Indicators/baseIndicator';
 - **Legacy Preserved**: KU16 code maintained for reference and rollback capability
 - **Protocol Abstraction**: Complete migration from direct hardware calls to controller pattern
 
-## SMC License CLI Tool (✅ PRODUCTION READY v1.0.0)
+## SMC License CLI Tool (✅ PRODUCTION READY v1.1.0 - CSV BATCH READY)
 
 > **📖 Complete Details**: See `/docs/system-architecture/10-license-cli-integration.md`
 
 **Location**: `cli/` directory  
-**Purpose**: ESP32-based license generation with hardware binding
+**Purpose**: ESP32-based license generation with hardware binding and CSV batch processing
 
 ### Key Features
+
 - **Hardware Binding**: ESP32 MAC address authentication
 - **AES-256-CBC Encryption**: Medical-grade security
 - **Cross-Platform**: macOS development, Windows production
 - **Performance**: ~100ms startup, 0.05MB memory
+- **🆕 CSV Batch Processing**: Complete Sales → Developer → Delivery workflow
+- **🆕 No Expiry Support**: Permanent licenses with 2099-12-31 date handling
 
 ### Essential Commands
 
+#### Individual License Generation
 ```bash
 # Generate license with WiFi credentials
 smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" \
@@ -449,39 +506,105 @@ smc-license validate -f license.lic
 smc-license info -f license.lic
 ```
 
-## ESP32 Deployment Tool (✅ PHASE 3 COMPLETE - Template Consolidation)
+#### 🆕 CSV Batch Processing (Phase 4.5)
+```bash
+# Process CSV from ESP32 Deployment Tool
+smc-license batch --input esp32-deployments-2025-08-22.csv --update-csv
+
+# Batch with custom expiry settings
+smc-license batch --input daily-batch.csv --expiry-years 2 --skip-existing
+
+# No expiry (permanent) licenses
+smc-license batch --input permanent-licenses.csv --no-expiry --update-csv
+
+# Dry run validation
+smc-license batch --input test-batch.csv --dry-run --verbose
+
+# Custom output directory
+smc-license batch --input batch.csv --output-dir ./licenses/ --update-csv
+```
+
+## ESP32 Deployment Tool (✅ PHASE 4.5 COMPLETE - NO EXPIRY SUPPORT)
 
 **Location**: `esp32-deployment-tool/` directory
-**Purpose**: Cross-platform Next.js 14 tool for ESP32 firmware deployment with integrated template management
+**Purpose**: Cross-platform Next.js 14 tool for ESP32 firmware deployment with integrated template management and no-expiry license support
 
 ### Current Status (August 22, 2025)
+
 - ✅ **Template Consolidation Complete**: ESP32 templates now managed from single location
 - ✅ **Phase 3 Complete**: CSV Export Enhancement + Template Management
+- ✅ **Phase 4.5 Complete**: No-expiry functionality with checkbox UI
 - ✅ **Cross-Platform Ready**: Windows/macOS/Container development
 - ✅ **Template System**: `templates/main.cpp.template` + `templates/platformio.ini.template`
 - ✅ **Dual Export System**: JSON + CSV with sales team workflow
-- ✅ **Production Ready**: End-to-end deployment verified
+- ✅ **No Expiry Support**: Permanent licenses via checkbox interface
+- ✅ **Production Ready**: End-to-end deployment verified with CLI batch processing
 
 ### Key Features
+
 - **Cross-Platform**: macOS/Windows development + Docker production
 - **Template Management**: Unified template system in `templates/` directory
 - **Export System**: JSON (individual) + CSV (daily batch)
 - **Complete Workflow**: Form → Device → Deploy → Extract → Export
+- **🆕 No Expiry Interface**: Checkbox for permanent licenses with conditional date input
+- **🆕 CLI Integration**: Direct CSV export for `smc-license batch` command
 
 > **📖 Complete Details**: See `/docs/system-architecture/10-license-cli-integration.md`
 
 ### Project Structure
+
 ```
 esp32-deployment-tool/
 ├── templates/
 │   ├── main.cpp.template        # ESP32 firmware template
 │   └── platformio.ini.template  # PlatformIO config template
 ├── src/app/api/                 # 7 API endpoints
-└── exports/                     # JSON + CSV output
+├── src/components/
+│   └── CustomerForm.tsx         # Enhanced with no-expiry checkbox
+└── exports/                     # JSON + CSV output with license tracking
 ```
 
+### 🆕 No Expiry License Workflow
 
+#### UI Pattern - Checkbox with Conditional Input
+```typescript
+// CustomerForm.tsx implementation pattern
+const [formData, setFormData] = useState<CustomerInfo>({
+  organization: '',
+  customerId: '',
+  applicationName: '',
+  expiryDate: calculateDefaultExpiry(),
+  noExpiry: false  // New checkbox state
+});
 
+// Checkbox UI with conditional date input
+<label className="flex items-center space-x-2">
+  <input
+    type="checkbox"
+    checked={formData.noExpiry}
+    onChange={(e) => setFormData(prev => ({
+      ...prev,
+      noExpiry: e.target.checked,
+      expiryDate: e.target.checked ? '' : calculateDefaultExpiry()
+    }))}
+  />
+  <span>ไม่มีวันหมดอายุ (Permanent License)</span>
+</label>
+
+{!formData.noExpiry && (
+  <input
+    type="date"
+    value={formData.expiryDate}
+    onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+    min={new Date().toISOString().split('T')[0]}
+  />
+)}
+```
+
+#### Data Flow Pattern
+```
+UI Checkbox Checked → expiryDate: "" (empty) → CSV Export → CLI Parser → 2099-12-31 + noExpiry flag → Display: "No expiry (permanent)"
+```
 
 ## ESP32 Hardware Integration
 
@@ -490,6 +613,7 @@ esp32-deployment-tool/
 **Purpose**: ESP32-based license binding and environmental monitoring for medical device compliance
 
 ### Quick Integration
+
 - **Templates**: Managed in `esp32-deployment-tool/templates/`
 - **API Endpoints**: `/mac`, `/health`, `/temp` for license binding
 - **Hardware Binding**: MAC address authentication for medical device security
@@ -499,3 +623,23 @@ esp32-deployment-tool/
 - Project Architecture documentation files : /docs/system-architecture
 - CLI Tool Documentation: `cli/README.md`
 - ESP32 Hardware Guide: `smc-key-temp/docs/DHT22.md`
+- Phase 4.5 Implementation: `docs/phases/phase4-cli-enhancement.md`
+
+\*\*Complete Sales → Developer → Delivery Workflow (Phase 4.5)
+
+```bash
+# 1. Sales Team: ESP32 Deployment Tool
+cd esp32-deployment-tool/
+npm run dev  # Deploy ESP32 with checkbox for no-expiry
+# → Generates: esp32-deployments-2025-08-22.csv
+
+# 2. Developer: CLI Batch Processing
+cd cli/
+smc-license batch --input ../esp32-deployment-tool/exports/esp32-deployments-2025-08-22.csv --update-csv
+# → Generates: BGK001-license.lic, BGK002-license.lic, etc.
+# → Updates: CSV with license_status="completed"
+
+# 3. Delivery: Package and Deploy
+# → Copy: Updated CSV + License files + SMC App
+# → Deploy: to customer sites with ESP32 binding verification
+```

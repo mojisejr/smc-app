@@ -2,7 +2,7 @@
 
 ## Document Purpose
 
-This document details the SMC License CLI Tool (v1.0.0) integration with the Smart Medication Cart system, providing comprehensive technical specifications for ESP32-based hardware binding and secure license management.
+This document details the SMC License CLI Tool (v1.1.0) integration with the Smart Medication Cart system, providing comprehensive technical specifications for ESP32-based hardware binding, secure license management, and CSV batch processing workflows.
 
 ## System Integration Overview
 
@@ -17,13 +17,15 @@ The SMC License CLI Tool operates as a companion tool to the main SMC desktop ap
                       │
                       ▼ License Validation
 ┌─────────────────────────────────────────────────────────┐
-│           SMC License CLI Tool (v1.0.0)                │
+│           SMC License CLI Tool (v1.1.0)                │
 ├─────────────────────────────────────────────────────────┤
 │ • ESP32 Communication Module                           │
 │ • AES-256-CBC Encryption Engine                        │
 │ • License Generation & Validation                      │
 │ • Hardware Binding Management                          │
 │ • Cross-Platform TypeScript CLI                        │
+│ • 🆕 CSV Batch Processing System                        │
+│ • 🆕 No Expiry License Support                          │
 └─────────────────────┬───────────────────────────────────┘
                       │ HTTP/WiFi
                       ▼
@@ -153,6 +155,24 @@ smc-license validate --file hospital-license.lic
 smc-license info --file hospital-license.lic
 ```
 
+### 🆕 CSV Batch Processing (Phase 4.5)
+```bash
+# Process CSV from ESP32 Deployment Tool
+smc-license batch --input esp32-deployments-2025-08-22.csv --update-csv
+
+# Batch with custom expiry settings
+smc-license batch --input daily-batch.csv --expiry-years 2 --skip-existing --output-dir ./licenses/
+
+# No expiry (permanent) licenses
+smc-license batch --input permanent-licenses.csv --no-expiry --update-csv
+
+# Dry run validation and preview
+smc-license batch --input test-batch.csv --dry-run --verbose
+
+# Skip existing license files
+smc-license batch --input batch.csv --skip-existing --update-csv
+```
+
 ## Security Architecture
 
 ### Hardware Binding Security
@@ -269,13 +289,20 @@ Common issues and resolution patterns are documented in `cli/README.md`:
 - **Performance**: Optimized for medical device response time requirements
 - **Logging**: Structured logging for debugging and audit purposes with development mode indicators
 
-## Future Enhancement Roadmap
+## Phase 4.5 Implementation Complete ✅
 
-### Version 1.1.0 Planned Features
-1. **Batch License Generation**: Multiple licenses in single operation
-2. **License Renewal**: Automatic license renewal workflow
-3. **Enhanced Monitoring**: Real-time license status monitoring
-4. **API Integration**: REST API for automated license management
+### Version 1.1.0 Delivered Features
+1. **✅ CSV Batch Processing**: Multiple licenses from ESP32 Deployment Tool CSV
+2. **✅ No Expiry License Support**: Permanent licenses with checkbox UI interface
+3. **✅ CSV Status Tracking**: Update CSV files with license generation status
+4. **✅ Enhanced ESP32 Tool**: Integrated expiry date selection and no-expiry option
+5. **✅ Complete Workflow**: End-to-end Sales → Developer → Delivery process
+
+### Version 1.2.0 Future Features
+1. **License Renewal**: Automatic license renewal workflow
+2. **Enhanced Monitoring**: Real-time license status monitoring
+3. **API Integration**: REST API for automated license management
+4. **Batch Renewal**: CSV-based license renewal processing
 
 ### Medical Device Integration
 1. **SMC Desktop Integration**: Direct license verification in main application
@@ -601,7 +628,7 @@ smc-license generate [options]   # CLI automatically detects ESP32
 - [ ] SMC application can validate license with ESP32
 - [ ] Environmental monitoring active (if DHT22 connected)
 
-## ESP32 Deployment Tool Integration ✅ PHASE 3 COMPLETE - CSV Export Enhancement
+## ESP32 Deployment Tool Integration ✅ PHASE 4.5 COMPLETE - No Expiry & CSV Batch Processing
 
 ### System Architecture Enhancement
 
@@ -610,33 +637,37 @@ The SMC ecosystem now includes a dedicated **ESP32 Deployment Tool** that stream
 ```
 ┌─────────────────────────────────────────────────────────┐
 │              ESP32 Deployment Tool                     │
-│    (Next.js 14 + Cross-Platform + CSV Export)         │
+│  (Next.js 14 + No Expiry Support + CSV Export)        │
 ├─────────────────────────────────────────────────────────┤
-│ • Customer Configuration Form                          │
+│ • Customer Configuration Form with Expiry Options      │
 │ • ESP32 Device Detection (Windows/macOS/Container)     │
 │ • Firmware Generation & Upload                        │
 │ • MAC Address Extraction                              │
+│ • 🆕 No Expiry Checkbox Interface                      │
 │ • Dual Export: JSON (individual) + CSV (daily batch)  │
+│ • 🆕 Enhanced CSV: expiry_date, license_status cols    │
 └─────────────────────┬───────────────────────────────────┘
-                      │ JSON + CSV Export
+                      │ JSON + Enhanced CSV Export
                       ▼
 ┌─────────────────────────────────────────────────────────┐
-│           SMC License CLI Tool (v1.0.0)                │
+│           SMC License CLI Tool (v1.1.0)                │
 ├─────────────────────────────────────────────────────────┤
 │ • Import JSON from Deployment Tool                     │
-│ • Batch Process CSV files (Phase 4)                   │
+│ • 🆕 CSV Batch Processing with Status Updates          │
+│ • 🆕 No Expiry License Support (2099-12-31)            │
 │ • Generate license.lic with ESP32 binding              │
 │ • WiFi Credentials Integration                         │
+│ • 🆕 Skip Existing, Dry Run, Verbose Options           │
 └─────────────────────┬───────────────────────────────────┘
-                      │ License File
+                      │ License Files + Updated CSV
                       ▼
 ┌─────────────────────────────────────────────────────────┐
 │                SMC Desktop Application                  │
-│              (Medical Device Software)                  │
+│        (Medical Device Software + License Validation)  │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Complete Workflow Integration ✅ Phase 3 Complete
+### Complete Workflow Integration ✅ Phase 4.5 Complete
 
 **Phase 1: ESP32 Hardware Provisioning (Cross-Platform)**
 ```bash
@@ -666,11 +697,19 @@ docker-compose up --build               # Container environment
 cd ../cli/
 smc-license generate --import-json ~/Desktop/esp32-exports/customer-BGK001-2025-08-22.json
 
-# Daily CSV Batch Processing (Phase 4 Ready)
-smc-license batch --input ~/Desktop/esp32-exports/esp32-deployments-2025-08-22.csv
-# → Processes all deployments from a single day
+# 🆕 CSV Batch Processing (Phase 4.5 Complete)
+smc-license batch --input ~/Desktop/esp32-exports/esp32-deployments-2025-08-22.csv --update-csv
+# → Processes all deployments from a single day with CSV status updates
 
-# Manual generation with deployment data
+# 🆕 No Expiry Batch Processing
+smc-license batch --input permanent-licenses.csv --no-expiry --update-csv --verbose
+# → Generates permanent licenses (valid until 2099-12-31)
+
+# 🆕 Advanced Batch Options
+smc-license batch --input batch.csv --expiry-years 2 --skip-existing --output-dir ./licenses/
+# → Custom expiry, skip existing files, custom output directory
+
+# Manual generation with deployment data (Existing)
 smc-license generate -o "Organization" -c "BGK001" -a "SMC_App" -e "2025-12-31" \
   --wifi-ssid "SMC_ESP32_BGK001" --wifi-password "SMCPassword123"
 ```
@@ -747,14 +786,26 @@ if (isDevelopmentMacOS) {
 - ✅ **Development Mode**: Environment-aware MAC extraction without WiFi dependency
 - ✅ **Sales Team Workflow**: Daily CSV files ready for CLI batch processing
 
-### CSV Export System Specification ✅ Phase 3 Complete
+### CSV Export System Specification ✅ Phase 4.5 Complete
 
-**CSV File Format:**
+**Enhanced CSV File Format:**
 ```csv
-timestamp,organization,customer_id,application_name,wifi_ssid,wifi_password,mac_address,ip_address
-2025-08-22T10:30:00.000Z,SMC Medical,TEST001,SMC_Cabinet,SMC_ESP32_TEST001,SecurePass123!,24:6F:28:A0:12:34,192.168.4.1
-2025-08-22T10:45:15.123Z,Bangkok Hospital,BGK002,BMC_System,SMC_ESP32_BGK002,HospitalPass456!,24:6F:28:B1:56:78,192.168.4.1
+timestamp,organization,customer_id,application_name,wifi_ssid,wifi_password,mac_address,ip_address,expiry_date,license_status,license_file,notes
+2025-08-22T10:30:00.000Z,SMC Medical,TEST001,SMC_Cabinet,SMC_ESP32_TEST001,SecurePass123!,24:6F:28:A0:12:34,192.168.4.1,2025-12-31,pending,,
+2025-08-22T10:45:15.123Z,Bangkok Hospital,BGK002,BMC_System,SMC_ESP32_BGK002,HospitalPass456!,24:6F:28:B1:56:78,192.168.4.1,,pending,,No expiry (permanent license)
+2025-08-22T11:00:30.456Z,Government Hospital,GOV003,Medical_Cart,SMC_ESP32_GOV003,GovSecure789!,24:6F:28:C2:78:90,192.168.4.1,2026-12-31,completed,GOV003-license.lic,Generated by CLI batch
 ```
+
+**🆕 New Columns (Phase 4.5):**
+- **expiry_date**: License expiry date (YYYY-MM-DD format), empty for no expiry
+- **license_status**: 'pending', 'completed', 'failed', 'skipped'
+- **license_file**: Generated license filename (populated after CLI processing)
+- **notes**: Processing notes and status information
+
+**🆕 No Expiry Handling:**
+- **UI Checkbox Checked** → `expiryDate: ""` (empty string in CSV)
+- **CLI Parser Detection** → `expiryDate = '2099-12-31'` + `noExpiry = true` flag
+- **Display Logic** → Shows "No expiry (permanent)" instead of date
 
 **File Management:**
 - **File Naming**: `esp32-deployments-YYYY-MM-DD.csv`
@@ -770,22 +821,149 @@ timestamp,organization,customer_id,application_name,wifi_ssid,wifi_password,mac_
 - Double quotes escaped: `"Organization ""Quoted"""`
 - Special characters preserved in WiFi passwords and organization names
 
-**Sales Team Workflow:**
+**Sales Team Workflow (Phase 4.5 Complete):**
 ```
 Daily Process:
 1. Sales staff deploy multiple ESP32s throughout the day
+   • Use checkbox for permanent licenses (no expiry)
+   • Set specific expiry dates for timed licenses
 2. Each deployment creates individual JSON + appends to daily CSV
-3. End of day: Sales team copies daily CSV file
-4. CSV file sent to development team for batch license generation
-5. Phase 4: CLI batch command processes entire CSV file automatically
+3. CSV includes enhanced columns: expiry_date, license_status, etc.
+4. End of day: Sales team copies daily CSV file
+5. 🆕 CSV sent to development team for CLI batch processing
+6. 🆕 CLI processes CSV with: smc-license batch --input file.csv --update-csv
+7. 🆕 Updated CSV returned with license_status and license_file populated
+8. 🆕 Package: Updated CSV + License files + SMC App → Customer deployment
 ```
 
-**Integration Benefits:**
+**Integration Benefits (Phase 4.5):**
 - **Streamlined Workflow**: Single-click ESP32 provisioning instead of manual setup
 - **Error Reduction**: Automated firmware generation with customer-specific configuration
 - **Cross-Platform**: Seamless development on macOS, Windows native, production deployment
 - **Dual Export**: Individual JSON + daily batch CSV for sales workflow optimization
-- **CLI Ready**: Direct integration with existing SMC License CLI workflow (Phase 4 batch processing)
+- **🆕 No Expiry Support**: Checkbox interface for permanent licenses with proper data flow
+- **🆕 CSV Batch Processing**: Complete Sales → Developer → Delivery workflow
+- **🆕 Status Tracking**: CSV updates with license generation status and file names
+- **🆕 Advanced Options**: Skip existing, dry run, custom expiry, output directories
+- **CLI Ready**: Direct integration with enhanced SMC License CLI v1.1.0
 - **Medical Compliance**: Audit trail and environmental monitoring integration
 
-This document provides complete technical specifications for the SMC License CLI Tool integration with the Smart Medication Cart system, ESP32 hardware, and the new ESP32 Deployment Tool, ensuring secure, compliant, and performance-optimized license management for medical device deployments.
+## CSV Batch Processing Technical Implementation ✅ Phase 4.5
+
+### Core Modules
+
+#### 1. CSV Parser (`cli/modules/csv-parser.ts`)
+```typescript
+export interface CSVDeploymentRow {
+  timestamp: string;
+  organization: string;
+  customerId: string;
+  applicationName: string;
+  wifiSSID: string;
+  wifiPassword: string;
+  macAddress: string;
+  ipAddress: string;
+  expiryDate: string;
+  licenseStatus: 'pending' | 'completed' | 'failed' | 'skipped';
+  licenseFile: string;
+  notes: string;
+  noExpiry?: boolean; // Flag for no-expiry detection
+}
+
+// No expiry detection logic
+if (!obj.expiryDate || obj.expiryDate.trim() === '') {
+  expiryDate = '2099-12-31'; // Far future for permanent
+  noExpiry = true;
+} else {
+  expiryDate = obj.expiryDate;
+}
+```
+
+#### 2. Batch License Generator (`cli/modules/batch-license-generator.ts`)
+```typescript
+export interface BatchOptions {
+  inputCSV: string;
+  outputDir?: string;
+  updateCSV?: boolean;
+  skipExisting?: boolean;
+  expiryDays?: number;
+  expiryMonths?: number;
+  expiryYears?: number;
+  noExpiry?: boolean;
+  verbose?: boolean;
+  dryRun?: boolean;
+}
+
+// Priority for expiry calculation: CLI options > CSV record > default
+function calculateExpiryDate(recordExpiry: string, options: BatchOptions): string {
+  if (options.noExpiry) return '2099-12-31';
+  if (options.expiryDays) return addDays(new Date(), options.expiryDays);
+  if (recordExpiry) return recordExpiry;
+  return addYears(new Date(), 1); // Default 1 year
+}
+```
+
+### CLI Command Specification
+
+```bash
+smc-license batch --input <csvFile> [options]
+
+Required:
+  --input <csvFile>           CSV file from ESP32 Deployment Tool
+
+Optional:
+  --output-dir <dir>          Output directory for license files
+  --update-csv                Update CSV with processing status
+  --skip-existing             Skip records with existing license files
+  --expiry-days <days>        Override expiry: X days from now
+  --expiry-months <months>    Override expiry: X months from now
+  --expiry-years <years>      Override expiry: X years from now
+  --no-expiry                 Set all licenses to permanent (2099-12-31)
+  --dry-run                   Validate and preview without generating
+  --verbose                   Show detailed processing information
+
+Examples:
+  smc-license batch --input deployments.csv --update-csv
+  smc-license batch --input batch.csv --expiry-years 2 --skip-existing
+  smc-license batch --input permanent.csv --no-expiry --output-dir ./licenses/
+  smc-license batch --input test.csv --dry-run --verbose
+```
+
+### Processing Workflow
+
+```
+1. Load CSV → Parse headers → Validate required columns
+2. Filter pending records → Skip completed/failed if needed
+3. For each pending record:
+   • Determine expiry date (CLI override > CSV > default)
+   • Check if license file exists (skip if --skip-existing)
+   • Generate license with ESP32 MAC binding
+   • Update CSV record status (completed/failed)
+   • Log processing results
+4. Save updated CSV → Generate summary report
+```
+
+### Error Handling & Recovery
+
+```typescript
+// Comprehensive error handling with recovery suggestions
+try {
+  await processBatchLicenses(options);
+} catch (error) {
+  if (error.code === 'FILE_NOT_FOUND') {
+    console.error('CSV file not found. Check file path and permissions.');
+  } else if (error.code === 'INVALID_CSV_FORMAT') {
+    console.error('Invalid CSV format. Ensure file was generated by ESP32 Deployment Tool.');
+  } else if (error.code === 'LICENSE_GENERATION_FAILED') {
+    console.error('License generation failed. Check ESP32 connectivity and MAC addresses.');
+  }
+  
+  // Always suggest recovery options
+  console.log('Recovery suggestions:');
+  console.log('1. Try --dry-run to validate CSV format');
+  console.log('2. Use --verbose for detailed error information');
+  console.log('3. Check --skip-existing to continue from failures');
+}
+```
+
+This document provides complete technical specifications for the SMC License CLI Tool v1.1.0 integration with the Smart Medication Cart system, ESP32 hardware, and the enhanced ESP32 Deployment Tool, ensuring secure, compliant, and performance-optimized license management with comprehensive CSV batch processing capabilities for medical device deployments.
