@@ -1,0 +1,2 @@
+"timestamp","organization","customer_id","application_name","wifi_ssid","wifi_password","mac_address","ip_address","expiry_date","license_status","license_file","notes"
+"2025-08-22T08:47:09.173Z","TEST1","TEST1","TEST1","","SMCTEST1369","f4:65:0b:58:66:a4","192.168.4.1","2099-12-31","completed","TEST1-license.lic","Generated on 2025-08-22 via batch processing"
