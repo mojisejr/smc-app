@@ -286,7 +286,7 @@ Common issues and resolution patterns are documented in `cli/README.md`:
 ## ESP32 REST API Integration Architecture
 
 ### ESP32 Hardware Communication Layer
-**Location**: `smc-key-temp/` directory  
+**Template Source**: `esp32-deployment-tool/templates/` directory  
 **Purpose**: ESP32-based license hardware binding with REST API communication  
 **Integration Point**: SMC License CLI → ESP32 HTTP API → MAC address retrieval
 
@@ -576,8 +576,9 @@ server.on("/temp", HTTP_GET, [](AsyncWebServerRequest *request){
 #### Hardware Provisioning Steps
 ```bash
 # 1. ESP32 Hardware Setup
-cd smc-key-temp/
-pio run --target upload          # Deploy firmware to ESP32
+# Use ESP32 Deployment Tool for firmware deployment
+cd esp32-deployment-tool/
+npm run dev                       # Deploy firmware to ESP32 via web interface
 
 # 2. Network Configuration  
 # ESP32 creates "ESP32_AP" network automatically

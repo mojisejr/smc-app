@@ -10,10 +10,16 @@ export interface TemplateConfig {
 }
 
 export class TemplateProcessor {
-  private static templatePath = path.join(
+  private static mainTemplateePath = path.join(
     process.cwd(),
     "templates",
     "main.cpp.template"
+  );
+  
+  private static platformioTemplatePath = path.join(
+    process.cwd(),
+    "templates", 
+    "platformio.ini.template"
   );
 
   static generateWiFiCredentials(customerId: string): {
@@ -40,7 +46,7 @@ export class TemplateProcessor {
   static async generateFirmware(config: TemplateConfig): Promise<string> {
     try {
       // Read template file
-      const template = await fs.promises.readFile(this.templatePath, "utf8");
+      const template = await fs.promises.readFile(this.mainTemplateePath, "utf8");
 
       // Replace placeholders
       const firmware = template
@@ -61,23 +67,25 @@ export class TemplateProcessor {
     }
   }
 
-  static createPlatformIOConfig(): string {
-    return `; PlatformIO Project Configuration File
-; Generated for ESP32 deployment
-
-[env:esp32dev]
-platform = espressif32
-board = esp32dev
-framework = arduino
-monitor_speed = 115200
-upload_speed = 115200 
-
-; Dependencies
-lib_deps = 
-    mathieucarbou/ESP Async WebServer@^3.0.6
-    bblanchon/ArduinoJson@^7.4.2
-    adafruit/DHT sensor library@^1.4.4
-    adafruit/Adafruit Unified Sensor@^1.1.9
-`;
+  static async createPlatformIOConfig(config: TemplateConfig): Promise<string> {
+    try {
+      // Read platformio template file
+      const template = await fs.promises.readFile(this.platformioTemplatePath, "utf8");
+      
+      // Replace placeholders
+      const platformioConfig = template
+        .replace(/\{\{ORGANIZATION\}\}/g, config.customer.organization)
+        .replace(/\{\{CUSTOMER_ID\}\}/g, config.customer.customerId)
+        .replace(/\{\{APPLICATION_NAME\}\}/g, config.customer.applicationName)
+        .replace(/\{\{GENERATED_DATE\}\}/g, config.generatedDate);
+        
+      return platformioConfig;
+    } catch (error) {
+      throw new Error(
+        `Failed to generate PlatformIO config: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
   }
 }

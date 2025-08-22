@@ -1,0 +1,19 @@
+; PlatformIO Project Configuration File
+; Generated for ESP32 deployment
+; Customer: {{ORGANIZATION}} ({{CUSTOMER_ID}})
+; Application: {{APPLICATION_NAME}}
+; Generated: {{GENERATED_DATE}}
+
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+monitor_speed = 115200
+upload_speed = 115200 
+
+; Dependencies
+lib_deps = 
+    mathieucarbou/ESP Async WebServer@^3.0.6
+    bblanchon/ArduinoJson@^7.4.2
+    adafruit/DHT sensor library@^1.4.4
+    adafruit/Adafruit Unified Sensor@^1.1.14

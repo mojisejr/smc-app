@@ -62,7 +62,7 @@ This document serves as the **definitive navigation guide** for all agents worki
 | **Protocol Specifications** | [Protocol Quick Reference](#hardware-evolution--protocol-support) | `07-protocol-specifications.md` | Hardware evolution (02), Testing (08) |
 | **Testing & Quality** | [Testing Strategy](#testing-strategy) | `08-testing-strategy.md` | Protocol specs (07), Migration (09) |
 | **Migration Planning** | [Migration Roadmap](#migration-roadmap) | `09-migration-roadmap.md` | System overview (01), Testing (08) |
-| **ESP32 Deployment Tool** | [ESP32 Deployment](#esp32-deployment-tool) | `10-license-cli-integration.md` | License CLI integration, CSV export system |
+| **ESP32 Deployment Tool** | [ESP32 Deployment](#esp32-deployment-tool) | `10-license-cli-integration.md` | Template consolidation, CSV export system |
 
 ---
 
@@ -578,66 +578,27 @@ export class HardwareSimulator {
 > **📖 For Complete Details**: See `/docs/system-architecture/10-license-cli-integration.md`
 > **🔗 Related Files**: `01-system-overview.md`, `06-security-compliance.md`
 
-### ✅ Phase 3 Complete - CSV Export Enhancement
+### ✅ Phase 3 Complete - Template Consolidation + CSV Export
 
 **Location**: `esp32-deployment-tool/` directory
-**Purpose**: Cross-platform Next.js 14 application for ESP32 firmware deployment with customer configuration
+**Purpose**: Cross-platform Next.js 14 application with unified template management
 
 ### Current Status (August 22, 2025)
-- ✅ **Phase 3 Complete**: CSV Export Enhancement implemented successfully
-- ✅ **Cross-Platform Ready**: Windows `npm run dev` + macOS + Docker container
-- ✅ **Dual Export System**: JSON (individual) + CSV (daily batch) operational
+- ✅ **Template Consolidation**: ESP32 templates managed from single location
+- ✅ **Phase 3 Complete**: CSV Export + Template Management
+- ✅ **Cross-Platform Ready**: Windows/macOS/Docker development
 
 ### Key Achievements
 
-#### Cross-Platform Compatibility
-```bash
-# Windows Development (Native Support)
-cd esp32-deployment-tool/
-npm install                     # Install dependencies  
-npm run dev                     # Local development server
-# Export Location: C:\Users\[user]\Desktop\esp32-exports\
+#### Template Management Enhancement
+- **Unified Location**: `esp32-deployment-tool/templates/` directory
+- **Template Files**: `main.cpp.template` + `platformio.ini.template`
+- **Template System**: Complete customer-specific firmware generation
 
-# macOS Development  
-npm run dev                     # Local development with PlatformIO
-# Export Location: ~/Desktop/esp32-exports/
-
-# Container Production
-docker-compose up --build       # Docker environment
-# Export Location: Container volume mapped to host Desktop
-```
-
-#### Phase 3 CSV Export Features
-- **Dual Export System**: JSON (individual) + CSV (daily batch) files
-- **Date-Based Rollover**: `esp32-deployments-YYYY-MM-DD.csv` format
-- **Append Mode**: Same-day deployments append to existing CSV
-- **Field Escaping**: Handles commas, quotes, special characters in CSV
-- **Cross-Platform Paths**: Works on Windows (`C:\Users\[user]\Desktop\esp32-exports\`) and macOS (`~/Desktop/esp32-exports/`)
-
-#### CSV Format Specification
-```csv
-timestamp,organization,customer_id,application_name,wifi_ssid,wifi_password,mac_address,ip_address
-2025-08-22T10:30:00.000Z,SMC Medical,TEST001,SMC_Cabinet,SMC_ESP32_TEST001,SecurePass123!,24:6F:28:A0:12:34,192.168.4.1
-```
-
-### Sales Team Workflow Integration
-```
-Sales Staff → ESP32 Deployment Tool → Daily CSV Files → CLI Batch Processing
-           ├── Individual JSON files for immediate use
-           └── Daily CSV batch files for end-of-day processing
-```
-
-### Technical Architecture
-- **Frontend**: Next.js 14 with App Router, TypeScript, Tailwind CSS
-- **API Layer**: 7 endpoints with platform-aware detection
-- **Hardware Integration**: PlatformIO CLI (local) + containerized workflows
-- **Export System**: Dual format with container-aware file paths
-
-### Ready for Phase 4
-- ✅ CLI-compatible JSON format
-- ✅ Daily CSV batch files for sales workflow  
-- ✅ Cross-platform development environment
-- 🔄 **Next**: CLI enhancement for CSV batch processing
+#### Export System Features
+- **Dual Export**: JSON (individual) + CSV (daily batch) files  
+- **Cross-Platform Paths**: Desktop exports on Windows/macOS/Docker
+- **CLI Integration**: JSON format compatible with SMC License CLI
 
 ---
 
