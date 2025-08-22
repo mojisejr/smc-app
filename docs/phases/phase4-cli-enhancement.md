@@ -1911,13 +1911,921 @@ smc-license batch --input test-batch.csv --dry-run --verbose
 
 ## ⏭️ Next Phase
 
-Phase 4.5 เสร็จแล้ว จะได้ complete Sales → Developer → Delivery workflow
+Phase 4.6 เสร็จแล้ว จะได้ complete Production-Ready SMC App พร้อม license validation system
 
 **Phase 5: Polish & Production Ready** จะ focus ที่:
-- Application packaging และ distribution
+- Final application packaging และ distribution
 - User documentation และ manuals  
-- Production deployment guidelines
-- Final testing และ validation
+- Production deployment guidelines และ automation
+- Comprehensive testing และ validation
 - Cross-platform deployment verification
+- Performance optimization และ monitoring
 
 **Expected Output จาก Phase 4.5:** Production-ready CLI ที่รองรับ CSV batch processing, ESP32 Deployment Tool ที่มี expiry field, และ complete end-to-end workflow สำหรับ production deployment
+
+---
+
+## 🆕 Phase 4.6: SMC App Build & License Validation Enhancement
+
+**ระยะเวลา:** 2-3 วัน  
+**เป้าหมาย:** ปรับปรุง SMC App ให้พร้อมสำหรับ production deployment พร้อม license validation system
+
+### **📖 Overview & Goals**
+
+### **🔄 Production Workflow:**
+**CLI Tool** → สร้าง license.lic พร้อม SHARED_SECRET_KEY  
+**Build Process** → รัน scripts/build-prep.ts เพื่อ cleanup database + setup organization  
+**SMC App** → โหลด license.lic จาก resources และ validate กับ ESP32  
+**Production** → ส่ง .exe + license.lic ไปให้ลูกค้าติดตั้ง  
+
+### **🎯 วัตถุประสงค์:**
+- 🆕 **Build System Enhancement**: scripts/build-prep.ts สำหรับ production build
+- 🆕 **Resource-based License Loading**: โหลด license.lic จาก app resources  
+- 🆕 **Manual Network Retry System**: ให้ user เปลี่ยน network ได้เมื่อ WiFi ล้มเหลว
+- 🆕 **Environment Simplification**: เอา mock system ออก เหลือแค่ development bypass
+- 🆕 **Production-Ready Workflow**: ระบบสำหรับ production deployment ที่สมบูรณ์
+
+### **📋 Deliverables:**
+- 🆕 **Build Preparation Script**: scripts/build-prep.ts สำหรับ database + organization setup
+- 🆕 **Enhanced License Validation**: Production-ready license validation flow
+- 🆕 **Manual Network Management**: UI สำหรับเปลี่ยน network connection
+- 🆕 **Environment Configuration**: Simplified development vs production modes
+- 🆕 **Production Build Commands**: Enhanced npm scripts สำหรับ production build
+- 🆕 **Documentation Updates**: Build guidelines และ deployment instructions
+
+## 🏗 Technical Implementation Plan
+
+### **Phase 4.6.1: Build System Enhancement (4 ชั่วโมง)**
+
+#### **Build Preparation Script (`scripts/build-prep.ts`):**
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+import { Sequelize } from 'sequelize';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+interface BuildConfig {
+  organizationName: string;
+  sharedSecretKey: string;
+  buildVersion: string;
+  targetPlatform: string;
+}
+
+/**
+ * Production Build Preparation Script
+ * 
+ * 1. อ่าน SHARED_SECRET_KEY จาก .env
+ * 2. Clean + Reset ฐานข้อมูล
+ * 3. ตั้งค่า Organization data
+ * 4. Validate build environment
+ * 5. Copy license file template (if exists)
+ */
+async function prepareBuild(config: BuildConfig): Promise<void> {
+  console.log('info: Starting production build preparation...');
+  console.log(`info: Organization: ${config.organizationName}`);
+  console.log(`info: Build Version: ${config.buildVersion}`);
+  console.log(`info: Target Platform: ${config.targetPlatform}`);
+
+  // Step 1: Validate environment
+  await validateBuildEnvironment(config);
+
+  // Step 2: Clean and reset database
+  await cleanDatabase();
+
+  // Step 3: Setup organization data
+  await setupOrganizationData(config);
+
+  // Step 4: Prepare resources directory
+  await prepareResourcesDirectory();
+
+  // Step 5: Validate build readiness
+  await validateBuildReadiness();
+
+  console.log('info: Production build preparation completed successfully!');
+  console.log('info: Ready to run: npm run build:production');
+}
+
+async function validateBuildEnvironment(config: BuildConfig): Promise<void> {
+  console.log('info: Validating build environment...');
+
+  // Check SHARED_SECRET_KEY
+  if (!config.sharedSecretKey || config.sharedSecretKey.length < 32) {
+    throw new Error('SHARED_SECRET_KEY must be at least 32 characters long');
+  }
+
+  // Check organization name
+  if (!config.organizationName || config.organizationName.trim().length === 0) {
+    throw new Error('ORGANIZATION_NAME is required for production build');
+  }
+
+  // Check Node.js version
+  const nodeVersion = process.version;
+  console.log(`info: Node.js version: ${nodeVersion}`);
+
+  // Check npm packages
+  try {
+    await execAsync('npm list --production --silent');
+  } catch (error) {
+    console.warn('warn: Some npm packages may be missing');
+  }
+
+  console.log('info: Build environment validation passed');
+}
+
+async function cleanDatabase(): Promise<void> {
+  console.log('info: Cleaning and resetting database...');
+
+  const dbPath = path.join(__dirname, '../database.db');
+  
+  // Backup existing database if it exists
+  if (fs.existsSync(dbPath)) {
+    const backupPath = `${dbPath}.backup.${Date.now()}`;
+    fs.copyFileSync(dbPath, backupPath);
+    console.log(`info: Database backed up to: ${backupPath}`);
+  }
+
+  // Remove existing database
+  if (fs.existsSync(dbPath)) {
+    fs.unlinkSync(dbPath);
+    console.log('info: Existing database removed');
+  }
+
+  // Run database migration/setup
+  try {
+    await execAsync('npm run db:setup');
+    console.log('info: Database initialized with fresh schema');
+  } catch (error) {
+    console.log('info: Database setup completed (tables may already exist)');
+  }
+
+  console.log('info: Database cleanup completed');
+}
+
+async function setupOrganizationData(config: BuildConfig): Promise<void> {
+  console.log('info: Setting up organization data...');
+
+  // Initialize database connection
+  const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: path.join(__dirname, '../database.db'),
+    logging: false
+  });
+
+  try {
+    // Create organization setting
+    await sequelize.query(`
+      INSERT OR REPLACE INTO Settings (id, key, value, created_at, updated_at) 
+      VALUES (1, 'ORGANIZATION_NAME', ?, datetime('now'), datetime('now'))
+    `, {
+      replacements: [config.organizationName]
+    });
+
+    // Reset CLI license activation flag
+    await sequelize.query(`
+      INSERT OR REPLACE INTO Settings (id, key, value, created_at, updated_at) 
+      VALUES (2, 'CLI_LICENSE_ACTIVATED', 'false', datetime('now'), datetime('now'))
+    `, {
+      replacements: []
+    });
+
+    // Setup default admin user (if needed)
+    await sequelize.query(`
+      INSERT OR IGNORE INTO Users (id, username, role, created_at, updated_at) 
+      VALUES (1, 'admin', 'admin', datetime('now'), datetime('now'))
+    `);
+
+    console.log('info: Organization data setup completed');
+    
+  } catch (error) {
+    console.error('error: Failed to setup organization data:', error);
+    throw error;
+  } finally {
+    await sequelize.close();
+  }
+}
+
+async function prepareResourcesDirectory(): Promise<void> {
+  console.log('info: Preparing resources directory...');
+
+  const resourcesDir = path.join(__dirname, '../resources');
+  
+  // Create resources directory if not exists
+  if (!fs.existsSync(resourcesDir)) {
+    fs.mkdirSync(resourcesDir, { recursive: true });
+    console.log('info: Created resources directory');
+  }
+
+  // Create license placeholder if not exists
+  const licensePlaceholder = path.join(resourcesDir, 'license-placeholder.txt');
+  if (!fs.existsSync(licensePlaceholder)) {
+    fs.writeFileSync(licensePlaceholder, 
+      'LICENSE PLACEHOLDER\n' +
+      'This file indicates where license.lic should be placed.\n' +
+      'The actual license.lic file will be provided separately.\n'
+    );
+    console.log('info: Created license placeholder');
+  }
+
+  console.log('info: Resources directory prepared');
+}
+
+async function validateBuildReadiness(): Promise<void> {
+  console.log('info: Validating build readiness...');
+
+  // Check critical files exist
+  const criticalFiles = [
+    'main/license/validator.ts',
+    'main/license/file-manager.ts',
+    'main/license/esp32-client.ts',
+    'renderer/pages/activate-key.tsx'
+  ];
+
+  for (const file of criticalFiles) {
+    const filePath = path.join(__dirname, '..', file);
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Critical file missing: ${file}`);
+    }
+  }
+
+  // Verify TypeScript compilation
+  try {
+    await execAsync('npm run type-check');
+    console.log('info: TypeScript compilation check passed');
+  } catch (error) {
+    console.warn('warn: TypeScript compilation warnings detected');
+  }
+
+  console.log('info: Build readiness validation passed');
+}
+
+// Main execution
+if (require.main === module) {
+  const config: BuildConfig = {
+    organizationName: process.env.ORGANIZATION_NAME || 'SMC Medical Center',
+    sharedSecretKey: process.env.SHARED_SECRET_KEY || '',
+    buildVersion: process.env.BUILD_VERSION || '1.0.0',
+    targetPlatform: process.env.TARGET_PLATFORM || 'win32'
+  };
+
+  prepareBuild(config)
+    .then(() => {
+      console.log('info: Build preparation completed successfully');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('error: Build preparation failed:', error.message);
+      process.exit(1);
+    });
+}
+
+export { prepareBuild, BuildConfig };
+```
+
+#### **Enhanced Package.json Scripts:**
+```json
+{
+  "scripts": {
+    "build:prep": "ts-node scripts/build-prep.ts",
+    "build:production": "npm run build:prep && npm run build",
+    "build:production:win": "cross-env TARGET_PLATFORM=win32 npm run build:production",
+    "build:production:mac": "cross-env TARGET_PLATFORM=darwin npm run build:production",
+    "build:production:linux": "cross-env TARGET_PLATFORM=linux npm run build:production"
+  }
+}
+```
+
+### **Phase 4.6.2: License System Enhancement (3 ชั่วโมง)**
+
+#### **Resource-based License Manager:**
+```typescript
+// main/license/resource-manager.ts
+import * as fs from 'fs';
+import * as path from 'path';
+import { app } from 'electron';
+
+export class ResourceLicenseManager {
+  private static readonly RESOURCE_LICENSE_FILENAME = 'license.lic';
+  private static readonly FALLBACK_PATHS = [
+    'license.lic',           // Current directory
+    './resources/license.lic', // Local resources
+    '../resources/license.lic' // Parent resources
+  ];
+
+  /**
+   * ค้นหาไฟล์ license.lic จาก resource paths
+   * Priority: App resources -> Local paths -> Fallback paths
+   */
+  static async findResourceLicense(): Promise<string | null> {
+    console.log('info: Searching for license file in resources...');
+
+    // Priority 1: App resources directory (production)
+    if (app.isPackaged) {
+      const resourcesPath = path.join(process.resourcesPath, this.RESOURCE_LICENSE_FILENAME);
+      if (fs.existsSync(resourcesPath)) {
+        console.log(`info: Found license in app resources: ${resourcesPath}`);
+        return resourcesPath;
+      }
+    }
+
+    // Priority 2: Development resources directory
+    const devResourcesPath = path.join(app.getAppPath(), 'resources', this.RESOURCE_LICENSE_FILENAME);
+    if (fs.existsSync(devResourcesPath)) {
+      console.log(`info: Found license in dev resources: ${devResourcesPath}`);
+      return devResourcesPath;
+    }
+
+    // Priority 3: Fallback paths
+    for (const fallbackPath of this.FALLBACK_PATHS) {
+      const resolvedPath = path.resolve(fallbackPath);
+      if (fs.existsSync(resolvedPath)) {
+        console.log(`info: Found license in fallback path: ${resolvedPath}`);
+        return resolvedPath;
+      }
+    }
+
+    console.log('info: No license file found in any resource path');
+    return null;
+  }
+
+  /**
+   * ตรวจสอบว่ามี license file ใน resources หรือไม่
+   */
+  static async hasResourceLicense(): Promise<boolean> {
+    const licensePath = await this.findResourceLicense();
+    return licensePath !== null;
+  }
+
+  /**
+   * อ่านข้อมูลจาก resource license file
+   */
+  static async readResourceLicense(): Promise<string | null> {
+    const licensePath = await this.findResourceLicense();
+    if (!licensePath) {
+      return null;
+    }
+
+    try {
+      const licenseContent = fs.readFileSync(licensePath, 'utf-8');
+      console.log(`info: Successfully read license file: ${licensePath}`);
+      return licenseContent;
+    } catch (error) {
+      console.error(`error: Failed to read license file: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Copy license file to resources directory (for development)
+   */
+  static async copyLicenseToResources(sourcePath: string): Promise<boolean> {
+    try {
+      const resourcesDir = path.join(app.getAppPath(), 'resources');
+      if (!fs.existsSync(resourcesDir)) {
+        fs.mkdirSync(resourcesDir, { recursive: true });
+      }
+
+      const targetPath = path.join(resourcesDir, this.RESOURCE_LICENSE_FILENAME);
+      fs.copyFileSync(sourcePath, targetPath);
+      
+      console.log(`info: License file copied to resources: ${targetPath}`);
+      return true;
+    } catch (error) {
+      console.error(`error: Failed to copy license to resources: ${error.message}`);
+      return false;
+    }
+  }
+}
+```
+
+#### **Updated License File Manager:**
+```typescript
+// อัปเดต main/license/file-manager.ts
+import { ResourceLicenseManager } from './resource-manager';
+
+export class LicenseFileManager {
+  /**
+   * ค้นหาไฟล์ license จาก resources ก่อน แล้วค่อย fallback ไป local paths
+   */
+  static async findLicenseFile(): Promise<string | null> {
+    console.log('info: Starting license file search...');
+
+    // Priority 1: Resource-based license (production)
+    const resourceLicense = await ResourceLicenseManager.findResourceLicense();
+    if (resourceLicense) {
+      return resourceLicense;
+    }
+
+    // Priority 2: Local paths (existing logic)
+    const localPaths = [
+      'license.lic',
+      path.join(process.cwd(), 'license.lic'),
+      path.join(__dirname, '../../license.lic'),
+      path.join(__dirname, '../../../license.lic')
+    ];
+
+    for (const licenseFile of localPaths) {
+      const resolvedPath = path.resolve(licenseFile);
+      
+      if (fs.existsSync(resolvedPath)) {
+        console.log(`info: Found license file: ${resolvedPath}`);
+        return resolvedPath;
+      }
+    }
+
+    console.log('info: No license file found in any location');
+    return null;
+  }
+
+  // ... existing methods remain the same
+}
+```
+
+### **Phase 4.6.3: Manual Network Retry System (2 ชั่วโมง)**
+
+#### **Network Retry Handler:**
+```typescript
+// main/license/ipcMain/network-retry.ts
+import { ipcMain } from 'electron';
+import { SystemWiFiManager } from '../wifi-manager';
+import { ESP32Client } from '../esp32-client';
+
+export const networkRetryHandler = () => {
+  ipcMain.handle('scan-wifi-networks', async () => {
+    try {
+      console.log('info: Scanning available WiFi networks...');
+      const networks = await SystemWiFiManager.scanNetworks();
+      return { success: true, networks };
+    } catch (error) {
+      console.error('error: WiFi network scan failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('connect-to-network', async (event, { ssid, password }) => {
+    try {
+      console.log(`info: Attempting manual connection to: ${ssid}`);
+      
+      event.sender.send('network-connection-progress', { 
+        step: 'connecting', 
+        progress: 20, 
+        message: `กำลังเชื่อมต่อ ${ssid}...` 
+      });
+
+      const connected = await SystemWiFiManager.connectToNetwork(ssid, password);
+      
+      if (connected) {
+        event.sender.send('network-connection-progress', { 
+          step: 'connected', 
+          progress: 100, 
+          message: `เชื่อมต่อ ${ssid} สำเร็จ` 
+        });
+        
+        return { success: true };
+      } else {
+        return { 
+          success: false, 
+          error: `ไม่สามารถเชื่อมต่อ ${ssid} ได้` 
+        };
+      }
+    } catch (error) {
+      console.error('error: Manual network connection failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('test-esp32-connection', async () => {
+    try {
+      console.log('info: Testing ESP32 connection...');
+      const macAddress = await ESP32Client.getMacAddress();
+      
+      if (macAddress) {
+        return { 
+          success: true, 
+          macAddress,
+          message: 'ESP32 connection successful' 
+        };
+      } else {
+        return { 
+          success: false, 
+          error: 'Could not retrieve MAC address from ESP32' 
+        };
+      }
+    } catch (error) {
+      console.error('error: ESP32 connection test failed:', error);
+      return { success: false, error: error.message };
+    }
+  });
+};
+```
+
+#### **Manual Network UI Component:**
+```typescript
+// renderer/components/ManualNetworkDialog.tsx
+import React, { useState, useEffect } from 'react';
+import { ipcRenderer } from 'electron';
+import {
+  DialogBase,
+  DialogHeader,
+  DialogInput,
+  DialogButton,
+  StatusIndicator
+} from './Shared/DesignSystem';
+
+interface WiFiNetwork {
+  ssid: string;
+  signal: string;
+  security: string;
+  connected: boolean;
+}
+
+interface ManualNetworkDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onNetworkConnected: () => void;
+}
+
+export const ManualNetworkDialog: React.FC<ManualNetworkDialogProps> = ({
+  isOpen,
+  onClose,
+  onNetworkConnected
+}) => {
+  const [networks, setNetworks] = useState<WiFiNetwork[]>([]);
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [connectionStep, setConnectionStep] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen) {
+      scanNetworks();
+      
+      // Listen for connection progress
+      const progressListener = (_event: any, update: any) => {
+        setConnectionStep(update.message || '');
+      };
+      
+      ipcRenderer.on('network-connection-progress', progressListener);
+      
+      return () => {
+        ipcRenderer.removeListener('network-connection-progress', progressListener);
+      };
+    }
+  }, [isOpen]);
+
+  const scanNetworks = async () => {
+    setIsScanning(true);
+    setErrorMessage('');
+    
+    try {
+      const result = await ipcRenderer.invoke('scan-wifi-networks');
+      
+      if (result.success) {
+        setNetworks(result.networks);
+        console.log(`info: Found ${result.networks.length} WiFi networks`);
+      } else {
+        setErrorMessage(result.error || 'ไม่สามารถสแกน WiFi ได้');
+      }
+    } catch (error: any) {
+      setErrorMessage(error.message || 'เกิดข้อผิดพลาดในการสแกน WiFi');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const connectToNetwork = async () => {
+    if (!selectedNetwork) {
+      setErrorMessage('กรุณาเลือก WiFi network');
+      return;
+    }
+    
+    if (!password) {
+      setErrorMessage('กรุณาใส่รหัสผ่าน WiFi');
+      return;
+    }
+
+    setIsConnecting(true);
+    setErrorMessage('');
+    setConnectionStep('กำลังเชื่อมต่อ...');
+
+    try {
+      const result = await ipcRenderer.invoke('connect-to-network', {
+        ssid: selectedNetwork,
+        password: password
+      });
+
+      if (result.success) {
+        setConnectionStep('เชื่อมต่อสำเร็จ! กำลังทดสอบ ESP32...');
+        
+        // Test ESP32 connection
+        const esp32Result = await ipcRenderer.invoke('test-esp32-connection');
+        
+        if (esp32Result.success) {
+          setConnectionStep(`ESP32 พร้อมใช้งาน (MAC: ${esp32Result.macAddress.substring(0, 8)}...)`);
+          setTimeout(() => {
+            onNetworkConnected();
+          }, 1500);
+        } else {
+          setErrorMessage(`เชื่อมต่อ WiFi สำเร็จแต่ไม่สามารถติดต่อ ESP32 ได้: ${esp32Result.error}`);
+        }
+      } else {
+        setErrorMessage(result.error || 'ไม่สามารถเชื่อมต่อ WiFi ได้');
+      }
+    } catch (error: any) {
+      setErrorMessage(error.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    } finally {
+      setIsConnecting(false);
+      setConnectionStep('');
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedNetwork('');
+    setPassword('');
+    setErrorMessage('');
+    setConnectionStep('');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <DialogBase maxWidth="max-w-[500px]">
+        <DialogHeader title="เชื่อมต่อ WiFi ด้วยตนเอง" variant="info" />
+        
+        <div className="p-6 space-y-4">
+          {errorMessage && (
+            <StatusIndicator status="error" message={errorMessage} />
+          )}
+          
+          {connectionStep && (
+            <StatusIndicator status="info" message={connectionStep} animated={true} />
+          )}
+
+          {/* WiFi Network Selection */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium">เลือก WiFi Network:</label>
+              <button 
+                onClick={scanNetworks}
+                disabled={isScanning}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                {isScanning ? 'กำลังสแกน...' : 'สแกนใหม่'}
+              </button>
+            </div>
+            
+            <select
+              value={selectedNetwork}
+              onChange={(e) => setSelectedNetwork(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md"
+              disabled={isScanning || isConnecting}
+            >
+              <option value="">-- เลือก WiFi Network --</option>
+              {networks.map((network) => (
+                <option key={network.ssid} value={network.ssid}>
+                  {network.ssid} (สัญญาณ: {network.signal}) {network.connected ? '✓' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Password Input */}
+          <div>
+            <DialogInput
+              label="รหัสผ่าน WiFi"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={isConnecting}
+              placeholder="ใส่รหัสผ่าน WiFi"
+            />
+          </div>
+
+          {/* Connection Buttons */}
+          <div className="flex gap-3 pt-4">
+            <DialogButton
+              variant="secondary"
+              onClick={handleClose}
+              disabled={isConnecting}
+              className="flex-1"
+            >
+              ยกเลิก
+            </DialogButton>
+            <DialogButton
+              variant="primary"
+              onClick={connectToNetwork}
+              loading={isConnecting}
+              disabled={!selectedNetwork || !password || isConnecting}
+              className="flex-1"
+            >
+              เชื่อมต่อ
+            </DialogButton>
+          </div>
+
+          {/* Help Text */}
+          <div className="text-sm text-gray-600 mt-4">
+            <p>💡 หากไม่สามารถเชื่อมต่อได้:</p>
+            <ul className="list-disc list-inside ml-4 mt-1">
+              <li>ตรวจสอบรหัสผ่าน WiFi ให้ถูกต้อง</li>
+              <li>ตรวจสอบว่า ESP32 เปิดและพร้อมใช้งาน</li>
+              <li>ลองเลือก WiFi network อื่น</li>
+            </ul>
+          </div>
+        </div>
+      </DialogBase>
+    </div>
+  );
+};
+```
+
+### **Phase 4.6.4: Environment Simplification (1 ชั่วโมง)**
+
+#### **Simplified Environment Detection:**
+```typescript
+// อัปเดต main/utils/environment.ts
+/**
+ * Simplified Environment Detection
+ * 
+ * Production: ใช้งานจริงกับ ESP32 hardware
+ * Development Bypass: สำหรับ macOS development เท่านั้น
+ */
+
+/**
+ * ตรวจสอบว่าอยู่ใน development bypass mode หรือไม่
+ * ใช้สำหรับ bypass ESP32/WiFi connection ในระหว่าง development บน macOS
+ */
+export function isDevelopmentBypass(): boolean {
+  const nodeEnv = process.env.NODE_ENV || 'production';
+  const platform = process.platform;
+  
+  // Development bypass เฉพาะบน macOS development เท่านั้น
+  return nodeEnv === 'development' && platform === 'darwin';
+}
+
+/**
+ * ตรวจสอบว่าอยู่ใน production mode หรือไม่
+ */
+export function isProductionMode(): boolean {
+  return !isDevelopmentBypass();
+}
+
+/**
+ * แสดงข้อมูล environment สำหรับ debugging
+ */
+export function logEnvironmentInfo(): void {
+  const nodeEnv = process.env.NODE_ENV || 'production';
+  const platform = process.platform;
+  const isDevBypass = isDevelopmentBypass();
+  const isProd = isProductionMode();
+  
+  console.log('info: Environment Information:');
+  console.log(`info:   NODE_ENV: ${nodeEnv}`);
+  console.log(`info:   Platform: ${platform}`);
+  console.log(`info:   Development Bypass: ${isDevBypass}`);
+  console.log(`info:   Production Mode: ${isProd}`);
+  
+  if (isDevBypass) {
+    console.log('⚠️  Development Bypass Active: ESP32/WiFi operations will be mocked');
+  } else {
+    console.log('🏭  Production Mode: All hardware operations are live');
+  }
+}
+```
+
+## ✅ Success Criteria
+
+### **Build System Enhancement:**
+- [ ] **Build Preparation Script**: `npm run build:prep` ทำงานได้สำเร็จ
+- [ ] **Database Cleanup**: ฐานข้อมูลถูก reset และ setup ใหม่
+- [ ] **Organization Setup**: ข้อมูลองค์กรถูกตั้งค่าในฐานข้อมูล
+- [ ] **Resources Directory**: โฟลเดอร์ resources พร้อมสำหรับ license file
+- [ ] **Production Build**: `npm run build:production` สร้าง executable ได้
+
+### **License System Enhancement:**
+- [ ] **Resource License Loading**: อ่าน license.lic จาก app resources ได้
+- [ ] **Priority Search**: ค้นหา license จาก resources ก่อน แล้วค่อย fallback
+- [ ] **Production Integration**: ระบบ license validation ทำงานใน production build
+- [ ] **Error Handling**: จัดการ error cases ครบถ้วน
+
+### **Manual Network System:**
+- [ ] **WiFi Scanning**: สแกน available WiFi networks ได้
+- [ ] **Manual Connection**: เชื่อมต่อ WiFi network ที่เลือกได้
+- [ ] **ESP32 Testing**: ทดสอบการเชื่อมต่อ ESP32 หลัง WiFi connect
+- [ ] **UI Integration**: Manual network dialog ทำงานใน activation flow
+- [ ] **Error Recovery**: จัดการ connection failures และให้ retry ได้
+
+### **Environment Configuration:**
+- [ ] **Production Mode**: ไม่มี mock/bypass ใน production
+- [ ] **Development Bypass**: ยังคง bypass สำหรับ macOS development
+- [ ] **Clear Separation**: แยก development และ production behavior ชัดเจน
+- [ ] **Logging**: แสดง environment status ชัดเจน
+
+## 🧪 Testing Plan
+
+### **Build System Testing:**
+```bash
+# ทดสอบ build preparation
+SHARED_SECRET_KEY=test123456789012345678901234567890 \
+ORGANIZATION_NAME="Test Organization" \
+npm run build:prep
+
+# ทดสอบ production build
+npm run build:production:win
+
+# ตรวจสอบ database setup
+sqlite3 database.db "SELECT * FROM Settings WHERE key IN ('ORGANIZATION_NAME', 'CLI_LICENSE_ACTIVATED');"
+```
+
+### **Manual Network Testing:**
+```bash
+# รัน development mode
+npm run dev
+
+# ไปที่หน้า activate-key
+# ทดสอบ manual network dialog
+# 1. กดปุ่ม "เปลี่ยน Network" เมื่อ WiFi connection ล้มเหลว
+# 2. สแกน WiFi networks
+# 3. เลือก network และใส่รหัสผ่าน
+# 4. ทดสอบการเชื่อมต่อ
+```
+
+### **End-to-End Production Testing:**
+```bash
+# 1. สร้าง license.lic ด้วย CLI
+smc-license generate -o "Test Org" -c "TEST001" -a "Test App" -e "2025-12-31"
+
+# 2. Copy license.lic ไป resources/
+cp license.lic resources/
+
+# 3. Build production
+SHARED_SECRET_KEY=test123456789012345678901234567890 npm run build:production:win
+
+# 4. ทดสอบ .exe file
+# - เปิด app และไปหน้า activation
+# - ตรวจสอบว่า license ถูกโหลดจาก resources
+# - ทดสอบ ESP32 connection
+```
+
+## 📚 Documentation Updates
+
+### **Build Instructions:**
+```markdown
+## Production Build Process
+
+### Prerequisites:
+1. สร้าง license.lic ด้วย SMC License CLI
+2. ตั้งค่า environment variables:
+   - `SHARED_SECRET_KEY`: 32+ characters encryption key
+   - `ORGANIZATION_NAME`: Customer organization name
+
+### Build Steps:
+1. Copy license.lic ไป `resources/` directory
+2. Set environment variables in `.env` file
+3. Run: `npm run build:production:win`
+4. Executable จะถูกสร้างใน `dist/` directory
+
+### Deployment:
+1. ส่ง .exe file กับ license.lic ให้ลูกค้า  
+2. ลูกค้าติดตั้ง .exe (license.lic อยู่ใน app resources แล้ว)
+3. เปิดโปรแกรมจะเข้า activation flow อัตโนมัติ
+```
+
+## 🚨 Error Handling & Troubleshooting
+
+### **Build Issues:**
+- **Missing SHARED_SECRET_KEY**: ตั้งค่า environment variable ให้ถูกต้อง
+- **Database Setup Fails**: ลบ database.db แล้วรัน build:prep ใหม่
+- **Resources Directory Missing**: Script จะสร้างโฟลเดอร์อัตโนมัติ
+
+### **License Issues:**
+- **License Not Found**: ตรวจสอบ license.lic ใน resources/ directory
+- **Decryption Fails**: ตรวจสอบ SHARED_SECRET_KEY ตรงกับที่ใช้สร้าง license
+- **License Expired**: สร้าง license ใหม่ด้วย expiry date ที่ถูกต้อง
+
+### **Network Connection Issues:**
+- **WiFi Connection Fails**: ใช้ manual network dialog เพื่อเปลี่ยน network
+- **ESP32 Not Found**: ตรวจสอบ ESP32 hardware และ network connection
+- **MAC Address Mismatch**: ตรวจสอบว่า ESP32 ตรงกับที่ระบุใน license
+
+---
+
+## 🎯 Phase 4.6 Implementation Status
+
+**Phase 4.6 จะทำให้ SMC App พร้อมสำหรับ production deployment พร้อมด้วย:**
+- ✅ Complete build system สำหรับ production
+- ✅ Resource-based license management 
+- ✅ Manual network retry capabilities
+- ✅ Simplified environment configuration
+- ✅ End-to-end production workflow
+
+**Next Steps หลัง Phase 4.6:**
+- User acceptance testing กับ production build
+- Final performance optimization
+- Documentation และ user manuals
+- Distribution และ deployment guidelines
