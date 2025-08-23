@@ -2,6 +2,10 @@ import { BrowserWindow, app } from "electron";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
 
+// Load environment variables from .env file
+import * as dotenv from "dotenv";
+dotenv.config();
+
 // Import database and DS12 controller modules
 import { sequelize } from "../db/sequelize";
 import { BuildTimeController } from "./ku-controllers/BuildTimeController";
@@ -105,12 +109,10 @@ if (isProd) {
       controller.receive();
     }
   } else {
-    console.error(
-      "❌ DS12Controller initialization failed - no fallback available"
-    );
-    throw new Error(
-      "Failed to initialize DS12Controller. Please check device connection and configuration."
-    );
+    console.warn("⚠️ DS12Controller unavailable - running in offline mode");
+    console.warn("⚠️ Hardware operations will be disabled until connection restored");
+    // Allow app to continue - license validation and UI will work normally
+    // Hardware operations will fail gracefully at IPC level (existing behavior)
   }
 
   // Initialize authentication system

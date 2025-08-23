@@ -90,6 +90,8 @@ export default function ActivatePage() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [licenseData, setLicenseData] = useState<ActivationData | null>(null);
   const [currentMessage, setCurrentMessage] = useState<string>("");
+  const [showManualWiFi, setShowManualWiFi] = useState<boolean>(false);
+  const [wifiCredentials, setWifiCredentials] = useState<{ ssid: string; password: string } | null>(null);
 
   // Auto-start activation on page load
   useEffect(() => {
@@ -107,6 +109,13 @@ export default function ActivatePage() {
 
       if (update.data) {
         setLicenseData(update.data);
+        
+        // Phase 4.2: Handle manual WiFi connection requirement
+        if (update.data.requiresManualConnection && update.data.wifiCredentials) {
+          console.log('info: Manual WiFi connection required - showing instructions');
+          setWifiCredentials(update.data.wifiCredentials);
+          setShowManualWiFi(true);
+        }
       }
     };
 
@@ -308,6 +317,73 @@ export default function ActivatePage() {
               <p className="text-sm text-base-content/50">
                 กรุณารอสักครู่ ระบบกำลังตรวจสอบ license และเชื่อมต่อกับ ESP32
               </p>
+            </div>
+          )}
+
+          {/* Manual WiFi Instructions (Phase 4.2) - แสดงเฉพาะ macOS */}
+          {showManualWiFi && wifiCredentials && (
+            <div className="space-y-4 mt-6 p-4 bg-info/10 border border-info/20 rounded-lg">
+              <h3 className="font-semibold text-info flex items-center gap-2">
+                📶 เชื่อมต่อ WiFi แบบ Manual (macOS)
+              </h3>
+              
+              <div className="bg-base-200 p-3 rounded space-y-2">
+                <div>
+                  <span className="font-medium">WiFi Network:</span>
+                  <span className="ml-2 font-mono text-sm bg-base-300 px-2 py-1 rounded">
+                    {wifiCredentials.ssid}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium">Password:</span>
+                  <span className="ml-2 font-mono text-sm bg-base-300 px-2 py-1 rounded">
+                    {'*'.repeat(wifiCredentials.password.length)}
+                  </span>
+                </div>
+              </div>
+              
+              <ol className="text-sm space-y-2 text-base-content/80">
+                <li className="flex items-start gap-2">
+                  <span className="bg-primary/20 text-primary rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+                  <span>เปิด System Preferences → Network</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-primary/20 text-primary rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+                  <span>เลือก WiFi network: <code className="bg-base-300 px-1 rounded text-xs">{wifiCredentials.ssid}</code></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-primary/20 text-primary rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                  <span>ใส่รหัสผ่าน WiFi</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-primary/20 text-primary rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">4</span>
+                  <span>รอให้เชื่อมต่อเสร็จ</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="bg-primary/20 text-primary rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mt-0.5">5</span>
+                  <span>กดปุ่ม "ลองเชื่อมต่อใหม่" ด้านล่าง</span>
+                </li>
+              </ol>
+              
+              <div className="flex gap-3 pt-2">
+                <DialogButton
+                  variant="primary"
+                  className="flex-1"
+                  onClick={() => {
+                    console.log('info: Manual WiFi retry requested');
+                    setShowManualWiFi(false);
+                    startActivationProcess();
+                  }}
+                >
+                  🔄 ลองเชื่อมต่อใหม่
+                </DialogButton>
+                <DialogButton 
+                  variant="secondary"
+                  onClick={() => setShowManualWiFi(false)}
+                >
+                  ปิด
+                </DialogButton>
+              </div>
             </div>
           )}
         </div>

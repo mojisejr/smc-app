@@ -55,9 +55,11 @@ async function main(): Promise<void> {
     console.log('');
 
     // Execute build preparation steps
+    await validateBuildSafety();
     await validateBuildEnvironment(config);
     await cleanDatabase();
     await setupOrganizationData(config);
+    await cleanLicenseFiles();
     await prepareResourcesDirectory();
     await validateBuildReadiness();
 
@@ -200,49 +202,64 @@ async function cleanDatabase(): Promise<void> {
       console.log(`info: Created directory: ${resourceDbDir}`);
     }
 
-    // Create tables using raw SQL (basic schema)
+    // Create tables using raw SQL (matching Sequelize models)
     await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS Users (
+      CREATE TABLE IF NOT EXISTS User (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255),
+        name VARCHAR(255),
         role VARCHAR(50) DEFAULT 'user',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        passkey TEXT
       );
     `);
 
     await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS Settings (
+      CREATE TABLE IF NOT EXISTS Setting (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key VARCHAR(255),
-        value TEXT,
+        ku_port VARCHAR(255),
+        ku_baudrate INTEGER,
+        available_slots INTEGER,
+        max_user INTEGER,
+        service_code VARCHAR(255),
+        max_log_counts INTEGER,
         organization VARCHAR(255),
         customer_name VARCHAR(255),
         activated_key VARCHAR(255),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        indi_port VARCHAR(255),
+        indi_baudrate INTEGER,
+        device_type VARCHAR(50) DEFAULT 'DS12'
       );
     `);
 
     await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS Slots (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        slotId INTEGER NOT NULL,
-        status VARCHAR(50) DEFAULT 'empty',
-        hn VARCHAR(255),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      CREATE TABLE IF NOT EXISTS Slot (
+        slotId INTEGER PRIMARY KEY,
+        hn TEXT,
+        timestamp INTEGER,
+        occupied BOOLEAN DEFAULT false,
+        opening BOOLEAN DEFAULT false,
+        isActive BOOLEAN DEFAULT true
       );
     `);
 
     await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS Logs (
+      CREATE TABLE IF NOT EXISTS Log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user VARCHAR(255),
         message TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS DispensingLog (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp INTEGER,
+        userId INTEGER,
+        slotId INTEGER,
+        hn TEXT,
+        process TEXT,
+        message TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
@@ -274,36 +291,53 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
   });
 
   try {
-    // Insert default settings record
+    // Get environment variables for configuration
+    const maxLogCounts = parseInt(process.env.MAX_LOG_COUNTS || '500');
+    const maxUser = parseInt(process.env.MAX_USER || '20');
+    const kuBaudrate = parseInt(process.env.KU_BAUDRATE || '115200');
+    const indiBaudrate = parseInt(process.env.INDI_BAUDRATE || '115200');
+    const kuPort = process.env.KU_PORT || 'auto';
+    const indiPort = process.env.INDI_PORT || 'auto';
+    const serviceCode = process.env.SERVICE_CODE || 'SMC2025';
+    
+    // Calculate available slots based on device type
+    const availableSlots = config.deviceType === 'DS16' ? 15 : 12;
+
+    // Insert default settings record with complete configuration
     await sequelize.query(`
-      INSERT INTO Settings (
-        id, key, value, organization, customer_name, activated_key, 
-        created_at, updated_at
+      INSERT INTO Setting (
+        id, ku_port, ku_baudrate, available_slots, max_user, service_code,
+        max_log_counts, organization, customer_name, activated_key,
+        indi_port, indi_baudrate, device_type
       ) VALUES (
-        1, 'ORGANIZATION_CONFIG', 'production', ?, 'CUSTOMER_ID_PLACEHOLDER', NULL,
-        datetime('now'), datetime('now')
+        1, ?, ?, ?, ?, ?,
+        ?, ?, 'CUSTOMER_ID_PLACEHOLDER', NULL,
+        ?, ?, ?
       )
     `, {
-      replacements: [config.organizationName]
+      replacements: [
+        kuPort, kuBaudrate, availableSlots, maxUser, serviceCode,
+        maxLogCounts, config.organizationName,
+        indiPort, indiBaudrate, config.deviceType
+      ]
     });
 
     // Insert default admin user  
     await sequelize.query(`
-      INSERT INTO Users (
-        id, username, role, created_at, updated_at
+      INSERT INTO User (
+        id, name, role, passkey
       ) VALUES (
-        1, 'admin', 'admin', datetime('now'), datetime('now')
+        1, 'admin1', 'admin', 'admin1'
       )
     `);
 
     // Initialize default slots for device type
-    const slotCount = config.deviceType === 'DS16' ? 15 : 12;
-    for (let slotId = 1; slotId <= slotCount; slotId++) {
+    for (let slotId = 1; slotId <= availableSlots; slotId++) {
       await sequelize.query(`
-        INSERT INTO Slots (
-          slotId, status, created_at, updated_at
+        INSERT INTO Slot (
+          slotId, hn, timestamp, occupied, opening, isActive
         ) VALUES (
-          ?, 'empty', datetime('now'), datetime('now')  
+          ?, NULL, NULL, false, false, true
         )
       `, {
         replacements: [slotId]
@@ -312,15 +346,16 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
 
     // Log setup completion
     await sequelize.query(`
-      INSERT INTO Logs (
-        user, message, created_at, updated_at  
+      INSERT INTO Log (
+        user, message, createdAt
       ) VALUES (
-        'system', 'Production build preparation completed for ${config.organizationName}', 
-        datetime('now'), datetime('now')
+        'system', ?, datetime('now')
       )
-    `);
+    `, {
+      replacements: [`Production build preparation completed for ${config.organizationName}`]
+    });
 
-    console.log(`info: Organization data setup completed (${slotCount} slots initialized)`);
+    console.log(`info: Organization data setup completed (${availableSlots} slots initialized)`);
     
   } catch (error) {
     console.error('error: Failed to setup organization data:', error);
@@ -412,11 +447,11 @@ async function validateBuildReadiness(): Promise<void> {
   try {
     const [results] = await sequelize.query(`
       SELECT name FROM sqlite_master WHERE type='table' 
-      AND name IN ('Users', 'Settings', 'Slots', 'Logs')
+      AND name IN ('User', 'Setting', 'Slot', 'Log', 'DispensingLog')
     `) as any[][];
 
     const tableNames = results.map((row: any) => row.name);
-    const requiredTables = ['Users', 'Settings', 'Slots', 'Logs'];
+    const requiredTables = ['User', 'Setting', 'Slot', 'Log', 'DispensingLog'];
     const missingTables = requiredTables.filter(table => !tableNames.includes(table));
 
     if (missingTables.length > 0) {
@@ -427,7 +462,7 @@ async function validateBuildReadiness(): Promise<void> {
 
     // Check organization data exists
     const [orgResult] = await sequelize.query(`
-      SELECT organization FROM Settings WHERE id = 1
+      SELECT organization FROM Setting WHERE id = 1
     `) as any[][];
 
     if (orgResult.length === 0) {
@@ -459,6 +494,76 @@ async function validateBuildReadiness(): Promise<void> {
 
   console.log('info: Resources directory validation passed');
   console.log('info: Build readiness validation completed ✅');
+}
+
+// ===========================================
+// PHASE 4.2: BUILD SAFETY & LICENSE CLEANUP
+// ===========================================
+
+/**
+ * Validate build safety - ตรวจสอบ environment flags ก่อน production build
+ */
+async function validateBuildSafety(): Promise<void> {
+  console.log('info: Validating build safety...');
+  
+  // ตรวจสอบ bypass flags ที่อาจทำให้ production build ไม่ปลอดภัย
+  if (process.env.SMC_LICENSE_BYPASS_MODE === 'true') {
+    console.error('❌ Cannot build production with SMC_LICENSE_BYPASS_MODE=true');
+    console.error('   This would create a production build that bypasses license validation');
+    console.error('   Please set SMC_LICENSE_BYPASS_MODE=false in .env file');
+    throw new Error('Production build blocked - bypass mode detected');
+  }
+  
+  if (process.env.SMC_DEV_REAL_HARDWARE === 'true') {
+    console.warn('⚠️  Production build with SMC_DEV_REAL_HARDWARE=true detected');
+    console.warn('   This is usually intended for development only');
+    console.warn('   Consider setting SMC_DEV_REAL_HARDWARE=false for production');
+    console.warn('   Continuing build in 3 seconds...');
+    
+    // ให้เวลา developer อ่านและตัดสินใจ
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  }
+  
+  console.log('info: Build safety validation passed');
+}
+
+/**
+ * Clean license files from build - ลบ license.lic files จากทุกที่ก่อน build
+ */
+async function cleanLicenseFiles(): Promise<void> {
+  console.log('info: Cleaning license files from build...');
+  
+  const licenseFiles = [
+    path.join(process.cwd(), 'resources', 'license.lic'),
+    path.join(process.cwd(), 'license.lic'),
+    path.join(process.cwd(), 'dist', 'license.lic'),
+    path.join(process.cwd(), 'app', 'license.lic'),
+    path.join(process.cwd(), 'build', 'license.lic')
+  ];
+  
+  let removedCount = 0;
+  
+  for (const licenseFile of licenseFiles) {
+    if (fs.existsSync(licenseFile)) {
+      try {
+        fs.unlinkSync(licenseFile);
+        console.log(`info: Removed license file: ${licenseFile}`);
+        removedCount++;
+      } catch (error) {
+        console.warn(`warn: Could not remove license file: ${licenseFile} - ${error}`);
+      }
+    }
+  }
+  
+  if (removedCount === 0) {
+    console.log('info: No license files found to clean');
+  } else {
+    console.log(`info: Cleaned ${removedCount} license file(s)`);
+  }
+  
+  console.log('info: License file cleanup completed');
+  console.log('info: Production build will NOT include license.lic file');
+  console.log('info: License must be provided separately during deployment');
 }
 
 // Execute main function if script is run directly

@@ -1,6 +1,6 @@
 import * as http from 'http';
 import { logger } from '../logger';
-import { isDevelopmentBypass } from '../utils/environment';
+import { getValidationMode } from '../utils/environment';
 
 /**
  * ESP32 Client
@@ -38,16 +38,17 @@ export class ESP32Client {
   static readonly MAC_ENDPOINT = process.env.SMC_ESP32_MAC_ENDPOINT || '/mac';
 
   /**
-   * ทดสอบการเชื่อมต่อกับ ESP32
-   * รองรับ development bypass สำหรับ macOS development
+   * ทดสอบการเชื่อมต่อกับ ESP32 (Phase 4.2)
+   * รองรับ validation modes: bypass, real-hardware, production
    */
   static async testConnection(ip?: string): Promise<boolean> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
+    const validationMode = getValidationMode();
     
-    // ตรวจสอบ development bypass
-    if (isDevelopmentBypass()) {
-      console.log(`info: [DEVELOPMENT] Mocking ESP32 connection test to ${targetIp}`);
-      return true; // Mock successful connection
+    // ตรวจสอบ validation mode
+    if (validationMode === 'bypass') {
+      console.log(`info: [BYPASS] Skipping ESP32 connection test to ${targetIp}`);
+      return true; // Bypass - ข้าม connection test
     }
     
     try {
@@ -70,26 +71,30 @@ export class ESP32Client {
   }
 
   /**
-   * ดึง MAC address จาก ESP32
+   * ดึง MAC address จาก ESP32 (Phase 4.2)
    * พร้อม retry logic และ error handling
-   * รองรับ development bypass สำหรับ macOS development
+   * รองรับ validation modes: bypass, real-hardware, production
    */
   static async getMacAddress(ip?: string): Promise<string | null> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
+    const validationMode = getValidationMode();
     
-    // ตรวจสอบ development bypass
-    if (isDevelopmentBypass()) {
-      const mockMac = 'AA:BB:CC:DD:EE:FF';
-      console.log('⚠️  Development Mode: Using mock MAC address');
-      console.log(`info: [DEVELOPMENT] Mock MAC address: ${mockMac}`);
-      
+    // ตรวจสอบ validation mode
+    if (validationMode === 'bypass') {
+      console.log('info: [BYPASS] Skipping MAC address retrieval - license validation bypassed');
       await logger({
         user: "system",
-        message: "[DEVELOPMENT] Using mock ESP32 MAC address for testing"
+        message: "MAC address retrieval bypassed - SMC_LICENSE_BYPASS_MODE=true"
       });
-      
-      return mockMac;
+      return null; // Bypass - ไม่ต้อง MAC address
     }
+    
+    // real-hardware และ production modes ใช้ ESP32 จริง
+    console.log(`info: [${validationMode.toUpperCase()}] Connecting to real ESP32 hardware`);
+    await logger({
+      user: "system", 
+      message: `ESP32 MAC address request - mode: ${validationMode}`
+    });
     
     let lastError: Error | null = null;
 

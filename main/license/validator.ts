@@ -1,5 +1,6 @@
 import { Setting } from "../../db/model/setting.model";
 import { logger } from "../logger";
+import { getValidationMode, logPhase42Configuration } from "../utils/environment";
 
 /**
  * CLI License Validator
@@ -234,33 +235,40 @@ export async function validateOrganizationData(licenseData: any): Promise<boolea
 }
 
 /**
- * ฟังก์ชันหลักสำหรับการตรวจสอบ license
- * รองรับ development bypass และ production validation
+ * ฟังก์ชันหลักสำหรับการตรวจสอบ license (Phase 4.2)
+ * รองรับ validation modes ใหม่: bypass, real-hardware, production
  */
 export async function validateLicense(): Promise<boolean> {
-  // Environment detection
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  const bypassLicense = isDevelopment && process.env.BYPASS_LICENSE === 'true';
+  const validationMode = getValidationMode();
   
-  console.log(`debug: License validation - Mode: ${isDevelopment ? 'development' : 'production'}`);
-  console.log(`debug: License bypass: ${bypassLicense ? 'enabled' : 'disabled'}`);
-
-  // Development bypass
-  if (bypassLicense) {
-    console.log('info: 🔓 License validation bypassed for development');
-    await logger({
-      user: 'system',
-      message: 'License validation bypassed (development mode)'
-    });
-    return true;
-  }
-
-  // Production validation (or development without bypass)
-  if (isDevelopment) {
-    console.log('info: Running license validation in development mode (no bypass)');
-  }
+  console.log('info: Phase 4.2 License Validation');
+  logPhase42Configuration();
   
-  return await validateLicenseQuick();
+  switch (validationMode) {
+    case 'bypass':
+      console.log('info: 🔓 License validation bypassed (development mode)');
+      await logger({
+        user: 'system',
+        message: 'License validation bypassed - SMC_LICENSE_BYPASS_MODE=true'
+      });
+      return true;
+      
+    case 'real-hardware':
+      console.log('info: 🔧 Development mode with real ESP32 hardware');
+      await logger({
+        user: 'system', 
+        message: 'License validation with real hardware - SMC_DEV_REAL_HARDWARE=true'
+      });
+      return await validateLicenseWithESP32();
+      
+    case 'production':
+      console.log('info: 🏭 Production license validation');
+      return await validateLicenseQuick();
+      
+    default:
+      console.error('error: Unknown validation mode:', validationMode);
+      return false;
+  }
 }
 
 /**

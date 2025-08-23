@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import * as os from 'os';
 import { promisify } from 'util';
 import { logger } from '../logger';
-import { isDevelopmentBypass, logEnvironmentInfo } from '../utils/environment';
+import { getValidationMode, getPlatformWiFiStrategy, logPhase42Configuration } from '../utils/environment';
 
 const execAsync = promisify(exec);
 
@@ -56,30 +56,43 @@ export class SystemWiFiManager {
   }
 
   /**
-   * เชื่อมต่อกับ WiFi network
-   * รองรับ development bypass สำหรับ macOS development
+   * เชื่อมต่อกับ WiFi network (Phase 4.2)
+   * รองรับ validation modes และ platform-specific strategies
    */
-  static async connectToNetwork(ssid: string, password: string): Promise<boolean> {
+  static async connectToNetwork(ssid: string, password: string): Promise<boolean | { requiresManualConnection: boolean; platform: string; }> {
     try {
-      console.log(`info: Attempting to connect to WiFi network: ${ssid}`);
+      const validationMode = getValidationMode();
+      const wifiStrategy = getPlatformWiFiStrategy();
       
-      // ตรวจสอบ development bypass
-      if (isDevelopmentBypass()) {
-        console.log('⚠️  Development Mode: WiFi connection bypassed on macOS');
-        console.log(`info: Would connect to WiFi: ${ssid} (password: ${'*'.repeat(password.length)})`);
-        logEnvironmentInfo();
-        
-        // Mock successful connection
-        await this.delay(1000); // Simulate connection time
-        
+      console.log(`info: Phase 4.2 WiFi Connection - SSID: ${ssid}`);
+      logPhase42Configuration();
+      
+      // ตรวจสอบ validation mode
+      if (validationMode === 'bypass') {
+        console.log('info: [BYPASS] Skipping WiFi connection - license validation bypassed');
         await logger({
           user: "system",
-          message: `[DEVELOPMENT] Mocked WiFi connection to: ${ssid}`
+          message: `WiFi connection bypassed - SMC_LICENSE_BYPASS_MODE=true`
         });
-        
-        console.log(`info: [DEVELOPMENT] Mocked successful connection to WiFi: ${ssid}`);
         return true;
       }
+      
+      // ตรวจสอบ WiFi strategy
+      if (wifiStrategy === 'manual') {
+        console.log('info: [MANUAL] Manual WiFi connection required - showing instructions to user');
+        await logger({
+          user: "system",
+          message: `Manual WiFi connection required for ${this.platform} - SSID: ${ssid}`
+        });
+        
+        return {
+          requiresManualConnection: true,
+          platform: this.platform
+        };
+      }
+      
+      // Auto WiFi connection (Windows หรือ forced auto mode)
+      console.log(`info: [AUTO] Attempting automatic WiFi connection on ${this.platform}`);
       
       let command = '';
       
@@ -179,15 +192,17 @@ export class SystemWiFiManager {
   }
 
   /**
-   * ตรวจสอบว่าเชื่อมต่อกับ network ที่ระบุอยู่หรือไม่
-   * รองรับ development bypass สำหรับ macOS development
+   * ตรวจสอบว่าเชื่อมต่อกับ network ที่ระบุอยู่หรือไม่ (Phase 4.2)
+   * รองรับ validation modes ใหม่
    */
   static async isConnectedTo(ssid: string): Promise<boolean> {
     try {
-      // ตรวจสอบ development bypass
-      if (isDevelopmentBypass()) {
-        console.log(`debug: [DEVELOPMENT] Mocking connection check for: ${ssid}`);
-        return true; // Mock successful connection
+      const validationMode = getValidationMode();
+      
+      // ตรวจสอบ validation mode
+      if (validationMode === 'bypass') {
+        console.log(`info: [BYPASS] Skipping WiFi connection check for: ${ssid}`);
+        return true; // Bypass - ถือว่าเชื่อมต่อแล้ว
       }
       
       const currentNetwork = await this.getCurrentConnectedNetwork();
