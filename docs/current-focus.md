@@ -494,4 +494,135 @@ npm run dev
 
 ---
 
-**หมายเหตุ**: Enhanced build-prep system ✅ COMPLETED, ESP32 API fixes ✅ COMPLETED → Ready for Windows OS testing phase
+## 🔄 NEW FOCUS SHIFT: Dynamic Shared Key Implementation (August 2025)
+
+### 🎯 Current Implementation Focus
+**สถานะปัจจุบัน:** Shifting from Windows OS testing to Dynamic Shared Key implementation  
+**วันที่อัพเดต:** 2025-08-24  
+**Focus Phase:** Dynamic Shared Key System Implementation
+
+> **🔄 Phase Transition**: Windows OS Testing → Dynamic Shared Key Implementation for enhanced security and license regeneration
+
+### ปัญหาปัจจุบัน: Fixed Shared Key Limitations
+
+#### สถานะ Shared Key ปัจจุบัน:
+```typescript
+// cli/modules/encryption.ts (Current)
+const SHARED_SECRET_KEY = 'SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS';
+```
+
+**ข้อจำกัดที่พบ:**
+- **Security Risk**: 1 master key ถอดรหัสได้ทุก license
+- **No Regeneration**: ไม่สามารถ generate license เดียวกันซ้ำได้
+- **Key Management**: ต้องจัดการ SHARED_SECRET_KEY ใน .env
+- **Deployment Complexity**: ต้องส่งทั้ง license.lic และ shared key
+
+### Dynamic Shared Key Solution
+
+#### แนวคิดใหม่:
+```typescript
+// Dynamic key pattern
+const dynamicKey = `${applicationName}_${customerId}_${wifiSsid}_${macAddress}`;
+const hashedKey = crypto.createHash('sha256').update(dynamicKey).digest('hex').slice(0, 32);
+```
+
+**ข้อดีของ Dynamic Key:**
+1. **Per-License Security**: แต่ละ license มี unique encryption key
+2. **License Regeneration**: ข้อมูลเดียวกัน → key เดียวกัน → license เดียวกัน  
+3. **Expiry Update Capability**: เปลี่ยนได้เฉพาะ expiry date
+4. **Self-Contained**: ไม่ต้องจัดการ shared key แยก
+5. **Zero Key Management**: ไม่มี master key ที่ต้องป้องกัน
+
+#### ความเป็นไปได้ของ Key Collision:
+- **MAC Address**: ESP32 มี globally unique MAC (collision เกือบ 0%)
+- **Application + Customer**: ควบคุมด้วย naming policy
+- **WiFi SSID**: ควบคุมด้วย convention
+
+## 📋 Implementation Plan
+
+### Phase 1: CLI Encryption Module Update 🔄
+**File: `cli/modules/encryption.ts`**
+- [ ] ลบ `SHARED_SECRET_KEY` constant
+- [ ] เพิ่ม `generateDynamicKey(licenseData)` function
+- [ ] อัพเดท `encryptLicenseData()` ใช้ dynamic key
+- [ ] อัพเดท `decryptLicenseData()` ใช้ dynamic key generation
+- [ ] Checksum ยังคงใช้ expiry date (เพื่อให้เปลี่ยนได้)
+
+### Phase 2: CLI License Generator Update 📋
+**File: `cli/modules/license-generator.ts`**
+- [ ] อัพเดท `generateLicenseFile()` ใช้ dynamic key
+- [ ] อัพเดท `generateSampleLicenseFile()` ใช้ dynamic key
+- [ ] ลบการแสดง SHARED_SECRET_KEY ใน console output
+- [ ] อัพเดท documentation และ usage messages
+
+### Phase 3: CLI Batch Processing Update 📋
+**File: `cli/modules/batch-license-generator.ts`**
+- [ ] อัพเดท batch processing ใช้ dynamic key
+- [ ] ทดสอบ license regeneration capability
+- [ ] ตรวจสอบ CSV batch processing compatibility
+
+### Phase 4: SMC App Integration Update 📋
+**File: `scripts/utils/licenseParser.ts`**
+- [ ] อัพเดท license parsing ใช้ dynamic key generation
+- [ ] ลบ SHARED_SECRET_KEY dependencies
+- [ ] ทดสอบ license validation end-to-end
+
+### Phase 5: Testing & Validation 📋
+- [ ] ทดสอบ license regeneration (ข้อมูลเดียวกัน → license เดียวกัน)
+- [ ] ทดสอบ expiry date update capability
+- [ ] ทดสอบ security (per-license encryption)
+- [ ] ทดสอบ deployment workflow ใหม่
+
+## 💥 Breaking Changes Summary
+
+### 1. License Format Breaking Change
+- **เดิม**: Fixed shared key encryption
+- **ใหม่**: Dynamic key จาก license data
+- **ผลกระทบ**: ลิขสิทธิ์เก่าใช้ไม่ได้ (ต้อง generate ใหม่)
+
+### 2. Environment Variables Simplification  
+- **เดิม**: ต้องมี `SHARED_SECRET_KEY` ใน .env
+- **ใหม่**: ไม่ต้องมี environment variable
+- **ผลกระทบ**: Deployment เรียบง่ายขึ้น
+
+### 3. Self-Contained License System
+- **เดิม**: license.lic + shared key management
+- **ใหม่**: license.lic เพียงอย่างเดียว
+- **ผลกระทบ**: ลดขั้นตอน deployment
+
+## 🎯 Expected Benefits
+
+### Security Enhancements:
+✅ **Per-License Encryption**: แต่ละ license มี unique key  
+✅ **No Master Key Risk**: ไม่มี single point of failure  
+✅ **Hardware Binding**: ผูกกับ ESP32 MAC address  
+
+### Operational Benefits:  
+✅ **License Regeneration**: แก้ไข expiry date ได้  
+✅ **Simpler Deployment**: แค่ copy license.lic  
+✅ **Zero Key Management**: ไม่ต้องจัดการ master key  
+
+### Development Benefits:
+✅ **Deterministic Generation**: input เดียวกัน = output เดียวกัน  
+✅ **Enhanced Testing**: regenerate test licenses ได้  
+✅ **Reduced Complexity**: ไม่ต้องจัดการ .env files  
+
+## 📊 Implementation Progress
+
+| Phase | Component | Status |
+|-------|-----------|--------|
+| Phase 1 | CLI Encryption Module | 🔄 In Progress |
+| Phase 2 | CLI License Generator | 📋 Pending |
+| Phase 3 | CLI Batch Processing | 📋 Pending |
+| Phase 4 | SMC App Integration | 📋 Pending |
+| Phase 5 | Testing & Validation | 📋 Pending |
+
+### Recovery Strategy:
+**Simple & Clean Approach**: ถ้ามีปัญหา → generate license ใหม่ → compile SMC app ใหม่ → deploy
+- ไม่ทำ fallback/recovery mechanisms (เพิ่ม complexity ไม่จำเป็น)
+- License generator เป็นคนของเราเอง (ควบคุมได้ 100%)
+- ESP32 MAC address เป็น hardware unique identifier
+
+---
+
+**หมายเหตุ**: Enhanced build-prep system ✅ COMPLETED, ESP32 API fixes ✅ COMPLETED → **NEW FOCUS**: Dynamic Shared Key Implementation 🔄

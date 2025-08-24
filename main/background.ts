@@ -40,6 +40,7 @@ import { checkActivationKeyHandler } from "./license/ipcMain/check-activation-ke
 import { activateKeyHandler } from "./license/ipcMain/activate-key";
 import { activationProgressHandler } from "./license/ipcMain/activation-progress";
 import { isSystemActivated } from "./license/validator";
+import { getValidationMode } from "./utils/environment";
 import { IndicatorDevice } from "./indicator";
 /**
  * Indicates whether the application is running in production mode.
@@ -126,19 +127,27 @@ if (isProd) {
   checkActivationKeyHandler();
   activationProgressHandler();
 
-  // Check license activation status and determine initial page
+  // Check license activation status and determine initial page (Phase 4.2)
   let initialPage = "activate-key"; // Default to activation page
   
   try {
-    console.log("info: Checking system activation status...");
-    const isActivated = await isSystemActivated();
+    // Phase 4.2: Check validation mode first
+    const validationMode = getValidationMode();
     
-    if (isActivated) {
-      console.log("info: System is activated - proceeding to main application");
+    if (validationMode === 'bypass') {
+      console.log("info: Bypass mode detected - proceeding directly to home page");
       initialPage = "home";
     } else {
-      console.log("info: System not activated - redirecting to activation page");
-      initialPage = "activate-key";
+      console.log("info: Checking system activation status...");
+      const isActivated = await isSystemActivated();
+      
+      if (isActivated) {
+        console.log("info: System is activated - proceeding to main application");
+        initialPage = "home";
+      } else {
+        console.log("info: System not activated - redirecting to activation page");
+        initialPage = "activate-key";
+      }
     }
   } catch (error: any) {
     console.error("error: License activation check failed:", error.message);
