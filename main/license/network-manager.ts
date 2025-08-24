@@ -151,11 +151,19 @@ export class NetworkManager {
         validateStatus: (status) => status === 200
       });
 
-      if (!macResponse.data || !macResponse.data.mac) {
-        throw new Error('Invalid MAC address response format');
+      if (!macResponse.data) {
+        throw new Error('Invalid MAC address response - no data received');
       }
 
-      const macAddress = macResponse.data.mac.toUpperCase();
+      // รองรับทั้ง format เก่าและใหม่ของ ESP32 API
+      const macFromResponse = macResponse.data.mac_address || macResponse.data.mac;
+      
+      if (!macFromResponse) {
+        console.error('debug: Invalid MAC response format:', JSON.stringify(macResponse.data, null, 2));
+        throw new Error('Invalid MAC address response format (missing both mac and mac_address fields)');
+      }
+
+      const macAddress = macFromResponse.toUpperCase();
       console.log(`info: [Attempt ${attemptNumber}] Retrieved MAC address: ${macAddress}`);
 
       // Optional health check
@@ -223,7 +231,9 @@ export class NetworkManager {
         timeout: 5000
       });
       
-      diagnostics.macAddressAccessible = !!(macResponse.data?.mac);
+      // รองรับทั้ง format เก่าและใหม่ของ ESP32 API
+      const macFromDiag = macResponse.data?.mac_address || macResponse.data?.mac;
+      diagnostics.macAddressAccessible = !!macFromDiag;
       console.log(`info: MAC endpoint: ${diagnostics.macAddressAccessible ? 'OK' : 'Failed'}`);
 
     } catch (error: any) {

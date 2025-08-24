@@ -10,9 +10,13 @@ import { getValidationMode } from '../utils/environment';
  */
 
 export interface ESP32MacResponse {
-  mac: string;
-  status: 'success' | 'error';
+  // รองรับทั้ง format เก่าและใหม่ สำหรับ backward compatibility
+  mac?: string;           // Legacy format: { "mac": "F4:65:0B:58:66:A4" }
+  mac_address?: string;   // New format: { "mac_address": "F4:65:0B:58:66:A4" }
+  status?: 'success' | 'error';
   timestamp?: number;
+  customer_id?: string;
+  organization?: string;
   device_info?: {
     ip: string;
     firmware_version?: string;
@@ -110,11 +114,20 @@ export class ESP32Client {
 
         const responseData = JSON.parse(response.data) as ESP32MacResponse;
         
-        if (responseData.status !== 'success' || !responseData.mac) {
-          throw new Error('ESP32 returned error or missing MAC address');
+        // รองรับทั้ง format เก่าและใหม่ของ ESP32 API
+        const macFromResponse = responseData.mac_address || responseData.mac;
+        
+        if (!macFromResponse) {
+          console.error('debug: ESP32 Response:', JSON.stringify(responseData, null, 2));
+          throw new Error('ESP32 response missing MAC address (checked both mac and mac_address fields)');
         }
 
-        const macAddress = responseData.mac.toUpperCase();
+        // ตรวจสอบ status ถ้ามี (optional สำหรับ backward compatibility)
+        if (responseData.status && responseData.status !== 'success') {
+          throw new Error(`ESP32 returned error status: ${responseData.status}`);
+        }
+
+        const macAddress = macFromResponse.toUpperCase();
         console.log(`info: MAC address retrieved from ESP32: ${macAddress}`);
         
         // Log สำหรับ audit (ไม่เก็บ MAC ในฐานข้อมูล)

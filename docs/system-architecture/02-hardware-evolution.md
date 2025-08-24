@@ -34,6 +34,16 @@ CU12 → DS12 (Reverse engineering protection)
 - **Protocol Compatibility**: Maintains CU/KU protocol compatibility
 - **Software Architecture**: New `/main/ku-controllers/` with protocol abstraction
 
+### Phase 4: ESP32 License Integration (2025)
+```
+DS Series + ESP32 → Hardware-bound license system
+```
+- **ESP32 Hardware**: MAC address-based license binding for medical device security
+- **License System**: Encrypted license files with WiFi credential management
+- **Keygen System**: Complete license activation interface with Thai language support
+- **Development Support**: Cross-platform development with mock ESP32 responses
+- **Production Ready**: CLI tool v1.1.0 with CSV batch processing capabilities
+
 ## Protocol Specifications
 
 ### DS16 (16-Slot Device)
@@ -146,18 +156,22 @@ abstract class KuControllerBase {
 
 ### Production Deployment Status (January 2025)
 
-#### Phase 4.2: Production Deployment (✅ COMPLETED)
+#### Phase 4.2+: Production Deployment (✅ COMPLETED)
 - ✅ **BuildTimeController Live**: Production deployment with DS12 protocol successful
 - ✅ **Zero Downtime Migration**: Seamless transition from legacy implementation
 - ✅ **Medical Compliance Validated**: All regulatory requirements preserved and enhanced
 - ✅ **Performance Optimization**: Improved response times and error handling
 - ✅ **Audit Trail Integrity**: Enhanced logging with Thai language support
+- ✅ **ESP32 Keygen System**: Complete license activation and hardware binding system
+- ✅ **CSV Batch Processing**: Automated license generation for multiple deployments
 
 #### Current Production Environment
 - **DS12 Protocol**: Fully operational with comprehensive testing and validation
 - **Build-Time Configuration**: Revolutionary device type selection system deployed
 - **IPC Handler Integration**: Complete migration to new architecture patterns
 - **UI Enhancement**: Design System implementation with improved user experience
+- **ESP32 Integration**: Hardware-based license activation with WiFi auto-connection
+- **License Management**: CLI tool v1.1.0 with CSV batch processing and no-expiry support
 - **Legacy Preservation**: Original KU16 implementation maintained for rollback capability
 
 #### DS16 Readiness Status (🔧 CONFIGURATION READY)

@@ -124,21 +124,35 @@ export class SystemWiFiManager {
         console.log(`debug: WiFi connect stderr: ${stderr}`);
       }
       
-      // รอให้ connection สำเร็จ
-      await this.delay(3000);
+      // รอให้ connection สำเร็จ (เพิ่มเวลาสำหรับ macOS)
+      console.log('info: Waiting for WiFi connection to establish...');
+      await this.delay(7000);
       
-      // ตรวจสอบการเชื่อมต่อ
-      const isConnected = await this.isConnectedTo(ssid);
+      // ลองตรวจสอบการเชื่อมต่อหลายครั้ง (retry mechanism)
+      let isConnected = false;
+      for (let retryCount = 1; retryCount <= 3; retryCount++) {
+        console.log(`info: Checking WiFi connection (attempt ${retryCount}/3)...`);
+        isConnected = await this.isConnectedTo(ssid);
+        
+        if (isConnected) {
+          break;
+        }
+        
+        if (retryCount < 3) {
+          console.log('info: Connection check failed, retrying in 2 seconds...');
+          await this.delay(2000);
+        }
+      }
       
       if (isConnected) {
         console.log(`info: Successfully connected to WiFi: ${ssid}`);
         await logger({
           user: "system",
-          message: `Connected to WiFi network: ${ssid}`
+          message: `Connected to WiFi network: ${ssid} after connection verification`
         });
         return true;
       } else {
-        console.error(`error: Failed to connect to WiFi: ${ssid}`);
+        console.error(`error: Failed to connect to WiFi: ${ssid} (verified with ${3} attempts)`);
         return false;
       }
       
@@ -391,9 +405,34 @@ export class SystemWiFiManager {
           return windowsMatch ? windowsMatch[1].trim() : null;
           
         case 'darwin':
-          // macOS: "Current Wi-Fi Network: NetworkName"
-          const macMatch = output.match(/Current Wi-Fi Network:\s*(.+)/);
-          return macMatch ? macMatch[1].trim() : null;
+          // macOS: รองรับ format หลายแบบ
+          console.log('debug: macOS networksetup output:', output);
+          
+          // Pattern 1: "Current Wi-Fi Network: NetworkName"
+          let macMatch = output.match(/Current Wi-Fi Network:\s*(.+)/);
+          if (macMatch) {
+            const networkName = macMatch[1].trim();
+            console.log(`debug: Found network using pattern 1: ${networkName}`);
+            return networkName;
+          }
+          
+          // Pattern 2: "Wi-Fi Network: NetworkName" 
+          macMatch = output.match(/Wi-Fi Network:\s*(.+)/);
+          if (macMatch) {
+            const networkName = macMatch[1].trim();
+            console.log(`debug: Found network using pattern 2: ${networkName}`);
+            return networkName;
+          }
+          
+          // Pattern 3: Direct network name output
+          const trimmedOutput = output.trim();
+          if (trimmedOutput && !trimmedOutput.includes('You are not associated with an AirPort network')) {
+            console.log(`debug: Found network using pattern 3: ${trimmedOutput}`);
+            return trimmedOutput;
+          }
+          
+          console.log('debug: No network found in macOS output');
+          return null;
           
         case 'linux':
           // Linux: direct output from nmcli

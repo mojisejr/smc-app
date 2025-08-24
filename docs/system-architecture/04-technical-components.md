@@ -1047,11 +1047,29 @@ await logDispensing({
 ## ESP32 Configuration & Management System
 
 ### ESP32 Integration Architecture
+**Location**: `esp32-deployment-tool/` directory  
+**Purpose**: Cross-platform ESP32 deployment tool with template management and license integration  
+**Technology Stack**: Next.js 14 + PlatformIO + ESP32 Arduino Framework + REST API + Container Support
+
+### ESP32 Hardware Layer
 **Location**: `smc-key-temp/` directory  
 **Purpose**: Hardware provisioning and environmental monitoring for SMC License CLI integration  
 **Technology Stack**: PlatformIO + ESP32 Arduino Framework + REST API
 
-### ESP32 Project Structure Analysis
+### ESP32 Deployment Tool Architecture (✅ PRODUCTION READY)
+```
+esp32-deployment-tool/
+├── templates/
+│   ├── main.cpp.template        # ESP32 firmware template
+│   └── platformio.ini.template  # PlatformIO config template
+├── src/app/api/                 # 7 API endpoints for deployment workflow
+├── src/components/
+│   └── CustomerForm.tsx         # Enhanced form with no-expiry checkbox
+├── exports/                     # JSON + CSV output with license tracking
+└── next.config.js               # Next.js 14 configuration
+```
+
+### ESP32 Hardware Project Structure
 ```
 smc-key-temp/
 ├── platformio.ini              # PlatformIO project configuration
@@ -1243,11 +1261,16 @@ const macData = await response.json();
 - **CORS Configuration**: Secure cross-origin communication
 - **Input Validation**: JSON response sanitization
 
-### Future ESP32 UI Development Architecture
+### ESP32 Keygen System UI Architecture (✅ PRODUCTION READY)
 
-#### Planned ESP32 Configuration Interface
-**Location**: Future development in `/renderer/pages/esp32-config.tsx`  
-**Purpose**: Automated ESP32 firmware deployment and management
+#### License Activation Interface
+**Location**: `/renderer/pages/activate-key.tsx`  
+**Purpose**: Hardware-based license activation with ESP32 integration  
+**Features**: Thai language UI, WiFi auto-connection, hardware binding validation
+
+#### ESP32 Configuration Interface (Deployment Tool)
+**Location**: Standalone Next.js application in `esp32-deployment-tool/`  
+**Purpose**: Cross-platform ESP32 firmware deployment and management
 
 **Component Architecture**:
 ```typescript
@@ -1302,7 +1325,38 @@ ipcMain.handle('esp32:get-status', async (event, deviceIP) => {
 #### Medium-Risk Components  
 1. **Hardware Communication**: Serial port management and device detection
 2. **Firmware Deployment**: Automated upload with error handling
-3. **Network Configuration**: WiFi management across platforms
+3. **Network Configuration**: Cross-platform WiFi management with enhanced detection patterns
+
+#### WiFi Connection Platform Strategy (August 2025 Update)
+**Issue**: Cross-platform WiFi connection and detection inconsistencies.
+
+**Platform-Specific WiFi Strategies**:
+- **Windows**: Auto WiFi connection via `netsh wlan` commands ✅
+- **macOS**: Manual WiFi connection strategy (USER-GUIDED) ✅
+- **Linux**: Auto WiFi connection via `nmcli` commands ✅
+
+**macOS WiFi Detection Enhancement**:
+```typescript
+// Enhanced macOS WiFi detection with multiple patterns
+case 'darwin':
+  // Pattern 1: "Current Wi-Fi Network: NetworkName"
+  let macMatch = output.match(/Current Wi-Fi Network:\s*(.+)/);
+  
+  // Pattern 2: "Wi-Fi Network: NetworkName" 
+  if (!macMatch) {
+    macMatch = output.match(/Wi-Fi Network:\s*(.+)/);
+  }
+  
+  // Pattern 3: Direct network name output
+  if (!macMatch && !output.includes('You are not associated')) {
+    return output.trim();
+  }
+```
+
+**Connection Validation Improvements**:
+- Retry mechanism: 3 attempts with 2-second intervals
+- Extended timeout: 7 seconds (macOS WiFi connection delay)
+- Enhanced logging for debugging platform-specific issues
 
 #### High-Risk Components
 1. **License Integration**: ESP32 MAC address binding security

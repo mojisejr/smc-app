@@ -2,7 +2,7 @@
 
 ## Document Purpose
 
-This document details the SMC License CLI Tool (v1.1.0) integration with the Smart Medication Cart system, providing comprehensive technical specifications for ESP32-based hardware binding, secure license management, and CSV batch processing workflows.
+This document details the SMC License CLI Tool (v1.1.0) integration with the Smart Medication Cart system, providing comprehensive technical specifications for ESP32-based hardware binding, secure license management, CSV batch processing workflows, and ESP32 Keygen System integration.
 
 ## System Integration Overview
 
@@ -289,6 +289,29 @@ Common issues and resolution patterns are documented in `cli/README.md`:
 - **Performance**: Optimized for medical device response time requirements
 - **Logging**: Structured logging for debugging and audit purposes with development mode indicators
 
+## ESP32 Keygen System Integration ✅ PRODUCTION READY
+
+### System Integration with SMC Desktop Application
+The ESP32 Keygen System is now fully integrated with the SMC desktop application, providing seamless license activation with hardware binding validation:
+
+#### Key Integration Features
+1. **✅ License Activation Interface**: Thai language UI in `/renderer/pages/activate-key.tsx`
+2. **✅ Hardware Binding Validation**: MAC address verification against ESP32 hardware
+3. **✅ WiFi Auto-Connection**: Automated WiFi credential management from license files
+4. **✅ Development Mode Support**: Cross-platform development with mock ESP32 responses
+5. **✅ Error Handling**: Medical-grade error messages with troubleshooting guidance
+6. **✅ Progress Indicators**: Real-time feedback during license activation process
+
+#### Activation Workflow
+```
+1. SMC App Launch → Check for license file
+2. License Found → Parse encrypted license data
+3. ESP32 Connection → Automatic WiFi connection using license credentials
+4. MAC Verification → Compare ESP32 MAC with license binding
+5. Validation Success → Grant application access
+6. Error Handling → Show Thai language error messages with recovery options
+```
+
 ## Phase 4.5 Implementation Complete ✅
 
 ### Version 1.1.0 Delivered Features
@@ -297,6 +320,7 @@ Common issues and resolution patterns are documented in `cli/README.md`:
 3. **✅ CSV Status Tracking**: Update CSV files with license generation status
 4. **✅ Enhanced ESP32 Tool**: Integrated expiry date selection and no-expiry option
 5. **✅ Complete Workflow**: End-to-end Sales → Developer → Delivery process
+6. **✅ ESP32 Keygen System**: Complete license activation interface in SMC desktop app
 
 ### Version 1.2.0 Future Features
 1. **License Renewal**: Automatic license renewal workflow
@@ -552,6 +576,62 @@ export class ESP32LicenseClient {
   }
 }
 ```
+
+### ESP32 API Response Format Evolution (August 2025)
+
+#### Legacy vs Current Format Compatibility
+**Issue**: Legacy code expected different API response format than actual ESP32 hardware output.
+
+**Legacy Expected Format** (SMC Desktop App v1.0):
+```json
+// Expected by early implementation:
+{
+  "mac": "F4:65:0B:58:66:A4",
+  "status": "success"
+}
+```
+
+**Actual ESP32 Format** (Hardware Reality):
+```json  
+// Real ESP32 hardware output:
+{
+  "mac_address": "F4:65:0B:58:66:A4",
+  "customer_id": "TEST1",
+  "organization": "TEST1", 
+  "status": "success",
+  "timestamp": 3727785
+}
+```
+
+#### Implementation Solution (ESP32MacResponse Interface)
+**Backward Compatibility**: Support both formats seamlessly in SMC Desktop App.
+
+```typescript
+// Enhanced ESP32MacResponse interface
+export interface ESP32MacResponse {
+  // Backward compatibility support
+  mac?: string;           // Legacy format: { "mac": "F4:65:0B:58:66:A4" }
+  mac_address?: string;   // New format: { "mac_address": "F4:65:0B:58:66:A4" }
+  status?: 'success' | 'error';
+  timestamp?: number;
+  customer_id?: string;
+  organization?: string;
+}
+
+// Parsing logic with fallback
+const macFromResponse = responseData.mac_address || responseData.mac;
+```
+
+**Files Updated**:
+- `main/license/esp32-client.ts` - Enhanced MAC parsing with fallback logic
+- `main/license/network-manager.ts` - Updated 3 API parsing methods
+- All parsing methods now support both formats transparently
+
+**Testing Results**:
+✅ Backward compatibility maintained for legacy systems  
+✅ Forward compatibility with real ESP32 hardware API  
+✅ Seamless format detection and parsing  
+✅ Enhanced error logging for debugging
 
 ### Environmental Monitoring Integration
 

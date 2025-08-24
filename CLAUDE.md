@@ -104,6 +104,7 @@ npm run test:dispensing-workflow       # Test complete dispensing workflow
 - **Design System**: `renderer/components/Shared/DesignSystem/` - Centralized component library with React Hook Form integration
 - **CLI Tool**: `cli/` - SMC License CLI ✅ **PRODUCTION READY v1.1.0 - CSV BATCH READY**
 - **ESP32 Deployment Tool**: `esp32-deployment-tool/` - Cross-platform ESP32 deployment ✅ **PHASE 4.5 COMPLETE - NO EXPIRY SUPPORT**
+- **ESP32 Keygen System**: License activation interface integrated in SMC desktop app ✅ **PRODUCTION READY**
 
 ### Key Components
 
@@ -458,6 +459,60 @@ import Indicator from '@/components/Indicators/baseIndicator';
 />
 ```
 
+**When Working with ESP32 Keygen System**:
+
+```typescript
+// License activation interface pattern (activate-key.tsx)
+import { useESP32License } from '@/hooks/useESP32License';
+
+const ESP32LicenseActivation = () => {
+  const { activateLicense, loading, error } = useESP32License();
+  
+  const handleActivation = async (licenseFile: File) => {
+    try {
+      await activateLicense(licenseFile);
+      // Automatic WiFi connection using license credentials
+      // MAC address validation against ESP32 hardware
+      // Thai language success/error messages
+    } catch (error) {
+      // Medical-grade error handling with recovery suggestions
+    }
+  };
+};
+
+// Development mode bypass pattern
+if (process.env.NODE_ENV === 'development') {
+  console.log('[ESP32] Development mode: Using mock MAC address validation');
+  return mockActivationSuccess();
+}
+
+// Production mode with real ESP32 communication (Enhanced August 2025)
+const macAddress = await esp32Client.getMACAddress();
+if (macAddress !== licenseData.hardware_binding.mac_address) {
+  throw new Error('Hardware binding validation failed');
+}
+
+// ESP32 API Parsing with Backward Compatibility (August 2025 Update)
+const parseESP32Response = (responseData: any) => {
+  // Support both legacy and current ESP32 API formats
+  const macFromResponse = responseData.mac_address || responseData.mac;
+  
+  if (!macFromResponse) {
+    console.error('debug: ESP32 Response:', JSON.stringify(responseData, null, 2));
+    throw new Error('ESP32 response missing MAC address (checked both mac and mac_address fields)');
+  }
+
+  return macFromResponse.toUpperCase();
+};
+
+// macOS WiFi Connection Strategy (Manual User-Guided)
+if (process.platform === 'darwin') {
+  console.log('📶 Manual WiFi connection required for macOS');
+  // Show instructions to user for manual ESP32 network connection
+  // Enhanced retry mechanism: 3 attempts with extended 7-second timeout
+}
+```
+
 **Critical Compliance Notes**:
 
 - Never modify audit logging patterns without understanding medical device requirements
@@ -468,8 +523,9 @@ import Indicator from '@/components/Indicators/baseIndicator';
 
 **Production Migration Status** (✅ COMPLETED):
 
-- **Phase 4.2 COMPLETE**: DS12 production deployment with BuildTimeController
+- **Phase 4.2+ COMPLETE**: DS12 production deployment with BuildTimeController
 - **Enhanced Features**: Design System + Responsive Grid + React Hook Form integration
+- **ESP32 Keygen System**: Complete license activation interface with hardware binding validation
 - **DS16 Ready**: Configuration-ready architecture for immediate DS16 deployment
 - **Legacy Preserved**: KU16 code maintained for reference and rollback capability
 - **Protocol Abstraction**: Complete migration from direct hardware calls to controller pattern
@@ -621,11 +677,22 @@ UI Checkbox Checked → expiryDate: "" (empty) → CSV Export → CLI Parser →
 \*\*Important Document Resources
 
 - Project Architecture documentation files : /docs/system-architecture
+- **Current Focus & Implementation Status**: `/docs/current-focus.md` 🔥 **READ THIS FIRST**
 - CLI Tool Documentation: `cli/README.md`
 - ESP32 Hardware Guide: `smc-key-temp/docs/DHT22.md`
 - Phase 4.5 Implementation: `docs/phases/phase4-cli-enhancement.md`
 
-\*\*Complete Sales → Developer → Delivery Workflow (Phase 4.5)
+## Current Focus & Implementation Status
+
+> **📖 Latest Implementation Details**: Always check `/docs/current-focus.md` for:
+> - ✅ Recently completed features and fixes
+> - 🔄 Current development focus and priorities  
+> - 🧪 Testing results and validation status
+> - 📋 Next implementation phases and planning
+> 
+> This document is updated after each major implementation milestone and contains the most current technical status, testing results, and development priorities.
+
+\*\*Complete Sales → Developer → Delivery Workflow (Phase 4.5 + ESP32 Keygen System)
 
 ```bash
 # 1. Sales Team: ESP32 Deployment Tool
@@ -642,4 +709,12 @@ smc-license batch --input ../esp32-deployment-tool/exports/esp32-deployments-202
 # 3. Delivery: Package and Deploy
 # → Copy: Updated CSV + License files + SMC App
 # → Deploy: to customer sites with ESP32 binding verification
+
+# 4. Customer Site: ESP32 Keygen System Activation
+cd smc-app/
+# SMC App automatically detects license file on startup
+# ESP32 Keygen System shows Thai language activation interface
+# Hardware binding validation with MAC address check
+# WiFi auto-connection using encrypted credentials from license
+# Application grants access after successful validation
 ```
