@@ -1,266 +1,588 @@
-# SMC License Deployment Guide
+# SMC License Deployment Guide - HKDF v2.0 Production System
 
 ## Overview
 
-คู่มือการ deploy license system สำหรับ SMC App โดยใช้ CLI-generated license files และ ESP32 hardware binding
+Complete deployment workflow for SMC App with HKDF v2.0 license system. This guide covers the entire process from customer order to delivered application, with emphasis on Windows deployment.
 
-## 🚀 Complete Deployment Workflow
+**HKDF v2.0 Benefits:**
+- ✅ Enhanced Security: MAC address completely hidden  
+- ✅ Self-Contained: No shared key management required
+- ✅ License Regeneration: Same input produces same license
+- ✅ Payment Control: Update expiry dates without app rebuild
 
-### Phase 1: Sales Team (ESP32 Deployment Tool)
+## 🎯 Complete Production Workflow (0 → exe)
+
+### Prerequisites
+
+**Development Environment:**
 ```bash
+# Required software
+Node.js v18+ (https://nodejs.org/)
+Git (https://git-scm.com/)
+
+# Verify installation
+node --version  # Should be >= 18.0.0
+npm --version   # Should be >= 8.0.0
+git --version   # Any recent version
+```
+
+**Hardware Requirements:**
+- ESP32 development board (customer deployment)
+- USB cable for ESP32 programming
+- Windows computer for final deployment (recommended)
+
+### Step 1: Sales Team - ESP32 Deployment
+
+**Location:** `esp32-deployment-tool/`
+
+```bash
+# 1. Setup ESP32 deployment tool
 cd esp32-deployment-tool/
+npm install
 npm run dev
+# → Opens http://localhost:3000
 ```
 
-1. **กรอกข้อมูลลูกค้า**:
-   - Organization: "SMC Medical Center"
-   - Customer ID: "HOSP001" 
-   - Application: "SMC_Cabinet"
-   - Expiry Date: "2025-12-31" (หรือใช้ checkbox "No Expiry")
-   - WiFi SSID: "SMC_ESP32_HOSP001"
-   - WiFi Password: "SecurePass123!"
+**2. Deploy ESP32 Device:**
+- Connect ESP32 to computer via USB
+- Fill customer form:
+  ```
+  Organization: "SMC Medical Center Bangkok"
+  Customer ID: "BGK001" 
+  Application: "SMC_Cabinet"
+  Expiry Date: "2025-12-31" (or check "No Expiry")
+  WiFi SSID: "SMC_ESP32_BGK001"
+  WiFi Password: "SecurePass123!"
+  ```
+- Click "Deploy Configuration" → Firmware flashes to ESP32
+- Click "Export CSV" → Generates `esp32-deployments-2025-08-25.csv`
 
-2. **Deploy ESP32 และ Export**:
-   - Connect ESP32 device
-   - Deploy firmware + configuration
-   - Export CSV: `esp32-deployments-2025-08-22.csv`
+**3. Delivery to Development Team:**
+- Send CSV file to development team
+- Ship ESP32 device to customer site
 
-### Phase 2: Developer (CLI License Generation)
+### Step 2: Development Team - License Generation  
+
+**Location:** `cli/`
+
 ```bash
-# Individual license generation
+# 1. Setup CLI tool
 cd cli/
-smc-license generate -o "SMC Medical Center" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" --wifi-ssid "SMC_ESP32_HOSP001" --wifi-password "SecurePass123!"
+npm install
+npm run build
 
-# Batch processing (from ESP32 CSV)
-smc-license batch --input ../esp32-deployment-tool/exports/esp32-deployments-2025-08-22.csv --update-csv
+# 2. Individual license generation
+smc-license generate \
+  --org "SMC Medical Center Bangkok" \
+  --customer "BGK001" \
+  --app "SMC_Cabinet" \
+  --expiry "2025-12-31" \
+  --wifi-ssid "SMC_ESP32_BGK001" \
+  --wifi-password "SecurePass123!" \
+  --output "BGK001-license.lic"
 
-# No expiry licenses
-smc-license batch --input permanent-licenses.csv --no-expiry --update-csv
+# 3. OR Batch processing (recommended for multiple customers)
+smc-license batch \
+  --input ../esp32-deployment-tool/exports/esp32-deployments-2025-08-25.csv \
+  --update-csv
+
+# 4. Verify license created
+smc-license validate --file BGK001-license.lic
+smc-license info --file BGK001-license.lic
 ```
 
-### Phase 3: Build Process (SMC App)
+**Output Files:**
+- `BGK001-license.lic` - Customer license file
+- Updated CSV with license_status="completed"
+
+### Step 3: SMC App Build Process
+
+**Location:** Project root
+
 ```bash
-cd ../
+# 1. Prepare build environment  
+npm run build-prep --license=./cli/BGK001-license.lic
 
-# Prepare production build
-npm run build-prep:ds12
+# What this does:
+# - Resets database with clean schema
+# - Extracts organization/customer data from license  
+# - Updates database with license information
+# - Removes license file from build (security)
 
-# Copy license file
-cp cli/output-licenses/HOSP001-license.lic resources/license.lic
+# 2. Build Windows application
+npm run build:ds12
 
-# Build production app
-npm run build:production:ds12
+# 3. Verify build output
+ls dist/
+# Should contain: SMC Setup 1.0.0.exe
 ```
 
-### Phase 4: Delivery Team
+**Build Output (Windows):**
+```
+dist/
+├── SMC Setup 1.0.0.exe     # Windows installer  
+├── win-unpacked/           # Portable application
+│   ├── SMC.exe
+│   ├── resources/
+│   │   ├── app.asar        # Application code
+│   │   └── db/database.db  # Pre-configured database
+└── ...
+```
+
+### Step 4: Packaging for Delivery
+
 ```bash
-# Package for delivery
-# Windows: dist/SMC Setup 1.0.0.exe + license.lic
-# macOS: dist/SMC-1.0.0.dmg (license embedded)
-# Linux: dist/SMC-1.0.0.AppImage + license.lic
+# 1. Create delivery package
+mkdir delivery-BGK001
+cp dist/"SMC Setup 1.0.0.exe" delivery-BGK001/
+cp cli/BGK001-license.lic delivery-BGK001/
+
+# 2. Create instruction file
+cat > delivery-BGK001/INSTALLATION.txt << 'EOF'
+SMC Application Installation - Customer BGK001
+
+STEP 1: Install Application
+- Run "SMC Setup 1.0.0.exe" as Administrator
+- Follow installation wizard
+- Application will install to C:\Program Files\SMC\
+
+STEP 2: License Activation  
+- Copy "BGK001-license.lic" to application folder:
+  C:\Program Files\SMC\resources\BGK001-license.lic
+- Start SMC application
+- License will activate automatically
+
+STEP 3: ESP32 Connection
+- Connect ESP32 device to customer network
+- ESP32 should be accessible at network IP
+- SMC app will automatically validate hardware binding
+
+Support: [your-support-email]
+EOF
+
+# 3. Create ZIP package
+zip -r SMC-BGK001-Production.zip delivery-BGK001/
 ```
 
-## 🔒 License Security Features
+**Final Delivery Package:**
+- `SMC Setup 1.0.0.exe` - Windows installer
+- `BGK001-license.lic` - Customer license file  
+- `INSTALLATION.txt` - Installation instructions
 
-### Hardware Binding
-- **MAC Address**: License bound to specific ESP32 device
-- **Encryption**: AES-256-CBC encryption ด้วย shared secret key
-- **Expiry Date**: Configurable expiry date หรือ permanent license
-- **Organization Data**: ข้อมูลองค์กรและลูกค้าที่เฉพาะเจาะจง
+### Step 5: Customer Site Deployment
 
-### Production Environment
-- **License File Location**: `resources/license.lic` (automatic detection)
-- **Database Integration**: License activation status ใน SQLite
-- **ESP32 Validation**: Real-time MAC address verification
-- **Network Retry**: Manual network management UI
+**Installation Process:**
+
+1. **Install SMC Application:**
+   ```cmd
+   # Run as Administrator on customer Windows machine
+   SMC Setup 1.0.0.exe
+   ```
+
+2. **Deploy License File:**
+   ```cmd
+   # Copy license to application resources
+   copy BGK001-license.lic "C:\Program Files\SMC\resources\license.lic"
+   ```
+
+3. **ESP32 Network Setup:**
+   - Connect ESP32 to customer WiFi network
+   - Verify ESP32 gets IP address (DHCP)
+   - Test connectivity: `ping [ESP32-IP]`
+
+4. **Application Startup:**
+   - Launch SMC Application
+   - Application automatically:
+     - Loads license file
+     - Validates MAC address against ESP32
+     - Activates system if validation passes
+
+## 🔒 HKDF v2.0 Security Features
+
+### License File Structure
+```json
+{
+  "version": "2.0.0",
+  "encrypted_data": "base64_encrypted_license_content",
+  "algorithm": "aes-256-cbc", 
+  "created_at": "2025-08-25T10:30:00.000Z",
+  "kdf_context": {
+    "salt": "deterministic_salt_hash",
+    "info": "SMC_LICENSE_KDF_v1.0|SMC_Cabinet|BGK001|2025-12-31|1.0.0",
+    "algorithm": "hkdf-sha256"
+  }
+}
+```
+
+**Security Enhancements:**
+- **MAC Address Hidden**: Never stored in plain text
+- **Per-License Encryption**: Each license has unique encryption key
+- **Hardware Binding**: Key derivation includes ESP32 MAC address
+- **Self-Contained**: No separate shared key management
+
+### License Validation Process
+
+1. **Application Startup**: SMC app loads `license.lic`
+2. **Key Derivation**: Uses HKDF to generate decryption key from:
+   - Application ID + Customer ID + Expiry Date (from KDF context)
+   - MAC address + WiFi SSID (from ESP32 runtime)
+3. **Decryption**: Decrypt license content using derived key
+4. **Validation**: Verify organization, customer, and expiry date
+5. **Hardware Binding**: Confirm MAC address matches ESP32
+6. **Activation**: Grant system access if all validations pass
 
 ## 🛠 License Management Commands
 
-### License Generation
+### Core CLI Commands
+
 ```bash
-# Standard license
-smc-license generate -o "Hospital" -c "H001" -a "SMC_Pro" -e "2025-12-31" --wifi-ssid "WIFI" --wifi-password "Pass123"
+# Generate new license (requires ESP32 MAC address)
+smc-license generate \
+  --org "Organization Name" \
+  --customer "CUSTOMER_ID" \
+  --app "Application_Name" \
+  --expiry "YYYY-MM-DD" \
+  --wifi-ssid "WiFi_Name" \
+  --wifi-password "WiFi_Password" \
+  --output "customer-license.lic"
 
-# Test mode (no ESP32 required)
-smc-license generate --test-mode --bypass-password-check -o "Test" -c "TEST" -a "Test" -e "2025-12-31" --wifi-ssid "TEST" --wifi-password "test123"
+# Test mode (no ESP32 required - for development)  
+smc-license generate --test-mode \
+  --org "Test Hospital" --customer "TEST001" \
+  --app "TestApp" --expiry "2025-12-31" \
+  --wifi-ssid "TestWiFi" --wifi-password "testpass123" \
+  --output "test-license.lic"
 
-# Permanent license (no expiry)
-smc-license batch --input licenses.csv --no-expiry
+# Validate license file
+smc-license validate --file license.lic
+
+# Show license information (no decryption needed)
+smc-license info --file license.lic
+
+# Update license expiry date (payment control)
+smc-license update-expiry --file license.lic --new-expiry "2026-12-31"
+
+# Batch process multiple customers
+smc-license batch --input customers.csv --update-csv
 ```
 
-### License Validation
+### Registry Management
+
 ```bash
-# Check license file
-smc-license validate -f license.lic
+# Initialize daily registry
+smc-license registry init
 
-# Show license details
-smc-license info -f license.lic
+# Add license to registry
+smc-license registry add --file BGK001-license.lic
 
-# Test ESP32 connection
-smc-license test-esp32 --ip 192.168.4.1
+# Update license status 
+smc-license registry update-expiry --customer BGK001 --new-expiry "2026-12-31"
+
+# Export registry report
+smc-license registry export --format csv --output daily-report.csv
+
+# Show registry statistics
+smc-license registry stats
 ```
 
-### Shared Secret Key Management
-```bash
-# Show encryption key
-smc-license show-key
+### ESP32 Testing
 
-# Export to .env file
-smc-license export-env --output .env
+```bash
+# Test ESP32 connectivity
+smc-license test-esp32 --ip 192.168.1.100
+
+# Get ESP32 MAC address
+curl http://192.168.1.100/mac
+
+# Check ESP32 health  
+curl http://192.168.1.100/health
 ```
 
 ## 📋 Production Deployment Checklist
 
-### Pre-Deployment
-- [ ] ✅ ESP32 device deployed with firmware
-- [ ] ✅ Customer network configuration complete
-- [ ] ✅ License file generated with correct MAC address
-- [ ] ✅ SMC App built with production configuration
-- [ ] ✅ License file copied to `resources/license.lic`
+### Pre-Deployment Validation
+- [ ] ESP32 device deployed and connected to customer network
+- [ ] ESP32 responding to HTTP requests (test /health and /mac endpoints)
+- [ ] Customer license generated with correct MAC address
+- [ ] License validated successfully: `smc-license validate --file license.lic`
+- [ ] SMC App built with production configuration
+- [ ] Database pre-configured with customer organization data
 
-### Deployment
-- [ ] ✅ SMC App installed on customer computer
-- [ ] ✅ License file in correct location
-- [ ] ✅ ESP32 device connected to customer network
-- [ ] ✅ License activation successful (no database errors)
+### Installation Checklist
+- [ ] SMC Application installer runs without errors
+- [ ] License file copied to correct location (`resources/license.lic`)
+- [ ] Application starts successfully
+- [ ] License activation completes (check "System Status" in app)
+- [ ] ESP32 hardware binding validation passes
+- [ ] All medication cabinet functions accessible
 
-### Post-Deployment Validation
-- [ ] ✅ License system shows "OK" status
-- [ ] ✅ ESP32 connection successful
-- [ ] ✅ MAC address validation passes
-- [ ] ✅ License expiry date correct
-- [ ] ✅ All SMC App functions working
+### Post-Installation Verification  
+- [ ] License system shows "ACTIVATED" status
+- [ ] ESP32 connection established (green status indicator)
+- [ ] Hardware MAC address validation successful
+- [ ] License expiry date displayed correctly
+- [ ] Database contains customer organization information
+- [ ] All dispensing functions work as expected
 
 ## 🔧 Troubleshooting
 
 ### License File Issues
-**Problem**: License file not found
+
+**Problem:** License file not found
 ```bash
-# Solution 1: Check file location
-ls -la resources/license.lic
+# Check file location
+ls -la "C:\Program Files\SMC\resources\license.lic"
 
-# Solution 2: Set custom path
-export SMC_LICENSE_FILE_PATH=/path/to/license.lic
+# Alternative: Set custom path via environment
+set SMC_LICENSE_FILE_PATH=C:\path\to\license.lic
 
-# Solution 3: Copy to correct location
-cp license.lic resources/license.lic
+# Verify file permissions (Windows)
+icacls "C:\Program Files\SMC\resources\license.lic"
 ```
 
-**Problem**: License parsing failed
+**Problem:** License parsing failed / Invalid format
 ```bash
-# Check license file format
-smc-license validate -f license.lic
+# Validate license structure
+smc-license validate --file license.lic
 
-# Verify encryption key
-smc-license show-key
+# Check file integrity
+smc-license info --file license.lic
+
+# Common cause: File corruption during transfer
+# Solution: Re-copy license file from original source
+```
+
+**Problem:** License expired
+```bash
+# Check license expiry
+smc-license info --file license.lic
+
+# Generate updated license (same MAC address, new expiry)
+smc-license update-expiry --file license.lic --new-expiry "2026-12-31"
+
+# Emergency: Generate temporary license
+smc-license generate --test-mode --no-expiry [other-options]
 ```
 
 ### ESP32 Connection Issues
-**Problem**: MAC address mismatch
-```bash
-# Test ESP32 connection
-smc-license test-esp32 --ip 192.168.4.1
 
-# Generate new license with correct MAC
-smc-license generate [options] # Use MAC from test output
+**Problem:** ESP32 not responding
+```bash
+# Scan network for ESP32 devices  
+nmap -p 80 192.168.1.0/24
+
+# Test specific IP addresses
+ping 192.168.1.100
+curl http://192.168.1.100/health
+
+# Check ESP32 WiFi connection
+# Verify ESP32 is connected to same network as SMC computer
 ```
 
-**Problem**: Network timeout
+**Problem:** MAC address mismatch  
 ```bash
-# Scan for ESP32 devices
-smc-license test-esp32 --ip 192.168.1.100
-smc-license test-esp32 --ip 10.0.0.1
+# Get current ESP32 MAC address
+curl http://[ESP32-IP]/mac
+# Response: {"mac": "AA:BB:CC:DD:EE:FF"}
 
-# Use network retry dialog in SMC App
+# Generate new license with correct MAC address
+smc-license generate [options] # Use MAC from curl response
+
+# Alternative: Replace ESP32 with same MAC address device
 ```
 
-### Database Issues
-**Problem**: System not activated
+**Problem:** Network timeout / Connection refused
 ```bash
-# Re-run build preparation
-npm run build-prep:ds12
+# Check Windows Firewall
+# Add SMC Application to firewall exceptions
 
-# Check database structure
-sqlite3 resources/db/database.db ".schema"
-
-# Manual activation (if needed)
-sqlite3 resources/db/database.db "UPDATE Settings SET activated_key='CLI_LICENSE_ACTIVATED' WHERE id=1;"
-```
-
-## 🌐 Network Configuration
-
-### WiFi Settings
-- **SSID Format**: `SMC_ESP32_{CUSTOMER_ID}_{DEVICE_ID}`
-- **Password Requirements**: 8+ characters, mixed case, numbers, symbols
-- **ESP32 IP**: Usually 192.168.4.1 (AP mode) หรือ DHCP assigned
-
-### Network Diagnostics
-```bash
 # Test network connectivity
-ping 192.168.4.1
+ping [ESP32-IP]
+telnet [ESP32-IP] 80
 
-# Test HTTP endpoints
-curl http://192.168.4.1/health
-curl http://192.168.4.1/mac
-
-# Scan for devices
-nmap -sn 192.168.1.0/24
+# ESP32 troubleshooting:
+# 1. Power cycle ESP32 device
+# 2. Check WiFi credentials in ESP32 configuration  
+# 3. Verify router DHCP settings
+# 4. Check for IP address conflicts
 ```
 
-## 🔄 License Renewal Process
+### Application Issues
 
-### Standard Renewal
-1. **Generate New License**: ใช้ same MAC address, new expiry date
-2. **Update License File**: Replace existing `license.lic`
-3. **Restart SMC App**: License จะ reload อัตโนมัติ
-
-### Emergency Renewal (Expired License)
+**Problem:** System not activated
 ```bash
-# Generate emergency license
-smc-license generate --no-expiry -o "Customer" -c "ID" -a "App" --wifi-ssid "SSID" --wifi-password "Pass"
+# Check license activation status in SMC App
+# Look for "License Status: ACTIVATED" in System Settings
 
-# Deploy immediately
-cp license.lic resources/license.lic
-# Restart SMC App
+# Manual database check (if needed)
+sqlite3 "C:\Program Files\SMC\resources\db\database.db" \
+  "SELECT * FROM Settings WHERE key='license_status';"
+
+# Re-run license activation
+# Restart SMC Application - it will retry license validation
 ```
 
-## 📊 Monitoring & Maintenance
-
-### License Status Monitoring
+**Problem:** Database connection errors
 ```bash
-# Check license system
-npm run validate:license-system
+# Verify database file exists
+ls -la "C:\Program Files\SMC\resources\db\database.db"
 
-# Production validation
-npx ts-node -e "import('./main/license/validator').then(m => m.validateLicenseForProduction().then(r => console.log('Status:', r)))"
+# Check database schema
+sqlite3 database.db ".schema"
+
+# Reset database (if corrupted)
+npm run build-prep --license=license.lic
 ```
 
-### Logs & Audit Trail
-- **License Validation**: ดูใน SMC App logs
-- **ESP32 Connection**: ดูใน network diagnostics
-- **Database Activity**: ดูใน `Logs` table
+**Problem:** Hardware communication failed
+```bash
+# Check DS12/DS16 device settings
+# Verify correct device type in build configuration
+
+# Test serial port connection (if applicable)
+# Check USB/RS485 connections to medication cabinet
+
+# Review application logs for hardware errors
+# Check SMC App → Logs → System Events
+```
+
+## 🚀 Advanced Deployment Scenarios
+
+### Multiple Customer Deployment
+
+**Batch License Generation:**
+```bash
+# Prepare customer CSV file
+cat > customers.csv << 'EOF'
+organization,customer_id,application_name,expiry_date,wifi_ssid,wifi_password
+"Hospital A","HOSP001","SMC_Cabinet","2025-12-31","SMC_ESP32_HOSP001","Pass123!"
+"Clinic B","CLIN002","SMC_Cabinet","2025-12-31","SMC_ESP32_CLIN002","Secure456!"
+"Medical Center C","MED003","SMC_Cabinet","2026-06-30","SMC_ESP32_MED003","Strong789!"
+EOF
+
+# Generate all licenses
+smc-license batch --input customers.csv --update-csv
+
+# Result: Creates HOSP001-license.lic, CLIN002-license.lic, MED003-license.lic
+```
+
+**Multiple Build Process:**
+```bash
+# Build for each customer
+for license in *.lic; do
+  customer=$(echo $license | cut -d'-' -f1)
+  echo "Building for customer: $customer"
+  
+  npm run build-prep --license=$license
+  npm run build:ds12
+  
+  # Package for delivery
+  mkdir delivery-$customer
+  cp dist/"SMC Setup 1.0.0.exe" delivery-$customer/
+  cp $license delivery-$customer/
+  zip -r SMC-$customer-Production.zip delivery-$customer/
+done
+```
+
+### License Renewal Process
+
+**Standard Renewal (extend expiry):**
+```bash
+# Update existing license with new expiry date
+smc-license update-expiry \
+  --file BGK001-license.lic \
+  --new-expiry "2026-12-31"
+
+# Verify update
+smc-license info --file BGK001-license.lic
+
+# Deploy to customer (replace existing license file)
+# Customer application will automatically reload new license
+```
+
+**Emergency Renewal (expired license):**
+```bash
+# Generate temporary permanent license
+smc-license generate --no-expiry \
+  --org "SMC Medical Center Bangkok" \
+  --customer "BGK001" \
+  --app "SMC_Cabinet" \
+  --wifi-ssid "SMC_ESP32_BGK001" \
+  --wifi-password "SecurePass123!" \
+  --output "BGK001-emergency.lic"
+
+# Deploy immediately to customer
+# Follow up with properly dated license later
+```
+
+### Custom Application Builds
+
+**Customer-Specific Configuration:**
+```bash
+# Create custom environment for customer
+cat > .env.bgk001 << 'EOF'
+SMC_DEVICE_TYPE=DS12
+SMC_CUSTOMER_ID=BGK001
+SMC_HOSPITAL_NAME="SMC Medical Center Bangkok"
+SMC_SUPPORT_EMAIL="support@smc-medical.com"
+SMC_TIMEZONE="Asia/Bangkok"
+EOF
+
+# Build with custom configuration
+cp .env.bgk001 .env
+npm run build-prep --license=BGK001-license.lic
+npm run build:ds12
+```
+
+## 📞 Support & Maintenance
+
+### Production Monitoring
+
+**License Status Monitoring:**
+```bash
+# Check license system health
+smc-license registry stats
+
+# Generate monthly reports
+smc-license registry export --format csv \
+  --start-date "2025-08-01" \
+  --end-date "2025-08-31" \
+  --output "august-2025-report.csv"
+```
+
+**Customer Support:**
+```bash
+# Diagnose customer license issues
+smc-license validate --file customer-license.lic --verbose
+
+# Check ESP32 connectivity from remote
+curl http://[customer-esp32-ip]/health
+
+# Generate diagnostic report
+smc-license generate-report --customer BGK001
+```
 
 ### Backup & Recovery
-```bash
-# Backup license and database
-cp resources/license.lic license-backup.lic
-cp resources/db/database.db database-backup.db
 
-# Recovery
-cp license-backup.lic resources/license.lic
-npm run build-prep:ds12
+**License Backup:**
+```bash
+# Backup all customer licenses
+mkdir license-backup-$(date +%Y%m%d)
+cp *.lic license-backup-$(date +%Y%m%d)/
+tar -czf license-backup-$(date +%Y%m%d).tar.gz license-backup-$(date +%Y%m%d)/
 ```
 
-## 📞 Support Contacts
+**Database Recovery:**
+```bash
+# If customer database corrupted, rebuild from license
+npm run build-prep --license=customer-license.lic
 
-### Technical Issues
-1. **License Generation**: Check CLI documentation (`cli/README.md`)
-2. **ESP32 Hardware**: Check ESP32 deployment guide
-3. **SMC App Issues**: Check system architecture docs
-4. **Build Problems**: Check production build guide
+# This recreates database with correct customer data
+```
 
-### Emergency Support
-- **License Expired**: Use `--no-expiry` flag for temporary fix
-- **Hardware Failure**: Generate new license with replacement MAC
-- **Network Issues**: Use network retry dialog in SMC App
-- **Database Corruption**: Re-run `npm run build-prep:ds12`
+---
+
+**Production Status:** HKDF v2.0 System Ready ✅  
+**Last Updated:** August 2025  
+**Compatible With:** SMC Application v2.0.0+  
+**License System:** HKDF v2.0 (Enhanced Security)
