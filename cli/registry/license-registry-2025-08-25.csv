@@ -1,0 +1,2 @@
+timestamp,customer_id,organization,application_name,expiry_date,license_status,license_file,mac_address,wifi_ssid,created_at,updated_at,notes
+2025-08-25T04:59:29.591Z,TEST001,Test Corp,TestApp,ENCRYPTED,generated,test-license_test.lic,ENCRYPTED,ENCRYPTED,2025-08-25T04:44:57.725Z,2025-08-25T04:59:29.591Z,Test license for development

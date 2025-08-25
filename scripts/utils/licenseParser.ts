@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * SMC License Parser - ถอดรหัส license.lic files
+ * SMC License Parser - Enhanced HKDF Support
  * 
  * ใช้สำหรับ:
  * - Enhanced build-prep script
@@ -9,9 +9,11 @@
  * - License validation ใน production
  * 
  * Features:
+ * - HKDF v2.0 support (RFC 5869)
+ * - Legacy v1.0 backward compatibility  
  * - AES-256-CBC decryption
- * - License data extraction
- * - Error handling และ validation
+ * - Dynamic key generation
+ * - Enhanced error handling และ validation
  */
 
 import * as fs from 'fs';
@@ -42,13 +44,53 @@ export interface LicenseData {
 export type LicenseFormat = 'cli-json' | 'raw' | 'unknown';
 
 /**
- * CLI JSON license structure จาก SMC License CLI
+ * CLI JSON license structure จาก SMC License CLI (Dynamic Key v1.0)
  */
 export interface CLILicenseWrapper {
   version: string;
   encrypted_data: string;
   algorithm: string;
   created_at: string;
+  
+  // Legacy v1.0: Dynamic key metadata (security vulnerability - MAC exposed)
+  key_metadata?: {
+    applicationId: string;
+    customerId: string;
+    wifiSsid: string;
+    macAddress: string;
+  };
+  
+  // HKDF v2.0: Secure key derivation context (no sensitive data)
+  kdf_context?: {
+    salt: string;      // Deterministic salt (Base64)
+    info: string;      // Context info for HKDF (non-sensitive)
+    algorithm: string; // 'hkdf-sha256'
+  };
+}
+
+/**
+ * HKDF Context สำหรับ key derivation
+ */
+export interface HKDFContext {
+  salt: string;      // Base64 encoded deterministic salt
+  info: string;      // Context information string
+  algorithm: string; // HKDF algorithm (hkdf-sha256)
+}
+
+/**
+ * License data structure สำหรับ HKDF v2.0
+ */
+export interface HKDFLicenseData {
+  organization: string;
+  customerId: string;
+  applicationId: string;
+  generatedAt: string;
+  expiryDate: string;
+  macAddress: string;
+  wifiSsid: string;
+  wifiPassword: string;
+  version: string;
+  checksum: string;
 }
 
 /**
@@ -95,9 +137,157 @@ export class LicenseParser {
   }
 
   /**
-   * อ่านและถอดรหัส license file
+   * HKDF Key Derivation (RFC 5869 implementation)
    */
-  public async parseLicenseFile(filePath: string): Promise<LicenseData> {
+  private deriveHKDFKey(ikm: Buffer, salt: string, info: string, length: number = 32): Buffer {
+    // HKDF-Extract: HMAC-SHA256(salt, ikm)
+    const prk = crypto.createHmac('sha256', Buffer.from(salt, 'base64')).update(ikm).digest();
+    
+    // HKDF-Expand: HMAC-SHA256(prk, info + counter)
+    const iterations = Math.ceil(length / 32); // SHA256 produces 32 bytes
+    const chunks: Buffer[] = [];
+    
+    for (let i = 1; i <= iterations; i++) {
+      const hmac = crypto.createHmac('sha256', prk);
+      hmac.update(info);
+      hmac.update(Buffer.from([i]));
+      const chunk = hmac.digest();
+      chunks.push(chunk);
+    }
+    
+    // Concatenate all chunks and take only needed length
+    const okm = Buffer.concat(chunks);
+    return okm.slice(0, length);
+  }
+
+  /**
+   * Parse HKDF v2.0 license
+   */
+  private parseHKDFLicense(licenseWrapper: CLILicenseWrapper, sensitiveData: {
+    macAddress: string;
+    wifiSsid: string;
+  }): HKDFLicenseData {
+    if (!licenseWrapper.kdf_context) {
+      throw new LicenseParserError('Missing KDF context for HKDF v2.0 license', 'MISSING_KDF_CONTEXT');
+    }
+    
+    const { salt, info, algorithm } = licenseWrapper.kdf_context;
+    
+    if (algorithm !== 'hkdf-sha256') {
+      throw new LicenseParserError(`Unsupported KDF algorithm: ${algorithm}`, 'UNSUPPORTED_KDF');
+    }
+    
+    // สร้าง IKM (Input Keying Material) จาก sensitive data (ต้องตรงกับ CLI)
+    // CLI pattern: applicationId_customerId_wifiSsid_macAddress_expiryDate
+    // เราต้องหาวิธี extract components จาก info context
+    const infoComponents = info.split('|');
+    if (infoComponents.length < 4) {
+      throw new LicenseParserError('Invalid KDF info format', 'INVALID_KDF_INFO');
+    }
+    
+    const applicationId = infoComponents[1]; 
+    const customerId = infoComponents[2];
+    const expiryDate = infoComponents[3];
+    
+    // Match CLI IKM pattern exactly
+    const ikm_parts = [
+      applicationId,
+      customerId,
+      sensitiveData.wifiSsid,
+      sensitiveData.macAddress,
+      expiryDate
+    ];
+    
+    const ikmString = ikm_parts.join('_');
+    const ikm = Buffer.from(ikmString, 'utf8');
+    
+    // Derive key using HKDF
+    const derivedKey = this.deriveHKDFKey(ikm, salt, info, 32);
+    
+    if (this.verbose) {
+      console.log('info: HKDF key derivation successful');
+      console.log(`info: Key preview: ${derivedKey.toString('hex').substring(0, 8)}...`);
+    }
+    
+    // Decrypt license data
+    return this.decryptHKDFLicenseData(licenseWrapper.encrypted_data, derivedKey);
+  }
+
+  /**
+   * Decrypt HKDF license data
+   */
+  private decryptHKDFLicenseData(encryptedData: string, key: Buffer): HKDFLicenseData {
+    try {
+      // CLI format: Base64 → UTF8 → split by ':' → IV:encryptedHex
+      const hexData = Buffer.from(encryptedData, 'base64').toString('utf8');
+      
+      // แยก IV กับ encrypted data (format: "ivHex:encryptedHex")
+      const parts = hexData.split(':');
+      if (parts.length !== 2) {
+        throw new Error('Invalid encrypted data format - expected IV:encryptedData');
+      }
+      
+      const iv = Buffer.from(parts[0], 'hex');
+      const encryptedHex = parts[1];
+      
+      if (this.verbose) {
+        console.log(`info: IV length: ${iv.length} bytes`);
+        console.log(`info: Encrypted data length: ${encryptedHex.length} characters`);
+      }
+      
+      // Decrypt using AES-256-CBC (CLI pattern: hex input, utf8 output)
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      
+      // Parse JSON
+      const licenseData = JSON.parse(decrypted) as HKDFLicenseData;
+      
+      if (this.verbose) {
+        console.log('info: HKDF license data decrypted successfully');
+        console.log(`info: Organization: ${licenseData.organization}`);
+        console.log(`info: Customer: ${licenseData.customerId}`);
+        console.log(`info: Expiry: ${licenseData.expiryDate}`);
+      }
+      
+      return licenseData;
+      
+    } catch (error: any) {
+      throw new LicenseParserError(
+        `HKDF decryption failed: ${error.message}`,
+        'HKDF_DECRYPT_ERROR'
+      );
+    }
+  }
+
+  /**
+   * Convert HKDF license data to legacy format
+   */
+  private convertHKDFToLegacy(hkdfData: HKDFLicenseData): LicenseData {
+    return {
+      organization: hkdfData.organization,
+      customer: hkdfData.customerId,
+      application_name: hkdfData.applicationId,
+      expiry_date: hkdfData.expiryDate,
+      hardware_binding: {
+        mac_address: hkdfData.macAddress
+      },
+      network: {
+        wifi_ssid: hkdfData.wifiSsid,
+        wifi_password: hkdfData.wifiPassword
+      },
+      issued_date: hkdfData.generatedAt,
+      no_expiry: hkdfData.expiryDate === '2099-12-31'
+    };
+  }
+
+  /**
+   * Enhanced license file parser with HKDF v2.0 support
+   */
+  public async parseLicenseFile(filePath: string, sensitiveData?: {
+    macAddress: string;
+    wifiSsid: string;
+  }): Promise<LicenseData> {
     try {
       if (this.verbose) {
         console.log(`info: Reading license file: ${filePath}`);
@@ -118,19 +308,95 @@ export class LicenseParser {
         console.log('info: License file loaded, detecting format...');
       }
 
-      // Detect license format และแปลงเป็น standard format
+      // Detect license format และ version
       const licenseFormat = this.detectLicenseFormat(fileContent);
-      const encryptedContent = this.normalizeEncryptedContent(fileContent, licenseFormat);
       
-      if (this.verbose) {
-        console.log(`info: License format detected: ${licenseFormat}`);
-        console.log('info: Attempting decryption...');
+      if (licenseFormat === 'cli-json') {
+        try {
+          const cliWrapper = JSON.parse(fileContent) as CLILicenseWrapper;
+          
+          // ตรวจสอบ HKDF v2.0 format
+          if (cliWrapper.kdf_context) {
+            if (this.verbose) {
+              console.log('info: HKDF v2.0 license detected');
+              console.log(`info: Version: ${cliWrapper.version}`);
+              console.log(`info: KDF Algorithm: ${cliWrapper.kdf_context.algorithm}`);
+            }
+            
+            // ต้องมี sensitive data สำหรับ HKDF
+            if (!sensitiveData) {
+              throw new LicenseParserError(
+                'HKDF v2.0 license requires MAC address and WiFi SSID for key derivation',
+                'MISSING_SENSITIVE_DATA'
+              );
+            }
+            
+            // Parse HKDF license
+            const hkdfData = this.parseHKDFLicense(cliWrapper, sensitiveData);
+            const licenseData = this.convertHKDFToLegacy(hkdfData);
+            
+            if (this.verbose) {
+              console.log('info: HKDF v2.0 license parsed successfully');
+              console.log(`info: Organization: ${licenseData.organization}`);
+              console.log(`info: Customer: ${licenseData.customer}`);
+              console.log(`info: Expiry: ${licenseData.expiry_date}`);
+            }
+            
+            return licenseData;
+          }
+          
+          // Legacy v1.0 with key_metadata
+          else if (cliWrapper.key_metadata) {
+            if (this.verbose) {
+              console.log('info: Legacy v1.0 license with dynamic key detected');
+              console.log(`info: Application: ${cliWrapper.key_metadata.applicationId}`);
+              console.log(`info: Customer: ${cliWrapper.key_metadata.customerId}`);
+            }
+            
+            // Use legacy dynamic key approach
+            const encryptedContent = this.normalizeEncryptedContent(fileContent, licenseFormat);
+            const decryptedData = this.decryptLicense(encryptedContent, cliWrapper.key_metadata);
+            const licenseData = this.validateLicenseData(decryptedData);
+            
+            if (this.verbose) {
+              console.log('info: Legacy dynamic key license parsed successfully');
+            }
+            
+            return licenseData;
+          }
+          
+          // Unknown CLI format
+          else {
+            if (this.verbose) {
+              console.log('info: Unknown CLI JSON format - attempting legacy parsing');
+            }
+            
+            // Fallback to legacy approach
+            const encryptedContent = this.normalizeEncryptedContent(fileContent, licenseFormat);
+            const decryptedData = this.decryptLicense(encryptedContent);
+            return this.validateLicenseData(decryptedData);
+          }
+          
+        } catch (error: any) {
+          if (error instanceof LicenseParserError) {
+            throw error;
+          }
+          
+          // JSON parsing error - fallback to legacy
+          if (this.verbose) {
+            console.log(`info: JSON parsing failed: ${error.message} - trying legacy approach`);
+          }
+        }
       }
-
-      // ถอดรหัส license content
-      const decryptedData = this.decryptLicense(encryptedContent);
       
-      // Parse JSON และ validate structure
+      // Legacy raw format or fallback
+      if (this.verbose) {
+        console.log('info: Using legacy license format');
+        console.log('info: Attempting decryption with shared secret key...');
+      }
+      
+      const encryptedContent = this.normalizeEncryptedContent(fileContent, licenseFormat);
+      const decryptedData = this.decryptLicense(encryptedContent);
       const licenseData = this.validateLicenseData(decryptedData);
       
       if (this.verbose) {
@@ -250,9 +516,39 @@ export class LicenseParser {
   }
 
   /**
-   * ถอดรหัส AES-256-CBC encrypted license content
+   * สร้าง Dynamic Key จาก key metadata
    */
-  private decryptLicense(encryptedContent: string): string {
+  private generateDynamicKey(keyMetadata: {
+    applicationId: string;
+    customerId: string;
+    wifiSsid: string;
+    macAddress: string;
+  }): string {
+    const keyComponents = `${keyMetadata.applicationId}_${keyMetadata.customerId}_${keyMetadata.wifiSsid}_${keyMetadata.macAddress}`;
+    
+    if (this.verbose) {
+      console.log(`info: Generating dynamic key from components`);
+      console.log(`info: Key components: ${keyComponents.substring(0, 50)}...`);
+    }
+    
+    const dynamicKey = crypto.createHash('sha256').update(keyComponents).digest('hex').slice(0, 32);
+    
+    if (this.verbose) {
+      console.log(`info: Dynamic key generated: ${dynamicKey.substring(0, 8)}...`);
+    }
+    
+    return dynamicKey;
+  }
+
+  /**
+   * ถอดรหัส AES-256-CBC encrypted license content (รองรับ Dynamic Key)
+   */
+  private decryptLicense(encryptedContent: string, keyMetadata?: {
+    applicationId: string;
+    customerId: string;
+    wifiSsid: string;
+    macAddress: string;
+  }): string {
     try {
       // Parse encrypted data format: iv:encryptedData
       const parts = encryptedContent.trim().split(':');
@@ -269,13 +565,30 @@ export class LicenseParser {
         console.log(`info: Secret key length: ${this.secretKey.length}`);
       }
 
-      // Try multiple key derivation methods
-      const keyVariants = [
+      // Try multiple key derivation methods (Dynamic Key + Legacy)
+      const keyVariants: string[] = [];
+      
+      // ถ้ามี key metadata ใช้ Dynamic Key
+      if (keyMetadata) {
+        const dynamicKey = this.generateDynamicKey(keyMetadata);
+        keyVariants.push(dynamicKey);
+        
+        if (this.verbose) {
+          console.log('info: Using Dynamic Key approach (new format)');
+        }
+      }
+      
+      // Legacy shared key variants (สำหรับ backward compatibility)
+      keyVariants.push(
         this.secretKey.slice(0, 32),                           // First 32 chars
         this.secretKey.substring(0, 32),                       // Alternative slice
-        Buffer.from(this.secretKey, 'utf8').slice(0, 32),     // UTF8 buffer slice
-        crypto.createHash('sha256').update(this.secretKey).digest('hex').slice(0, 32), // SHA256 hash
-      ];
+        Buffer.from(this.secretKey, 'utf8').slice(0, 32).toString(),     // UTF8 buffer slice
+        crypto.createHash('sha256').update(this.secretKey).digest('hex').slice(0, 32) // SHA256 hash
+      );
+      
+      if (this.verbose && !keyMetadata) {
+        console.log('info: Using Legacy Shared Key approach (old format)');
+      }
 
       for (let i = 0; i < keyVariants.length; i++) {
         try {

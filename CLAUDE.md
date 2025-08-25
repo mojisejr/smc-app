@@ -310,13 +310,12 @@ ds : หมายถึง hardware ที่เชื่อมต่อกั�
 cli : หมายถึง key-gen cli
 esp32-dev-tool : หมายถึง standalone Next.js tool สำหรับ deploy firmware ลง ESP32 พร้อม customer configuration (รวม template management แล้ว)
 
-\*\* Visual Development (ถ้าคุณอยากเห็นหน้าตาของสิ่งที่ทำ หรือ UI)
+\*\* Current Focus (./docs/current-focus.md)
+file นี้เอาไว้ track ประเด็นสำคัญที่คุณกับผมกำลังทำกันอยู่ หรือวางแผนอะไรกันไว้ เราจะมาทบทวนกันในนี้
 
-- ถ้าคุณต้องทำการกับ UI ต่างๆ ให้คุณใช้ playwright MCP ทุกครั้งเมื่อสามารถใช้ได้
-- ถ้าคุณอยากไปที่หน้าที่กำลังทำงานอยู่จะใช้ `mcp__playwright__browser_navigate` เพื่อไปดูได้
-- คุณจะใช้มันตรวจสอบการทำงานหรือทำ end to end test เสมอถ้าจำเป็น
-- คุณจะ takescreen short ของ screen เมื่อคุณต้องการที่จะวิเคราะห์สิ่งที่เกิดขึ้นได้
-- คุณสามารถเชค error message ด้วย `mcp__playwright__browser_console_messages`
+- คุณจะคอย update current-focus ทุกๆ 30 - 1 ชั่วโมง (ถ้าคุณพบว่า task น่าจะยาวมาก ให้ update ทุกๆ 30 นาที แต่ถ้าอาจจะเสร็จก่อน หรือไม่ยาวมากให้ update ทุกๆ ชั่วโมง) เพื่อ keep focus on what we are currently doing.
+- คุณจะ optimize สิ่งที่ไม่เกี่ยวกับ current-focus ของเราออกทั้งหมดเพื่อให้ file concise และ ไม่กิน tokens
+- ถ้าผมบอกให้ update current-focus คุณจะ update ให้ concise เหมือนที่คุณทำอัตโนมัติด้วย
 
 **When Working with Hardware Controllers** (Production Pattern):
 
@@ -360,17 +359,20 @@ const MyComponent = () => (
 
 ```typescript
 // CLI batch processing pattern
-import { processBatchLicenses, BatchOptions } from '@/modules/batch-license-generator';
-import { CSVProcessor } from '@/modules/csv-parser';
+import {
+  processBatchLicenses,
+  BatchOptions,
+} from "@/modules/batch-license-generator";
+import { CSVProcessor } from "@/modules/csv-parser";
 
 // Process CSV from ESP32 Deployment Tool
 const batchOptions: BatchOptions = {
-  inputCSV: 'esp32-deployments-2025-08-22.csv',
-  outputDir: './licenses/',
+  inputCSV: "esp32-deployments-2025-08-22.csv",
+  outputDir: "./licenses/",
   updateCSV: true,
   skipExisting: true,
-  expiryYears: 2,  // Override CSV expiry
-  verbose: true
+  expiryYears: 2, // Override CSV expiry
+  verbose: true,
 };
 
 const result = await processBatchLicenses(batchOptions);
@@ -382,23 +384,25 @@ console.log(`Processed: ${result.processed}, Failed: ${result.failed}`);
 ```typescript
 // ESP32 Deployment Tool - No Expiry Pattern
 const handleNoExpiryChange = (checked: boolean) => {
-  setFormData(prev => ({
+  setFormData((prev) => ({
     ...prev,
     noExpiry: checked,
-    expiryDate: checked ? '' : calculateDefaultExpiry()
+    expiryDate: checked ? "" : calculateDefaultExpiry(),
   }));
 };
 
 // CLI Parser - No Expiry Detection
-if (!obj.expiryDate || obj.expiryDate.trim() === '') {
-  expiryDate = '2099-12-31';  // Far future for permanent
+if (!obj.expiryDate || obj.expiryDate.trim() === "") {
+  expiryDate = "2099-12-31"; // Far future for permanent
   noExpiry = true;
 } else {
   expiryDate = obj.expiryDate;
 }
 
 // Display Logic - Show permanent status
-console.log(`Expiry: ${record.noExpiry ? 'No expiry (permanent)' : record.expiryDate}`);
+console.log(
+  `Expiry: ${record.noExpiry ? "No expiry (permanent)" : record.expiryDate}`
+);
 ```
 
 **When Working with Responsive Grid**:
@@ -463,11 +467,11 @@ import Indicator from '@/components/Indicators/baseIndicator';
 
 ```typescript
 // License activation interface pattern (activate-key.tsx)
-import { useESP32License } from '@/hooks/useESP32License';
+import { useESP32License } from "@/hooks/useESP32License";
 
 const ESP32LicenseActivation = () => {
   const { activateLicense, loading, error } = useESP32License();
-  
+
   const handleActivation = async (licenseFile: File) => {
     try {
       await activateLicense(licenseFile);
@@ -481,33 +485,38 @@ const ESP32LicenseActivation = () => {
 };
 
 // Development mode bypass pattern
-if (process.env.NODE_ENV === 'development') {
-  console.log('[ESP32] Development mode: Using mock MAC address validation');
+if (process.env.NODE_ENV === "development") {
+  console.log("[ESP32] Development mode: Using mock MAC address validation");
   return mockActivationSuccess();
 }
 
 // Production mode with real ESP32 communication (Enhanced August 2025)
 const macAddress = await esp32Client.getMACAddress();
 if (macAddress !== licenseData.hardware_binding.mac_address) {
-  throw new Error('Hardware binding validation failed');
+  throw new Error("Hardware binding validation failed");
 }
 
 // ESP32 API Parsing with Backward Compatibility (August 2025 Update)
 const parseESP32Response = (responseData: any) => {
   // Support both legacy and current ESP32 API formats
   const macFromResponse = responseData.mac_address || responseData.mac;
-  
+
   if (!macFromResponse) {
-    console.error('debug: ESP32 Response:', JSON.stringify(responseData, null, 2));
-    throw new Error('ESP32 response missing MAC address (checked both mac and mac_address fields)');
+    console.error(
+      "debug: ESP32 Response:",
+      JSON.stringify(responseData, null, 2)
+    );
+    throw new Error(
+      "ESP32 response missing MAC address (checked both mac and mac_address fields)"
+    );
   }
 
   return macFromResponse.toUpperCase();
 };
 
 // macOS WiFi Connection Strategy (Manual User-Guided)
-if (process.platform === 'darwin') {
-  console.log('📶 Manual WiFi connection required for macOS');
+if (process.platform === "darwin") {
+  console.log("📶 Manual WiFi connection required for macOS");
   // Show instructions to user for manual ESP32 network connection
   // Enhanced retry mechanism: 3 attempts with extended 7-second timeout
 }
@@ -549,6 +558,7 @@ if (process.platform === 'darwin') {
 ### Essential Commands
 
 #### Individual License Generation
+
 ```bash
 # Generate license with WiFi credentials
 smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" \
@@ -563,6 +573,7 @@ smc-license info -f license.lic
 ```
 
 #### 🆕 CSV Batch Processing (Phase 4.5)
+
 ```bash
 # Process CSV from ESP32 Deployment Tool
 smc-license batch --input esp32-deployments-2025-08-22.csv --update-csv
@@ -623,14 +634,15 @@ esp32-deployment-tool/
 ### 🆕 No Expiry License Workflow
 
 #### UI Pattern - Checkbox with Conditional Input
+
 ```typescript
 // CustomerForm.tsx implementation pattern
 const [formData, setFormData] = useState<CustomerInfo>({
-  organization: '',
-  customerId: '',
-  applicationName: '',
+  organization: "",
+  customerId: "",
+  applicationName: "",
   expiryDate: calculateDefaultExpiry(),
-  noExpiry: false  // New checkbox state
+  noExpiry: false, // New checkbox state
 });
 
 // Checkbox UI with conditional date input
@@ -638,26 +650,33 @@ const [formData, setFormData] = useState<CustomerInfo>({
   <input
     type="checkbox"
     checked={formData.noExpiry}
-    onChange={(e) => setFormData(prev => ({
-      ...prev,
-      noExpiry: e.target.checked,
-      expiryDate: e.target.checked ? '' : calculateDefaultExpiry()
-    }))}
+    onChange={(e) =>
+      setFormData((prev) => ({
+        ...prev,
+        noExpiry: e.target.checked,
+        expiryDate: e.target.checked ? "" : calculateDefaultExpiry(),
+      }))
+    }
   />
   <span>ไม่มีวันหมดอายุ (Permanent License)</span>
-</label>
+</label>;
 
-{!formData.noExpiry && (
-  <input
-    type="date"
-    value={formData.expiryDate}
-    onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
-    min={new Date().toISOString().split('T')[0]}
-  />
-)}
+{
+  !formData.noExpiry && (
+    <input
+      type="date"
+      value={formData.expiryDate}
+      onChange={(e) =>
+        setFormData((prev) => ({ ...prev, expiryDate: e.target.value }))
+      }
+      min={new Date().toISOString().split("T")[0]}
+    />
+  );
+}
 ```
 
 #### Data Flow Pattern
+
 ```
 UI Checkbox Checked → expiryDate: "" (empty) → CSV Export → CLI Parser → 2099-12-31 + noExpiry flag → Display: "No expiry (permanent)"
 ```
@@ -685,11 +704,12 @@ UI Checkbox Checked → expiryDate: "" (empty) → CSV Export → CLI Parser →
 ## Current Focus & Implementation Status
 
 > **📖 Latest Implementation Details**: Always check `/docs/current-focus.md` for:
+>
 > - ✅ Recently completed features and fixes
-> - 🔄 Current development focus and priorities  
+> - 🔄 Current development focus and priorities
 > - 🧪 Testing results and validation status
 > - 📋 Next implementation phases and planning
-> 
+>
 > This document is updated after each major implementation milestone and contains the most current technical status, testing results, and development priorities.
 
 \*\*Complete Sales → Developer → Delivery Workflow (Phase 4.5 + ESP32 Keygen System)

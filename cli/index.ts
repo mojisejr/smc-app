@@ -32,6 +32,7 @@ import {
   BatchOptions
 } from "./modules/batch-license-generator";
 import { validateCSVFormat } from "./modules/csv-parser";
+import { LicenseRegistry } from "./modules/license-registry";
 import fs from "fs/promises";
 
 const program = new Command();
@@ -1015,6 +1016,121 @@ program.on("command:*", () => {
   console.log(chalk.gray("See --help for a list of available commands."));
   process.exit(1);
 });
+
+// Registry command - จัดการ license registry system
+program
+  .command("registry")
+  .description("Manage license registry system for tracking and updates")
+  .option("--init", "Initialize new registry for today")
+  .option("--add <license-file>", "Add license to registry")
+  .option("--update-expiry <customer-id> <new-date>", "Update expiry date in registry")
+  .option("--export [date]", "Export registry for specific date (YYYY-MM-DD)")
+  .option("--stats [date]", "Show registry statistics")
+  .option("--dir <directory>", "Registry directory", "./registry")
+  .option("--customer-id <id>", "Customer ID for add operation")
+  .option("--organization <name>", "Organization name for add operation")
+  .option("--application <name>", "Application name for add operation")
+  .option("--mac-address <mac>", "MAC address for add operation")
+  .option("--wifi-ssid <ssid>", "WiFi SSID for add operation")
+  .option("--notes <notes>", "Additional notes")
+  .option("--verbose", "Show detailed output")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ smc-license registry --init
+  $ smc-license registry --add license.lic --customer-id BGK001 --organization "Bangkok Hospital"
+  $ smc-license registry --update-expiry BGK001 2026-12-31 --notes "Payment received"
+  $ smc-license registry --stats
+  $ smc-license registry --export 2025-08-25
+`
+  )
+  .action(async (options) => {
+    try {
+      const registry = new LicenseRegistry({
+        registryDir: options.dir,
+        verbose: options.verbose
+      });
+
+      if (options.init) {
+        console.log(chalk.blue("🏁 Initializing license registry..."));
+        await registry.ensureRegistryDir();
+        await registry.readOrCreateRegistry(); // Creates file if doesn't exist
+        console.log(chalk.green("✅ Registry initialized successfully"));
+        console.log(chalk.gray(`   Directory: ${options.dir}`));
+        console.log(chalk.gray(`   File: ${registry.getRegistryFileName()}`));
+        return;
+      }
+
+      if (options.add) {
+        console.log(chalk.blue("📝 Adding license to registry..."));
+        
+        if (!options.customerId || !options.organization) {
+          console.log(chalk.red("❌ --customer-id and --organization are required for add operation"));
+          process.exit(1);
+        }
+
+        await registry.addLicenseEntry(options.add, {
+          customerData: {
+            customer_id: options.customerId,
+            organization: options.organization,
+            application_name: options.application || 'SMC_APP',
+            mac_address: options.macAddress || 'ENCRYPTED',
+            wifi_ssid: options.wifiSsid || 'ENCRYPTED'
+          },
+          notes: options.notes
+        });
+
+        console.log(chalk.green("✅ License added to registry"));
+        await registry.displayRegistrySummary();
+        return;
+      }
+
+      if (options.updateExpiry) {
+        const [customerId, newDate] = options.updateExpiry;
+        console.log(chalk.blue(`🔄 Updating expiry for ${customerId} to ${newDate}...`));
+        
+        await registry.updateExpiryInRegistry(customerId, newDate, options.notes);
+        console.log(chalk.green("✅ Expiry updated in registry"));
+        await registry.displayRegistrySummary();
+        return;
+      }
+
+      if (options.export !== undefined) {
+        const targetDate = options.export && options.export !== true ? new Date(options.export) : undefined;
+        console.log(chalk.blue("📤 Exporting registry..."));
+        
+        const stats = await registry.getRegistryStats(targetDate);
+        const fileName = registry.getRegistryFileName(targetDate);
+        
+        console.log(chalk.green(`✅ Registry exported: ${fileName}`));
+        console.log(chalk.white(`   Total entries: ${stats.total}`));
+        console.log(chalk.white(`   File location: ${registry.getRegistryFilePath(targetDate)}`));
+        return;
+      }
+
+      if (options.stats !== undefined) {
+        const targetDate = options.stats && options.stats !== true ? new Date(options.stats) : undefined;
+        await registry.displayRegistrySummary(targetDate);
+        return;
+      }
+
+      // Default: show today's registry stats
+      await registry.displayRegistrySummary();
+
+    } catch (error: any) {
+      console.log(chalk.red("\n❌ Registry operation failed"));
+      console.log(chalk.red(`Error: ${error.message}`));
+
+      console.log(chalk.yellow("\n🔧 Troubleshooting:"));
+      console.log(chalk.gray("1. Ensure registry directory exists and is writable"));
+      console.log(chalk.gray("2. Check license file path and permissions"));
+      console.log(chalk.gray("3. Verify date format: YYYY-MM-DD"));
+      console.log(chalk.gray("4. Use --verbose for detailed output"));
+
+      process.exit(1);
+    }
+  });
 
 // Parse command line arguments
 program.parse();
