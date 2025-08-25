@@ -103,20 +103,23 @@ export async function generateLicenseFile(options: GenerateOptions): Promise<str
     const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     console.log(chalk.white(`Days Until Expiry: ${daysUntilExpiry} days`));
     
-    // Step 7: แสดง Shared Key Information สำหรับ Application Setup
-    console.log(chalk.blue('\n🔑 Application Setup Information:'));
+    // Step 7: แสดง Self-Contained License Information
+    console.log(chalk.blue('\n🎆 Self-Contained License Information:'));
     console.log(chalk.gray('====================================='));
-    console.log(chalk.white('Add this to your application .env file:'));
-    console.log(chalk.green(`SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS`));
+    console.log(chalk.white('This license uses Dynamic Shared Key technology:'));
+    console.log(chalk.green(`• No separate shared key management required`));
+    console.log(chalk.green(`• License is self-contained and secure`));
+    console.log(chalk.green(`• Unique encryption key per license`));
     
-    console.log(chalk.white('\n📝 Quick Commands:'));
-    console.log(chalk.cyan(`echo "SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS" >> .env`));
-    console.log(chalk.gray(`# Copy license file: cp ${path.basename(outputPath)} /path/to/your/app/`));
+    console.log(chalk.white('\n📝 Deployment Instructions:'));
+    console.log(chalk.cyan(`# Simply copy the license file to your application:`));
+    console.log(chalk.gray(`cp ${path.basename(outputPath)} /path/to/your/app/`));
+    console.log(chalk.cyan(`# No .env file setup required!`));
     
     console.log(chalk.yellow('\n⚠️  Security Notes:'));
-    console.log(chalk.gray('• Keep the SHARED_SECRET_KEY confidential'));
-    console.log(chalk.gray('• Never commit .env files to version control'));
-    console.log(chalk.gray('• Both license.lic and .env are required for activation'));
+    console.log(chalk.gray('• Each license has a unique encryption key'));
+    console.log(chalk.gray('• Key is derived from license data automatically'));
+    console.log(chalk.gray('• Only license.lic file is required for activation'));
     
     console.log(chalk.green('\n🎉 License generation completed successfully!'));
     
@@ -192,19 +195,23 @@ export async function generateSampleLicenseFile(
     console.log(chalk.green(`✅ Sample license file saved: ${outputPath}`));
     console.log(chalk.yellow(`⚠️  This license uses mock MAC address: ${mockMacAddress}`));
     
-    // แสดง Shared Key Information สำหรับ Application Setup
-    console.log(chalk.blue('\n🔑 Application Setup Information:'));
+    // แสดง Self-Contained License Information
+    console.log(chalk.blue('\n🎆 Self-Contained Test License Information:'));
     console.log(chalk.gray('====================================='));
-    console.log(chalk.white('Add this to your application .env file:'));
-    console.log(chalk.green(`SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS`));
+    console.log(chalk.white('This test license uses Dynamic Shared Key technology:'));
+    console.log(chalk.green(`• No separate shared key management required`));
+    console.log(chalk.green(`• License is self-contained and secure`));
+    console.log(chalk.green(`• Unique encryption key per license`));
     
-    console.log(chalk.white('\n📝 Quick Commands:'));
-    console.log(chalk.cyan(`echo "SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS" >> .env`));
-    console.log(chalk.gray(`# Copy test license: cp ${path.basename(outputPath)} /path/to/your/app/license.lic`));
+    console.log(chalk.white('\n📝 Test Deployment Instructions:'));
+    console.log(chalk.cyan(`# Simply copy the test license file:`));
+    console.log(chalk.gray(`cp ${path.basename(outputPath)} /path/to/your/app/license.lic`));
+    console.log(chalk.cyan(`# No .env file setup required!`));
     
     console.log(chalk.yellow('\n⚠️  Test Mode Reminder:'));
     console.log(chalk.gray('• This uses mock MAC address for testing'));
     console.log(chalk.gray('• Use without --test-mode for production'));
+    console.log(chalk.gray('• Self-contained license system - no shared key needed'));
     
     return outputPath;
     

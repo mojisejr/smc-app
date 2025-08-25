@@ -1,27 +1,132 @@
 import crypto from 'crypto';
 import chalk from 'chalk';
-import { LicenseData, LicenseFile, EncryptionConfig, WiFiPasswordValidation } from '../types';
+import { LicenseData, LicenseFile, EncryptionConfig, WiFiPasswordValidation, KDFContext } from '../types';
 
 /**
  * Encryption Module for SMC License System
  * 
  * ใช้ AES-256-CBC สำหรับเข้ารหัส license data
- * แทนที่ Base64 encoding ที่ไม่ปลอดภัยในระบบเดิม
+ * ใช้ HKDF (RFC 5869) แทน Dynamic Key เพื่อความปลอดภัยสูงสุด
+ * ไม่มี sensitive data ใน license file เพื่อป้องกัน MAC address exposure
  */
 
-// Shared secret key สำหรับ encrypt/decrypt
-// ในการใช้งานจริง key นี้ต้องถูกเก็บอย่างปลอดภัย
-const SHARED_SECRET_KEY = 'SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS';
-
-// Pre-computed key สำหรับ performance optimization
-const PRECOMPUTED_KEY = crypto.createHash('sha256').update(SHARED_SECRET_KEY).digest('hex').slice(0, 32);
-
 // Encryption configuration
-const ENCRYPTION_CONFIG: EncryptionConfig = {
+const ENCRYPTION_CONFIG = {
   algorithm: 'aes-256-cbc',
-  key: PRECOMPUTED_KEY, // ใช้ pre-computed key แทนการ hash ทุกครั้ง
   iv_length: 16 // 16 bytes IV for AES
 };
+
+// HKDF configuration (RFC 5869)
+const HKDF_CONFIG = {
+  hash: 'sha256',
+  key_length: 32, // 32 bytes for AES-256
+  salt_length: 32, // 32 bytes random salt
+  info_prefix: 'SMC_LICENSE_KDF_v1.0' // Context info prefix
+};
+
+/**
+ * Generate random salt for HKDF
+ * 
+ * @returns Random salt buffer (32 bytes)
+ */
+function generateSalt(): Buffer {
+  return crypto.randomBytes(HKDF_CONFIG.salt_length);
+}
+
+/**
+ * Create deterministic KDF context from stable license data
+ * ใช้ stable salt จาก non-sensitive data เพื่อให้ regenerate ได้
+ * 
+ * @param licenseData - License data object
+ * @returns KDF context (deterministic but secure)
+ */
+export function createKDFContext(licenseData: LicenseData): KDFContext {
+  console.log(chalk.blue('🔑 Creating deterministic KDF context...'));
+  
+  // สร้าง deterministic salt จาก non-sensitive stable data
+  const saltInput = `${licenseData.applicationId}|${licenseData.customerId}|${licenseData.expiryDate}`;
+  const salt = crypto.createHash('sha256').update(saltInput).digest();
+  
+  // สร้าง info context จาก non-sensitive data เท่านั้น
+  const contextParts = [
+    HKDF_CONFIG.info_prefix,
+    licenseData.applicationId,
+    licenseData.customerId,
+    licenseData.expiryDate,
+    licenseData.version || '1.0.0'
+  ];
+  
+  const info = contextParts.join('|');
+  
+  const kdfContext: KDFContext = {
+    salt: salt.toString('base64'),
+    info: info,
+    algorithm: 'hkdf-sha256'
+  };
+  
+  console.log(chalk.green('   ✅ Deterministic KDF context created'));
+  console.log(chalk.gray(`   Salt (deterministic): ${salt.toString('base64').substring(0, 16)}...`));
+  console.log(chalk.gray(`   Info: ${info.substring(0, 50)}...`));
+  console.log(chalk.blue('   🔄 Same input data → Same KDF context → Same license'));
+  
+  return kdfContext;
+}
+
+/**
+ * Generate HKDF key from license data และ KDF context
+ * ใช้ HKDF (RFC 5869) สำหรับ secure key derivation
+ * 
+ * @param licenseData - Complete license data (รวม sensitive data)
+ * @param kdfContext - KDF context จาก license file
+ * @returns 32-byte encryption key
+ */
+export function generateHKDFKey(licenseData: LicenseData, kdfContext: KDFContext): Buffer {
+  console.log(chalk.blue('🔐 Generating HKDF key...'));
+  
+  try {
+    // สร้าง Input Key Material (IKM) จาก sensitive license data
+    const ikm_parts = [
+      licenseData.applicationId,
+      licenseData.customerId,
+      licenseData.wifiSsid,
+      licenseData.macAddress, // Sensitive data - ไม่อยู่ใน context
+      licenseData.expiryDate
+    ];
+    
+    const ikm = Buffer.from(ikm_parts.join('_'), 'utf8');
+    
+    // แปลง salt จาก base64
+    const salt = Buffer.from(kdfContext.salt, 'base64');
+    
+    // แปลง info จาก string
+    const info = Buffer.from(kdfContext.info, 'utf8');
+    
+    console.log(chalk.gray(`   IKM size: ${ikm.length} bytes`));
+    console.log(chalk.gray(`   Salt size: ${salt.length} bytes`));
+    console.log(chalk.gray(`   Info size: ${info.length} bytes`));
+    
+    // HKDF-Extract: PRK = HMAC-Hash(salt, IKM)
+    const prk = crypto.createHmac(HKDF_CONFIG.hash, salt).update(ikm).digest();
+    
+    // HKDF-Expand: OKM = HMAC-Hash(PRK, info + 0x01)
+    const expandInfo = Buffer.concat([info, Buffer.from([0x01])]);
+    const okm = crypto.createHmac(HKDF_CONFIG.hash, prk).update(expandInfo).digest();
+    
+    // ตัด key ให้ได้ขนาดที่ต้องการ (32 bytes สำหรับ AES-256)
+    const derivedKey = okm.slice(0, HKDF_CONFIG.key_length);
+    
+    console.log(chalk.green('   ✅ HKDF key generated'));
+    console.log(chalk.gray(`   Key size: ${derivedKey.length} bytes`));
+    console.log(chalk.gray(`   Key preview: ${derivedKey.toString('hex').substring(0, 8)}...`));
+    
+    return derivedKey;
+    
+  } catch (error: any) {
+    console.log(chalk.red(`   ❌ HKDF key generation failed: ${error.message}`));
+    throw new Error(`HKDF key generation failed: ${error.message}`);
+  }
+}
+
 
 /**
  * สร้าง IV (Initialization Vector) สำหรับ AES encryption
@@ -31,14 +136,18 @@ function generateIV(): Buffer {
 }
 
 /**
- * เข้ารหัสข้อมูล license ด้วย AES-256-CBC
+ * เข้ารหัสข้อมูล license ด้วย AES-256-CBC + HKDF
  * 
  * @param data - License data object
+ * @param kdfContext - KDF context สำหรับ key derivation
  * @returns Encrypted string (Base64)
  */
-export function encryptLicenseData(data: LicenseData): string {
+export function encryptLicenseData(data: LicenseData, kdfContext: KDFContext): string {
   try {
-    console.log(chalk.blue('🔐 Encrypting license data...'));
+    console.log(chalk.blue('🔐 Encrypting license data with HKDF...'));
+    
+    // สร้าง HKDF key จาก license data และ KDF context
+    const derivedKey = generateHKDFKey(data, kdfContext);
     
     // Convert license data เป็น JSON string (compact format สำหรับ performance)
     const jsonString = JSON.stringify(data, null, 0);
@@ -47,8 +156,8 @@ export function encryptLicenseData(data: LicenseData): string {
     // Generate random IV
     const iv = generateIV();
     
-    // สร้าง cipher ด้วย createCipheriv (แทนที่ deprecated createCipher)
-    const cipher = crypto.createCipheriv(ENCRYPTION_CONFIG.algorithm, ENCRYPTION_CONFIG.key, iv);
+    // สร้าง cipher ด้วย createCipheriv ด้วย HKDF key
+    const cipher = crypto.createCipheriv(ENCRYPTION_CONFIG.algorithm, derivedKey, iv);
     
     // เข้ารหัสข้อมูล
     let encrypted = cipher.update(jsonString, 'utf8', 'hex');
@@ -57,26 +166,57 @@ export function encryptLicenseData(data: LicenseData): string {
     // รวม IV กับ encrypted data (IV:ENCRYPTED_DATA)
     const result = iv.toString('hex') + ':' + encrypted;
     
-    console.log(chalk.green(`   ✅ Encryption successful`));
+    console.log(chalk.green(`   ✅ HKDF encryption successful`));
     console.log(chalk.gray(`   Encrypted size: ${result.length} characters`));
     
     return Buffer.from(result).toString('base64'); // Convert เป็น Base64 เพื่อความสะดวกในการจัดเก็บ
     
   } catch (error: any) {
-    console.log(chalk.red(`   ❌ Encryption failed: ${error.message}`));
-    throw new Error(`License encryption failed: ${error.message}`);
+    console.log(chalk.red(`   ❌ HKDF encryption failed: ${error.message}`));
+    throw new Error(`License HKDF encryption failed: ${error.message}`);
   }
 }
 
 /**
- * ถอดรหัสข้อมูล license ด้วย AES-256-CBC
+ * ถอดรหัสข้อมูล license ด้วย AES-256-CBC + HKDF
  * 
  * @param encryptedData - Encrypted string (Base64)
+ * @param kdfContext - KDF context จาก license file
+ * @param keyData - Key data for HKDF (เมื่อรู้ sensitive data)
  * @returns License data object
  */
-export function decryptLicenseData(encryptedData: string): LicenseData {
+export function decryptLicenseData(
+  encryptedData: string,
+  kdfContext: KDFContext,
+  keyData: {
+    applicationId: string;
+    customerId: string;
+    wifiSsid: string;
+    macAddress: string;
+    expiryDate: string;
+  }
+): LicenseData {
   try {
-    console.log(chalk.blue('🔓 Decrypting license data...'));
+    console.log(chalk.blue('🔓 Decrypting license data with HKDF...'));
+    
+    // สร้าง temporary license data object สำหรับ HKDF key generation
+    const tempLicenseData: LicenseData = {
+      applicationId: keyData.applicationId,
+      customerId: keyData.customerId,
+      wifiSsid: keyData.wifiSsid,
+      macAddress: keyData.macAddress,
+      expiryDate: keyData.expiryDate,
+      organization: '', // จะได้จาก decrypted data
+      generatedAt: '',
+      wifiPassword: '',
+      version: '1.0.0',
+      checksum: ''
+    };
+    
+    // สร้าง HKDF key จาก key data และ KDF context
+    const derivedKey = generateHKDFKey(tempLicenseData, kdfContext);
+    
+    console.log(chalk.gray(`   Using HKDF key for decryption`));
     
     // Decode จาก Base64
     const hexData = Buffer.from(encryptedData, 'base64').toString('utf8');
@@ -93,24 +233,24 @@ export function decryptLicenseData(encryptedData: string): LicenseData {
     console.log(chalk.gray(`   IV length: ${iv.length} bytes`));
     console.log(chalk.gray(`   Data length: ${encrypted.length} characters`));
     
-    // สร้าง decipher ด้วย createDecipheriv (แทนที่ deprecated createDecipher)
-    const decipher = crypto.createDecipheriv(ENCRYPTION_CONFIG.algorithm, ENCRYPTION_CONFIG.key, iv);
+    // สร้าง decipher ด้วย createDecipheriv ด้วย HKDF key
+    const decipher = crypto.createDecipheriv(ENCRYPTION_CONFIG.algorithm, derivedKey, iv);
     
     // ถอดรหัสข้อมูล
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     
     // Parse JSON
-    const licenseData = JSON.parse(decrypted);
+    const decryptedLicenseData = JSON.parse(decrypted);
     
-    console.log(chalk.green(`   ✅ Decryption successful`));
-    console.log(chalk.gray(`   Organization: ${licenseData.organization}`));
+    console.log(chalk.green(`   ✅ HKDF decryption successful`));
+    console.log(chalk.gray(`   Organization: ${decryptedLicenseData.organization}`));
     
-    return licenseData as LicenseData;
+    return decryptedLicenseData as LicenseData;
     
   } catch (error: any) {
-    console.log(chalk.red(`   ❌ Decryption failed: ${error.message}`));
-    throw new Error(`License decryption failed: ${error.message}`);
+    console.log(chalk.red(`   ❌ HKDF decryption failed: ${error.message}`));
+    throw new Error(`License HKDF decryption failed: ${error.message}`);
   }
 }
 
@@ -185,72 +325,119 @@ export function createLicenseData(
 }
 
 /**
- * สร้าง license file structure สำหรับบันทึกลงไฟล์
+ * สร้าง license file structure สำหรับบันทึกลงไฟล์ (HKDF Version)
  * 
  * @param licenseData - License data object
  * @returns LicenseFile object
  */
 export function createLicenseFile(licenseData: LicenseData): LicenseFile {
-  console.log(chalk.blue('📄 Creating license file structure...'));
+  console.log(chalk.blue('📄 Creating HKDF license file structure...'));
   
-  // เข้ารหัส license data
-  const encryptedData = encryptLicenseData(licenseData);
+  // สร้าง KDF context (ไม่รวม sensitive data)
+  const kdfContext = createKDFContext(licenseData);
   
-  // สร้าง license file structure
+  // เข้ารหัส license data ด้วย HKDF
+  const encryptedData = encryptLicenseData(licenseData, kdfContext);
+  
+  // สร้าง license file structure พร้อม KDF context (ปลอดภัย)
   const licenseFile: LicenseFile = {
-    version: '1.0.0',
+    version: '2.0.0', // เพิ่ม version เพื่อระบุ HKDF format
     encrypted_data: encryptedData,
     algorithm: ENCRYPTION_CONFIG.algorithm,
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    
+    // KDF context สำหรับ HKDF key generation (ไม่มี sensitive data)
+    kdf_context: kdfContext
   };
   
-  console.log(chalk.green('   ✅ License file structure created'));
-  console.log(chalk.gray(`   Format version: ${licenseFile.version}`));
+  console.log(chalk.green('   ✅ HKDF license file structure created'));
+  console.log(chalk.gray(`   Format version: ${licenseFile.version} (HKDF)`));
   console.log(chalk.gray(`   Algorithm: ${licenseFile.algorithm}`));
   console.log(chalk.gray(`   Created at: ${licenseFile.created_at}`));
+  console.log(chalk.green('   🔒 No sensitive data exposed in license file'));
   
   return licenseFile;
 }
 
 /**
- * อ่านและ parse license file
+ * อ่านและ parse license file ด้วย HKDF v2.0
  * 
  * @param licenseFileContent - License file content (JSON string)
+ * @param sensitiveData - Sensitive data for key generation (MAC address, WiFi SSID)
  * @returns LicenseData object
  */
-export function parseLicenseFile(licenseFileContent: string): LicenseData {
+export function parseLicenseFile(
+  licenseFileContent: string,
+  sensitiveData: {
+    macAddress: string;
+    wifiSsid: string;
+  }
+): LicenseData {
   try {
-    console.log(chalk.blue('📖 Parsing license file...'));
+    console.log(chalk.blue('📖 Parsing HKDF license file...'));
     
     // Parse JSON
     const licenseFile = JSON.parse(licenseFileContent) as LicenseFile;
     
-    // ตรวจสอบ version compatibility
-    if (licenseFile.version !== '1.0.0') {
-      console.log(chalk.yellow(`   ⚠️  Warning: License file version ${licenseFile.version} may not be compatible`));
+    // ตรวจสอบ HKDF version
+    if (licenseFile.version === '2.0.0' && licenseFile.kdf_context) {
+      console.log(chalk.green('   ✅ HKDF format detected'));
+      
+      // ตรวจสอบ algorithm
+      if (licenseFile.algorithm !== ENCRYPTION_CONFIG.algorithm) {
+        throw new Error(`Unsupported encryption algorithm: ${licenseFile.algorithm}`);
+      }
+      
+      console.log(chalk.gray(`   File version: ${licenseFile.version} (HKDF)`));
+      console.log(chalk.gray(`   Algorithm: ${licenseFile.algorithm}`));
+      console.log(chalk.gray(`   Created: ${licenseFile.created_at}`));
+      
+      // Parse KDF context เพื่อได้ non-sensitive data
+      const kdfInfo = licenseFile.kdf_context.info;
+      const infoParts = kdfInfo.split('|');
+      
+      if (infoParts.length < 5) {
+        throw new Error('Invalid KDF context info format');
+      }
+      
+      // Extract non-sensitive data จาก KDF context
+      const applicationId = infoParts[1];
+      const customerId = infoParts[2];
+      const expiryDate = infoParts[3];
+      
+      console.log(chalk.gray(`   Application ID: ${applicationId}`));
+      console.log(chalk.gray(`   Customer ID: ${customerId}`));
+      console.log(chalk.gray(`   Expiry: ${expiryDate}`));
+      
+      // สร้าง key data รวม sensitive และ non-sensitive data
+      const keyData = {
+        applicationId,
+        customerId,
+        wifiSsid: sensitiveData.wifiSsid,
+        macAddress: sensitiveData.macAddress,
+        expiryDate
+      };
+      
+      // ถอดรหัส license data
+      const licenseData = decryptLicenseData(
+        licenseFile.encrypted_data,
+        licenseFile.kdf_context,
+        keyData
+      );
+      
+      console.log(chalk.green('   ✅ HKDF license file parsed successfully'));
+      
+      return licenseData;
+    } else {
+      throw new Error('Not a valid HKDF license file format (expected version 2.0.0 with kdf_context)');
     }
-    
-    // ตรวจสอบ algorithm
-    if (licenseFile.algorithm !== ENCRYPTION_CONFIG.algorithm) {
-      throw new Error(`Unsupported encryption algorithm: ${licenseFile.algorithm}`);
-    }
-    
-    console.log(chalk.gray(`   File version: ${licenseFile.version}`));
-    console.log(chalk.gray(`   Algorithm: ${licenseFile.algorithm}`));
-    console.log(chalk.gray(`   Created: ${licenseFile.created_at}`));
-    
-    // ถอดรหัส license data
-    const licenseData = decryptLicenseData(licenseFile.encrypted_data);
-    
-    console.log(chalk.green('   ✅ License file parsed successfully'));
-    
-    return licenseData;
     
   } catch (error: any) {
-    console.log(chalk.red(`   ❌ License file parsing failed: ${error.message}`));
-    throw new Error(`Invalid license file: ${error.message}`);
+    console.log(chalk.red(`   ❌ HKDF license file parsing failed: ${error.message}`));
+    throw new Error(`Invalid HKDF license file: ${error.message}`);
   }
 }
+
 
 /**
  * ตรวจสอบความถูกต้องของ license data
@@ -300,6 +487,81 @@ export function validateLicenseData(licenseData: LicenseData): boolean {
  * @param bypassCheck - Skip validation for development
  * @returns WiFiPasswordValidation result
  */
+/**
+ * แสดงข้อมูล basic ของ license file โดยไม่ decrypt
+ * ใช้สำหรับ validate และ info commands ที่ไม่มี sensitive data
+ */
+export function getLicenseFileBasicInfo(licenseFileContent: string): {
+  isValid: boolean;
+  errors: string[];
+  fileInfo?: {
+    version: string;
+    algorithm: string;
+    created_at: string;
+    encrypted_data_length: number;
+    has_kdf_context: boolean;
+    kdf_algorithm?: string;
+    file_size: number;
+  };
+} {
+  const result: any = {
+    isValid: false,
+    errors: []
+  };
+
+  try {
+    // Parse JSON
+    const licenseFile = JSON.parse(licenseFileContent);
+    
+    // ตรวจสอบ required fields สำหรับ HKDF v2.0
+    const requiredFields = ['version', 'encrypted_data', 'algorithm', 'created_at', 'kdf_context'];
+    const missingFields = requiredFields.filter(field => !(field in licenseFile));
+    
+    if (missingFields.length > 0) {
+      result.errors.push(`Missing required fields: ${missingFields.join(', ')}`);
+      return result;
+    }
+    
+    // ตรวจสอบ KDF context structure
+    if (!licenseFile.kdf_context || typeof licenseFile.kdf_context !== 'object') {
+      result.errors.push('Invalid or missing kdf_context');
+      return result;
+    }
+    
+    const kdfRequiredFields = ['salt', 'info', 'algorithm'];
+    const kdfMissingFields = kdfRequiredFields.filter(field => !(field in licenseFile.kdf_context));
+    
+    if (kdfMissingFields.length > 0) {
+      result.errors.push(`Missing KDF context fields: ${kdfMissingFields.join(', ')}`);
+      return result;
+    }
+    
+    // ตรวจสอบ version compatibility
+    if (!licenseFile.version.startsWith('2.0')) {
+      result.errors.push(`Unsupported license version: ${licenseFile.version}. HKDF system requires version 2.0.x`);
+      return result;
+    }
+    
+    // สร้างข้อมูล basic info
+    result.isValid = true;
+    result.fileInfo = {
+      version: licenseFile.version,
+      algorithm: licenseFile.algorithm,
+      created_at: licenseFile.created_at,
+      encrypted_data_length: licenseFile.encrypted_data.length,
+      has_kdf_context: true,
+      kdf_algorithm: licenseFile.kdf_context.algorithm,
+      file_size: licenseFileContent.length
+    };
+    
+    return result;
+    
+  } catch (error: any) {
+    result.errors.push(`JSON parsing error: ${error.message}`);
+    return result;
+  }
+}
+
 export function validateWiFiPassword(password: string, bypassCheck: boolean = false): WiFiPasswordValidation {
   const result: WiFiPasswordValidation = {
     isValid: true,

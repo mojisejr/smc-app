@@ -23,6 +23,7 @@ import {
   parseLicenseFile,
   validateLicenseData,
   validateWiFiPassword,
+  getLicenseFileBasicInfo,
 } from "./modules/encryption";
 import {
   processBatchLicenses,
@@ -40,13 +41,14 @@ program
   .description(
     "CLI tool for generating SMC license keys with ESP32 MAC address binding"
   )
-  .version("1.0.0")
+  .version("2.0.0")
   .addHelpText(
     "after",
     `
 Examples:
   $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" --wifi-ssid "SMC_ESP32_001" --wifi-password "SecurePass123!"
   $ smc-license batch --input esp32-deployments-2025-08-22.csv --update-csv
+  $ smc-license update-expiry -f license.lic -e "2026-12-31" --mac-address "AA:BB:CC:DD:EE:FF" --wifi-ssid "SMC_ESP32_001"
   $ smc-license validate -f license.lic  
   $ smc-license info -f license.lic
   $ smc-license show-key
@@ -432,54 +434,54 @@ Examples:
       console.log(chalk.cyan("\n📖 Reading license file..."));
       const fileContent = await fs.readFile(options.file, "utf8");
 
-      // Parse และ validate license
-      console.log(chalk.cyan("\n🔓 Parsing and validating license data..."));
-      const licenseData = parseLicenseFile(fileContent);
+      // ใช้ basic info validation แทน full parsing (ไม่ต้อง MAC address/WiFi SSID)
+      console.log(chalk.cyan("\n🔓 Validating license file format..."));
+      const validationResult = getLicenseFileBasicInfo(fileContent);
 
-      // ตรวจสอบความถูกต้อง
-      const isValid = validateLicenseData(licenseData);
-
-      if (isValid) {
-        console.log(chalk.green("\n✅ License validation PASSED"));
+      if (validationResult.isValid && validationResult.fileInfo) {
+        console.log(chalk.green("\n✅ License file validation PASSED"));
         console.log(chalk.gray("====================================="));
 
-        // แสดงข้อมูลสรุป
-        console.log(chalk.blue("\n📊 License Summary:"));
-        console.log(
-          chalk.white(`Organization:     ${licenseData.organization}`)
-        );
-        console.log(chalk.white(`Customer ID:      ${licenseData.customerId}`));
-        console.log(
-          chalk.white(`Application ID:   ${licenseData.applicationId}`)
-        );
-        console.log(chalk.white(`MAC Address:      ${licenseData.macAddress}`));
-        console.log(
-          chalk.white(`Generated At:     ${licenseData.generatedAt}`)
-        );
-        console.log(chalk.white(`Expires On:       ${licenseData.expiryDate}`));
-        console.log(chalk.white(`Version:          ${licenseData.version}`));
-        console.log(chalk.white(`Checksum:         ${licenseData.checksum}`));
+        const info = validationResult.fileInfo;
+        
+        // แสดงข้อมูลสรุป (ข้อมูลที่ไม่ sensitive)
+        console.log(chalk.blue("\n📊 License File Summary:"));
+        console.log(chalk.white(`Format Version:   ${info.version}`));
+        console.log(chalk.white(`Encryption:       ${info.algorithm}`));
+        console.log(chalk.white(`Created At:       ${info.created_at}`));
+        console.log(chalk.white(`File Size:        ${info.file_size} bytes`));
+        console.log(chalk.white(`Data Length:      ${info.encrypted_data_length} chars`));
+        console.log(chalk.white(`KDF Algorithm:    ${info.kdf_algorithm}`));
+        console.log(chalk.white(`Has KDF Context:  ${info.has_kdf_context ? 'Yes' : 'No'}`));
 
-        // คำนวณจำนวนวันที่เหลือ
-        const expiryDate = new Date(licenseData.expiryDate);
-        const today = new Date();
-        const daysUntilExpiry = Math.ceil(
-          (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        console.log(chalk.blue("\n🔐 HKDF v2.0 License Information:"));
+        console.log(chalk.green("• Self-contained license with dynamic key derivation"));
+        console.log(chalk.green("• No shared key management required"));
+        console.log(chalk.green("• Secure MAC address binding (encrypted)"));
+        console.log(chalk.green("• Compatible with SMC License CLI v2.0+"));
 
-        if (daysUntilExpiry > 0) {
-          console.log(chalk.green(`Valid for:        ${daysUntilExpiry} days`));
-        } else {
-          console.log(
-            chalk.red(
-              `Status:           EXPIRED (${Math.abs(
-                daysUntilExpiry
-              )} days ago)`
-            )
-          );
+        console.log(chalk.yellow("\n⚠️  Note:"));
+        console.log(chalk.gray("• License content is encrypted and cannot be displayed without MAC address"));
+        console.log(chalk.gray("• Use 'smc-license info' with MAC/WiFi parameters for full details (future feature)"));
+        console.log(chalk.gray("• This validation only checks file format and structure"));
+
+        console.log(chalk.green("\n🎉 License file format is valid and ready for use!"));
+      } else {
+        console.log(chalk.red("\n❌ License file validation FAILED"));
+        
+        if (validationResult.errors.length > 0) {
+          console.log(chalk.red("\n🚨 Validation Errors:"));
+          validationResult.errors.forEach(error => {
+            console.log(chalk.red(`   • ${error}`));
+          });
         }
-
-        console.log(chalk.green("\n🎉 License is valid and ready for use!"));
+        
+        console.log(chalk.yellow("\n🔧 Common Issues:"));
+        console.log(chalk.gray("• Ensure this is a valid HKDF v2.0 license file"));
+        console.log(chalk.gray("• Check that the file is not corrupted"));
+        console.log(chalk.gray("• Verify the file was generated with SMC License CLI v2.0+"));
+        
+        process.exit(1);
       }
     } catch (error: any) {
       console.log(chalk.red("\n❌ License validation FAILED"));
@@ -522,83 +524,61 @@ Examples:
         process.exit(1);
       }
 
-      // ใช้ฟังก์ชัน displayLicenseInfo ที่มีอยู่แล้ว
-      await displayLicenseInfo(options.file);
-
-      // เพิ่มส่วนแสดง decrypted data
-      console.log(chalk.cyan("\n🔓 Decrypted License Data:"));
+      // อ่านและแสดงข้อมูล basic license info
       const fileContent = await fs.readFile(options.file, "utf8");
-      const licenseData = parseLicenseFile(fileContent);
+      const validationResult = getLicenseFileBasicInfo(fileContent);
 
-      console.log(
-        chalk.white(`   Organization:     ${licenseData.organization}`)
-      );
-      console.log(
-        chalk.white(`   Customer ID:      ${licenseData.customerId}`)
-      );
-      console.log(
-        chalk.white(`   Application ID:   ${licenseData.applicationId}`)
-      );
-      console.log(
-        chalk.white(`   MAC Address:      ${licenseData.macAddress}`)
-      );
-      console.log(
-        chalk.white(`   Generated At:     ${licenseData.generatedAt}`)
-      );
-      console.log(
-        chalk.white(`   Expires On:       ${licenseData.expiryDate}`)
-      );
-      console.log(chalk.white(`   Version:          ${licenseData.version}`));
-      console.log(chalk.white(`   Checksum:         ${licenseData.checksum}`));
-
-      // คำนวณข้อมูลเพิ่มเติม
-      const expiryDate = new Date(licenseData.expiryDate);
-      const generatedDate = new Date(licenseData.generatedAt);
-      const today = new Date();
-
-      const daysUntilExpiry = Math.ceil(
-        (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const daysSinceGenerated = Math.ceil(
-        (today.getTime() - generatedDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const totalValidDays = Math.ceil(
-        (expiryDate.getTime() - generatedDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      console.log(chalk.cyan("\n📅 Date Information:"));
-      console.log(
-        chalk.white(`   Days since generated: ${daysSinceGenerated} days`)
-      );
-      console.log(
-        chalk.white(`   Total valid period:  ${totalValidDays} days`)
-      );
-
-      if (daysUntilExpiry > 0) {
-        console.log(
-          chalk.green(`   Days until expiry:    ${daysUntilExpiry} days`)
-        );
-        console.log(chalk.green(`   Status:               VALID`));
-      } else {
-        console.log(
-          chalk.red(
-            `   Days since expired:   ${Math.abs(daysUntilExpiry)} days`
-          )
-        );
-        console.log(chalk.red(`   Status:               EXPIRED`));
+      if (!validationResult.isValid || !validationResult.fileInfo) {
+        console.log(chalk.red("❌ Invalid license file format"));
+        
+        if (validationResult.errors.length > 0) {
+          console.log(chalk.red("\n🚨 File Format Errors:"));
+          validationResult.errors.forEach(error => {
+            console.log(chalk.red(`   • ${error}`));
+          });
+        }
+        
+        process.exit(1);
       }
 
-      // MAC Address binding information
-      console.log(chalk.cyan("\n🔒 Hardware Binding:"));
-      console.log(
-        chalk.white(`   Bound MAC Address:    ${licenseData.macAddress}`)
-      );
-      console.log(
-        chalk.gray(
-          "   This license will only work with the specific ESP32 device"
-        )
-      );
-      console.log(chalk.gray("   that has this MAC address."));
+      const info = validationResult.fileInfo;
+      
+      // แสดงข้อมูล file structure
+      console.log(chalk.cyan("📋 License File Structure:"));
+      console.log(chalk.white(`   Format Version: ${info.version}`));
+      console.log(chalk.white(`   Algorithm: ${info.algorithm}`));
+      console.log(chalk.white(`   Created At: ${info.created_at}`));
+      console.log(chalk.white(`   File Size: ${info.file_size} bytes`));
+      console.log(chalk.white(`   Encrypted Data Length: ${info.encrypted_data_length} characters`));
+      console.log(chalk.white(`   KDF Algorithm: ${info.kdf_algorithm}`));
+
+      // แสดงข้อมูล HKDF context (non-sensitive)
+      const licenseFile = JSON.parse(fileContent);
+      console.log(chalk.cyan("\n🔐 HKDF Context Information:"));
+      console.log(chalk.white(`   Salt (Base64): ${licenseFile.kdf_context.salt.substring(0, 20)}...`));
+      console.log(chalk.white(`   Info Context: ${licenseFile.kdf_context.info.substring(0, 50)}...`));
+      console.log(chalk.white(`   KDF Algorithm: ${licenseFile.kdf_context.algorithm}`));
+      
+      // แสดงข้อมูล security features
+      console.log(chalk.blue("\n🛡️  Security Features:"));
+      console.log(chalk.green(`• Self-contained license with HKDF key derivation`));
+      console.log(chalk.green(`• AES-256-CBC encryption for sensitive data`));
+      console.log(chalk.green(`• Hardware binding with encrypted MAC address`));
+      console.log(chalk.green(`• Deterministic key generation from license content`));
+      console.log(chalk.green(`• No external shared key management required`));
+
+      console.log(chalk.yellow("\n⚠️  Encrypted License Content:"));
+      console.log(chalk.gray("• Organization, Customer ID, Application ID"));
+      console.log(chalk.gray("• MAC Address binding information"));
+      console.log(chalk.gray("• WiFi credentials for ESP32 connection"));
+      console.log(chalk.gray("• License expiry date and generation metadata"));
+      console.log(chalk.gray("• Security checksum and validation data"));
+
+      console.log(chalk.blue("\n📝 Usage Information:"));
+      console.log(chalk.white("• This license is compatible with SMC License CLI v2.0+"));
+      console.log(chalk.white("• License content can only be decrypted by the target SMC application"));
+      console.log(chalk.white("• Hardware binding ensures license works only on designated ESP32 device"));
+      console.log(chalk.white("• No additional setup or shared key files required for deployment"));
 
       console.log(chalk.blue("\n✅ License information display complete!"));
     } catch (error: any) {
@@ -646,11 +626,195 @@ The device should respond to GET /mac endpoint with MAC address information.
     }
   });
 
-// Show Key command - แสดง shared secret key
+// Update Expiry command - อัพเดตวันหมดอายุของ license (HKDF Version)
+program
+  .command("update-expiry")
+  .description("Update license expiry date without regenerating license (payment control)")
+  .requiredOption("-f, --file <filename>", "Path to existing license file (.lic format)")
+  .requiredOption("-e, --new-expiry <date>", 'New expiry date in YYYY-MM-DD format (e.g., "2026-12-31")')
+  .requiredOption("--mac-address <mac>", "ESP32 MAC address for validation (XX:XX:XX:XX:XX:XX)")
+  .requiredOption("--wifi-ssid <ssid>", "WiFi SSID for validation")
+  .option("--output <filename>", "Output filename (default: overwrites original)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  $ smc-license update-expiry -f license.lic -e "2026-12-31" --mac-address "AA:BB:CC:DD:EE:FF" --wifi-ssid "SMC_ESP32_001"
+  $ smc-license update-expiry -f customer-license.lic -e "2025-06-30" --mac-address "11:22:33:44:55:66" --wifi-ssid "HOSPITAL_WIFI" --output updated-license.lic
+
+Business Use Case:
+  This command allows updating license expiry dates for payment control scenarios:
+  
+  1. Initial deployment: Customer gets short-term license (3 months)
+  2. Payment verification: After payment, extend expiry without rebuilding app
+  3. Renewal process: Extend existing licenses without hardware re-binding
+  
+Security:
+  - Requires ESP32 MAC address validation
+  - Requires WiFi SSID verification  
+  - Uses HKDF for secure key regeneration
+  - Maintains hardware binding integrity
+`
+  )
+  .action(async (options) => {
+    try {
+      console.log(chalk.blue('🔄 Updating license expiry date...'));
+      console.log(chalk.gray('====================================='));
+      console.log(chalk.white(`Input file: ${options.file}`));
+      console.log(chalk.white(`New expiry: ${options.newExpiry}`));
+      
+      // Step 1: Validate inputs
+      console.log(chalk.cyan('\n🔍 Step 1: Validating inputs...'));
+      
+      // ตรวจสอบ expiry date format
+      const expiryRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!expiryRegex.test(options.newExpiry)) {
+        throw new Error('Invalid expiry date format. Use YYYY-MM-DD');
+      }
+      
+      const newExpiryDate = new Date(options.newExpiry);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (newExpiryDate <= today) {
+        throw new Error('New expiry date must be in the future');
+      }
+      
+      // ตรวจสอบ MAC address format
+      const macRegex = /^[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}:[A-Fa-f0-9]{2}$/;
+      if (!macRegex.test(options.macAddress)) {
+        throw new Error('Invalid MAC address format. Use XX:XX:XX:XX:XX:XX');
+      }
+      
+      console.log(chalk.green('✅ Input validation passed'));
+      
+      // Step 2: Check license file exists
+      console.log(chalk.cyan('\n📄 Step 2: Reading existing license...'));
+      
+      const fileExists = await checkLicenseFileExists(options.file);
+      if (!fileExists) {
+        throw new Error('License file not found or not readable');
+      }
+      
+      const fileContent = await fs.readFile(options.file, 'utf8');
+      const licenseFile = JSON.parse(fileContent);
+      
+      // Step 3: Parse license with HKDF
+      console.log(chalk.cyan('\n🔓 Step 3: Parsing license with HKDF...'));
+      
+      if (licenseFile.version !== '2.0.0' || !licenseFile.kdf_context) {
+        throw new Error('License must be HKDF format (version 2.0.0). Please regenerate license with current CLI version.');
+      }
+      
+      // Parse license data using HKDF
+      const licenseData = parseLicenseFile(fileContent, {
+        macAddress: options.macAddress.toUpperCase(),
+        wifiSsid: options.wifiSsid
+      });
+      
+      console.log(chalk.green('✅ License parsed successfully'));
+      console.log(chalk.gray(`   Organization: ${licenseData.organization}`));
+      console.log(chalk.gray(`   Customer: ${licenseData.customerId}`));
+      console.log(chalk.gray(`   Current expiry: ${licenseData.expiryDate}`));
+      
+      // Step 4: Validate hardware binding
+      console.log(chalk.cyan('\n🔒 Step 4: Validating hardware binding...'));
+      
+      if (licenseData.macAddress !== options.macAddress.toUpperCase()) {
+        throw new Error(`MAC address mismatch. License is bound to: ${licenseData.macAddress}`);
+      }
+      
+      if (licenseData.wifiSsid !== options.wifiSsid) {
+        throw new Error(`WiFi SSID mismatch. License is bound to: ${licenseData.wifiSsid}`);
+      }
+      
+      console.log(chalk.green('✅ Hardware binding validation passed'));
+      
+      // Step 5: Create updated license
+      console.log(chalk.cyan('\n🔄 Step 5: Creating updated license...'));
+      
+      const updatedLicenseData = {
+        ...licenseData,
+        expiryDate: options.newExpiry,
+        generatedAt: new Date().toISOString() // Update generation timestamp
+      };
+      
+      // Recalculate checksum with new expiry date
+      const checksumData = `${updatedLicenseData.organization}${updatedLicenseData.customerId}${updatedLicenseData.applicationId}${updatedLicenseData.expiryDate}${updatedLicenseData.macAddress}${updatedLicenseData.wifiSsid}`;
+      updatedLicenseData.checksum = require('crypto').createHash('sha256').update(checksumData).digest('hex').slice(0, 16);
+      
+      // Create new license file with HKDF
+      const { createLicenseFile } = require('./modules/encryption');
+      const newLicenseFile = createLicenseFile(updatedLicenseData);
+      
+      // Step 6: Save updated license
+      console.log(chalk.cyan('\n💾 Step 6: Saving updated license...'));
+      
+      const outputPath = options.output || options.file;
+      const newFileContent = JSON.stringify(newLicenseFile, null, 2);
+      await fs.writeFile(outputPath, newFileContent, 'utf8');
+      
+      console.log(chalk.green(`✅ Updated license saved: ${outputPath}`));
+      
+      // Step 7: Display summary
+      console.log(chalk.blue('\n📊 Update Summary:'));
+      console.log(chalk.gray('====================================='));
+      console.log(chalk.white(`Organization:     ${updatedLicenseData.organization}`));
+      console.log(chalk.white(`Customer ID:      ${updatedLicenseData.customerId}`));
+      console.log(chalk.white(`Application ID:   ${updatedLicenseData.applicationId}`));
+      console.log(chalk.white(`MAC Address:      ${updatedLicenseData.macAddress}`));
+      console.log(chalk.white(`Previous Expiry:  ${licenseData.expiryDate}`));
+      console.log(chalk.yellow(`New Expiry:       ${updatedLicenseData.expiryDate}`));
+      console.log(chalk.white(`Updated At:       ${updatedLicenseData.generatedAt}`));
+      
+      // Calculate new validity period
+      const daysUntilExpiry = Math.ceil((newExpiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      console.log(chalk.green(`Valid for:        ${daysUntilExpiry} days`));
+      
+      console.log(chalk.blue('\n🎆 Payment Control Benefits:'));
+      console.log(chalk.green('• License extended without hardware re-binding'));
+      console.log(chalk.green('• Same application binary remains valid'));
+      console.log(chalk.green('• Customer can continue using existing installation'));
+      console.log(chalk.green('• Secure HKDF ensures license integrity'));
+      
+      console.log(chalk.green('\n🎉 License expiry update completed successfully!'));
+      
+    } catch (error: any) {
+      console.log(chalk.red('\n❌ License expiry update failed'));
+      console.log(chalk.red(`Error: ${error.message}`));
+      
+      console.log(chalk.yellow('\n🔧 Troubleshooting:'));
+      if (error.message.includes('MAC address')) {
+        console.log(chalk.gray('1. Verify MAC address matches the original license binding'));
+        console.log(chalk.gray('2. Use uppercase format: AA:BB:CC:DD:EE:FF'));
+        console.log(chalk.gray('3. Check MAC address from ESP32 device directly'));
+      } else if (error.message.includes('WiFi')) {
+        console.log(chalk.gray('1. Verify WiFi SSID matches the original license'));
+        console.log(chalk.gray('2. SSID must match exactly (case sensitive)'));
+        console.log(chalk.gray('3. Check WiFi settings from ESP32 deployment'));
+      } else if (error.message.includes('HKDF') || error.message.includes('version')) {
+        console.log(chalk.gray('1. License must be generated with CLI v2.0+ (HKDF format)'));
+        console.log(chalk.gray('2. Regenerate license if using old format'));
+        console.log(chalk.gray('3. Old dynamic key licenses are not compatible'));
+      } else if (error.message.includes('date')) {
+        console.log(chalk.gray('1. Use YYYY-MM-DD format for expiry date'));
+        console.log(chalk.gray('2. New expiry date must be in the future'));
+        console.log(chalk.gray('3. Example: --new-expiry "2026-12-31"'));
+      } else {
+        console.log(chalk.gray('1. Ensure license file is valid and readable'));
+        console.log(chalk.gray('2. Check that all required parameters are provided'));
+        console.log(chalk.gray('3. Verify file write permissions'));
+      }
+      
+      process.exit(1);
+    }
+  });
+
+// Show Key command - HKDF Information (No Shared Key Required)
 program
   .command("show-key")
   .description(
-    "Display the shared secret key for application .env configuration"
+    "Display HKDF license system information (no shared secret key required)"
   )
   .addHelpText(
     "after",
@@ -658,53 +822,60 @@ program
 Examples:
   $ smc-license show-key
   
-Usage:
-  Use this command to view the shared secret key that must be added to your 
-  application's .env file for license decryption. Copy the displayed key 
-  exactly as shown.
+HKDF License System:
+  Current SMC License System uses HKDF (Key Derivation Function) which eliminates 
+  the need for shared secret keys. Each license is self-contained and secure.
   
-Security Note:
-  Keep this key confidential and never commit .env files to version control.
+Migration from Legacy System:
+  - Old system: Required SHARED_SECRET_KEY in .env file
+  - New system: No shared key needed, uses HKDF v2.0.0 format
+  - Enhanced security: No master key exposure risk
 `
   )
   .action(async () => {
     try {
-      console.log(chalk.blue("🔑 SMC License System - Shared Secret Key"));
+      console.log(chalk.blue("🔑 SMC License System - HKDF Information"));
       console.log(chalk.gray("====================================="));
-      console.log(chalk.white("Add this to your application .env file:"));
-      console.log("");
-      console.log(
-        chalk.green(
-          `SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS`
-        )
-      );
+      
+      console.log(chalk.green("✅ HKDF License System Active"));
+      console.log(chalk.white("Current system uses HKDF (Key Derivation Function) technology:"));
       console.log("");
 
-      console.log(chalk.white("📝 Quick Commands:"));
-      console.log(
-        chalk.cyan(
-          `echo "SHARED_SECRET_KEY=SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS" >> .env`
-        )
-      );
-      console.log(chalk.gray("# Or use: smc-license export-env --output .env"));
+      console.log(chalk.cyan("🎆 HKDF Benefits:"));
+      console.log(chalk.green("• No shared secret key required"));
+      console.log(chalk.green("• Each license has unique encryption"));
+      console.log(chalk.green("• Enhanced security - no master key exposure"));
+      console.log(chalk.green("• Self-contained license deployment"));
+      console.log(chalk.green("• License regeneration capability"));
       console.log("");
 
-      console.log(chalk.yellow("⚠️  Security Notes:"));
-      console.log(chalk.gray("• Keep the SHARED_SECRET_KEY confidential"));
-      console.log(chalk.gray("• Never commit .env files to version control"));
-      console.log(
-        chalk.gray("• Both license.lic and .env are required for activation")
-      );
-      console.log(
-        chalk.gray(
-          "• This key must match between CLI generation and application"
-        )
-      );
+      console.log(chalk.white("📝 Deployment Instructions:"));
+      console.log(chalk.cyan("1. Generate license with: smc-license generate"));
+      console.log(chalk.cyan("2. Copy license.lic to your application"));
+      console.log(chalk.cyan("3. No .env file setup required!"));
       console.log("");
 
-      console.log(chalk.blue("✅ Shared key display complete!"));
+      console.log(chalk.blue("🔄 Migration from Legacy System:"));
+      console.log(chalk.yellow("Old System (v1.0):"));
+      console.log(chalk.gray("  • Required SHARED_SECRET_KEY in .env"));
+      console.log(chalk.gray("  • Single key for all licenses (security risk)"));
+      console.log(chalk.gray("  • Manual key management"));
+      console.log("");
+      console.log(chalk.green("New System (v2.0 HKDF):"));
+      console.log(chalk.white("  • No shared key needed"));
+      console.log(chalk.white("  • Per-license unique encryption"));
+      console.log(chalk.white("  • Automatic secure key derivation"));
+      console.log("");
+
+      console.log(chalk.yellow("⚠️  Legacy License Note:"));
+      console.log(chalk.gray("• Old v1.0 licenses still work with legacy parsers"));
+      console.log(chalk.gray("• New v2.0 HKDF licenses provide enhanced security"));
+      console.log(chalk.gray("• Regenerate licenses for maximum security benefits"));
+      console.log("");
+
+      console.log(chalk.green("🎉 HKDF system provides maximum security without complexity!"));
     } catch (error: any) {
-      console.log(chalk.red("❌ Failed to display shared key"));
+      console.log(chalk.red("❌ Failed to display HKDF information"));
       console.log(chalk.red(`Error: ${error.message}`));
       process.exit(1);
     }

@@ -56,6 +56,14 @@ export interface TestESP32Options {
   ip: string;                // ESP32 IP address
 }
 
+export interface UpdateExpiryOptions {
+  file: string;              // License file path
+  newExpiry: string;         // New expiry date (YYYY-MM-DD)
+  output?: string;           // Output filename (optional)
+  macAddress: string;        // MAC address for validation
+  wifiSsid: string;          // WiFi SSID for validation
+}
+
 // License validation result
 export interface ValidationResult {
   isValid: boolean;
@@ -64,12 +72,22 @@ export interface ValidationResult {
   data?: LicenseData;
 }
 
-// License file structure (encrypted)
+// KDF Context for HKDF key derivation (secure, no sensitive data)
+export interface KDFContext {
+  salt: string;              // Deterministic salt (Base64)
+  info: string;              // Context info for HKDF (non-sensitive data only)
+  algorithm: 'hkdf-sha256';  // HKDF algorithm identifier
+}
+
+// License file structure (encrypted) - HKDF v2.0 Only
 export interface LicenseFile {
-  version: string;           // License file format version
+  version: string;           // License file format version (2.0.0 for HKDF)
   encrypted_data: string;    // AES-256 encrypted license data (Base64)
   algorithm: string;         // Encryption algorithm used
   created_at: string;        // Creation timestamp
+  
+  // HKDF context (v2.0+ only, no sensitive data exposed)
+  kdf_context: KDFContext;   // KDF context for HKDF key generation (required)
 }
 
 // Error types
@@ -87,11 +105,11 @@ export interface WiFiPasswordValidation {
   warnings: string[];
 }
 
-// Encryption configuration
+// Encryption configuration (Dynamic Key)
 export interface EncryptionConfig {
   algorithm: 'aes-256-cbc';
-  key: string;               // Shared secret key
   iv_length: number;         // IV length for AES
+  // Note: key is now generated dynamically from license data
 }
 
 // ESP32 connection configuration
