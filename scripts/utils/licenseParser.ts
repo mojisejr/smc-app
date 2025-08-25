@@ -179,15 +179,16 @@ export class LicenseParser {
     
     // สร้าง IKM (Input Keying Material) จาก sensitive data (ต้องตรงกับ CLI)
     // CLI pattern: applicationId_customerId_wifiSsid_macAddress_expiryDate
-    // เราต้องหาวิธี extract components จาก info context
+    // CLI info format: "SMC_LICENSE_KDF_v1.0|applicationId|customerId|expiryDate|version"
     const infoComponents = info.split('|');
-    if (infoComponents.length < 4) {
-      throw new LicenseParserError('Invalid KDF info format', 'INVALID_KDF_INFO');
+    if (infoComponents.length < 5) {
+      throw new LicenseParserError(`Invalid KDF info format, expected 5 components, got ${infoComponents.length}`, 'INVALID_KDF_INFO');
     }
     
     const applicationId = infoComponents[1]; 
     const customerId = infoComponents[2];
     const expiryDate = infoComponents[3];
+    // infoComponents[4] is version, not needed for IKM
     
     // Match CLI IKM pattern exactly
     const ikm_parts = [
@@ -616,7 +617,7 @@ export class LicenseParser {
           
           return decryptedText;
           
-        } catch (keyError) {
+        } catch (keyError: any) {
           // Try next key variant
           if (this.verbose && i === keyVariants.length - 1) {
             console.log(`info: Key variant ${i + 1} failed: ${keyError.message}`);

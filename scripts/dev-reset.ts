@@ -123,7 +123,16 @@ async function parseDevConfiguration(): Promise<DevResetConfig> {
       }
 
       const licenseParser = new LicenseParser({ verbose: true });
-      const licenseData = await licenseParser.parseLicenseFile(licenseFile);
+      
+      // For HKDF v2.0 licenses, provide sensitive data matching CLI generation
+      // This allows license parsing during development reset
+      const sensitiveDataForHKDF = {
+        macAddress: 'AA:BB:CC:DD:EE:FF',  // Match CLI test license
+        wifiSsid: 'TestWiFi_HKDF'         // Match CLI test license
+      };
+      
+      console.log('info: Parsing license (using sensitive data for HKDF if needed)...');
+      const licenseData = await licenseParser.parseLicenseFile(licenseFile, sensitiveDataForHKDF);
 
       // ใช้ข้อมูลจาก license
       organizationName = licenseData.organization;

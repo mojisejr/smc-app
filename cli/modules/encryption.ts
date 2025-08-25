@@ -136,6 +136,17 @@ function generateIV(): Buffer {
 }
 
 /**
+ * สร้าง deterministic IV จาก license data สำหรับ HKDF regeneration
+ * Same input data → Same IV → Same license
+ */
+function generateDeterministicIV(licenseData: LicenseData): Buffer {
+  // สร้าง IV จาก hash ของข้อมูลสำคัญ
+  const ivSource = `${licenseData.applicationId}_${licenseData.customerId}_${licenseData.expiryDate}_${licenseData.macAddress}_${licenseData.wifiSsid}`;
+  const hash = crypto.createHash('sha256').update(ivSource).digest();
+  return hash.slice(0, ENCRYPTION_CONFIG.iv_length); // ใช้ 16 bytes แรก
+}
+
+/**
  * เข้ารหัสข้อมูล license ด้วย AES-256-CBC + HKDF
  * 
  * @param data - License data object
@@ -153,8 +164,8 @@ export function encryptLicenseData(data: LicenseData, kdfContext: KDFContext): s
     const jsonString = JSON.stringify(data, null, 0);
     console.log(chalk.gray(`   Data size: ${jsonString.length} bytes`));
     
-    // Generate random IV
-    const iv = generateIV();
+    // Generate deterministic IV for license regeneration
+    const iv = generateDeterministicIV(data);
     
     // สร้าง cipher ด้วย createCipheriv ด้วย HKDF key
     const cipher = crypto.createCipheriv(ENCRYPTION_CONFIG.algorithm, derivedKey, iv);
