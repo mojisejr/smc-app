@@ -8,12 +8,14 @@ type appContextType = {
   admin: string | null;
   isActivated: boolean;
   setAdmin: (admin: string) => void;
+  refreshActivationStatus: () => Promise<void>;
 };
 
 const appContextDefaultValue: appContextType = {
   admin: null,
   isActivated: false,
   setAdmin: () => {},
+  refreshActivationStatus: async () => {},
 };
 
 const AppContext = createContext<appContextType>(appContextDefaultValue);
@@ -24,25 +26,100 @@ export function AppProvider({ children }: appProviderProps) {
   const [isActivated, setActivated] = useState<boolean>(false);
 
   useEffect(() => {
-    handleCheckActivated();
-  }, [isActivated]);
+    initializeActivationStatus();
+    
+    // Listen for activation state changes from main process
+    const handleActivationStateChange = (event: any, changeEvent: any) => {
+      console.log('info: Received activation state change:', changeEvent);
+      setActivated(changeEvent.newState.isActivated);
+      
+      // Handle navigation based on new state
+      if (!changeEvent.newState.isActivated && window.location.pathname !== "/activate-key") {
+        console.log('info: Activation lost, redirecting to activation page');
+        replace("/activate-key");
+      } else if (changeEvent.newState.isActivated && window.location.pathname === "/activate-key") {
+        console.log('info: System activated, redirecting to home');
+        replace("/home");
+      }
+    };
+    
+    // Register event listener
+    ipcRenderer.on('activation-state-changed', handleActivationStateChange);
+    
+    // Cleanup event listener
+    return () => {
+      ipcRenderer.removeListener('activation-state-changed', handleActivationStateChange);
+    };
+  }, []); // Only run once on mount to avoid infinite loops
+
+  const initializeActivationStatus = async () => {
+    try {
+      // Get current activation state from unified state manager
+      const activationState = await ipcRenderer.invoke("activation-state:get-current");
+      console.log('info: Retrieved activation state:', activationState);
+      
+      // Set initial state based on unified state manager
+      setActivated(activationState.isActivated);
+      
+    } catch (error) {
+      console.error('error: Failed to initialize activation status:', error);
+      // Fallback to legacy check
+      await handleCheckActivated();
+    }
+  };
 
   const handleCheckActivated = async () => {
     try {
-      const result = await ipcRenderer.invoke("check-activation");
-      if (!result.isValid) {
+      // Use unified activation state manager for validation
+      const activationState = await ipcRenderer.invoke("activation-state:validate");
+      console.log('info: Activation validation result:', activationState);
+      
+      setActivated(activationState.isActivated);
+      
+      // Only redirect if we're on a protected page and not activated
+      if (!activationState.isActivated) {
+        const currentPath = window.location.pathname;
+        const isOnActivationPage = currentPath.includes('/activate-key');
+        
+        // Don't redirect if already on activation page
+        if (!isOnActivationPage) {
+          console.log('info: System not activated, redirecting to activation page');
+          replace("/activate-key");
+        }
+      }
+    } catch (error) {
+      console.error('error: Failed to check activation:', error);
+      setActivated(false);
+      
+      // Only redirect on error if not already on activation page
+      const currentPath = window.location.pathname;
+      const isOnActivationPage = currentPath.includes('/activate-key');
+      
+      if (!isOnActivationPage) {
+        console.log('Activation check failed, redirecting to activation page');
         replace("/activate-key");
       }
-      setActivated(result.isValid);
+    }
+  };
+
+  const refreshActivationStatus = async () => {
+    try {
+      // Force a fresh validation through the unified state manager
+      const activationState = await ipcRenderer.invoke("activation-state:validate");
+      console.log('info: Manual activation refresh result:', activationState);
+      
+      setActivated(activationState.isActivated);
+      
+      return activationState;
     } catch (error) {
-      console.error("License activation check failed:", error);
+      console.error('error: Failed to refresh activation status:', error);
       setActivated(false);
-      replace("/activate-key");
+      throw error;
     }
   };
 
   return (
-    <AppContext.Provider value={{ admin, setAdmin, isActivated }}>
+    <AppContext.Provider value={{ admin, setAdmin, isActivated, refreshActivationStatus }}>
       {children}
     </AppContext.Provider>
   );

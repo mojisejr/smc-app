@@ -7,6 +7,7 @@ import {
   StatusIndicator,
   DialogButton,
 } from "../components/Shared/DesignSystem";
+import { useApp } from "../contexts/appContext";
 
 /**
  * CLI License File Activation Page
@@ -83,6 +84,7 @@ const STEP_ICONS: Record<ActivationStep, string> = {
 
 export default function ActivatePage() {
   const { replace } = useRouter();
+  const { refreshActivationStatus } = useApp();
 
   // State management
   const [currentStep, setCurrentStep] = useState<ActivationStep>("loading");
@@ -147,6 +149,9 @@ export default function ActivatePage() {
         setProgress(100);
         setLicenseData(result.data || null);
         console.log("info: License activation completed successfully");
+        
+        // Refresh activation status immediately after successful activation
+        await refreshActivationStatus();
       } else {
         setCurrentStep("error");
         setProgress(0);
@@ -165,7 +170,9 @@ export default function ActivatePage() {
     startActivationProcess();
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    // Refresh activation status to ensure unified state synchronization
+    await refreshActivationStatus();
     replace("/home");
   };
 

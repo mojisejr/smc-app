@@ -17,13 +17,15 @@ import { useUnlock } from "../hooks/useUnlock";
 import Navbar from "../components/Shared/Navbar";
 import DeActivate from "../components/Dialogs/Deactivate";
 import { useIndicator } from "../hooks/useIndicator";
+import { useApp } from "../contexts/appContext";
 import { generateSlotArray, getResponsiveGridConfig, debugSlotConfiguration, loadDisplaySlotConfigAsync } from "../utils/getDisplaySlotConfig";
 
 function Home() {
-  const { slots } = useKuStates();
+  const { slots, get: refreshSlots } = useKuStates();
   const { unlocking } = useUnlock();
   const { dispensing } = useDispense();
   const { indicator } = useIndicator();
+  const { isActivated } = useApp();
   const [closeClearOrCon, setCloseClearOrCon] = useState<boolean>(false);
   const [closeLockWait, setCloseLockWait] = useState<boolean>(false);
   const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
@@ -65,6 +67,14 @@ function Home() {
 
     loadConfig();
   }, []);
+
+  // Refresh slot data when activation status changes
+  useEffect(() => {
+    if (isActivated) {
+      console.log('info: Activation status changed, refreshing slot data');
+      refreshSlots();
+    }
+  }, [isActivated, refreshSlots]);
 
   useEffect(() => {
     if (unlocking.unlocking) {

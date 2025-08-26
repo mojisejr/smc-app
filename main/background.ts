@@ -1,6 +1,13 @@
-import { BrowserWindow, app } from "electron";
+import { BrowserWindow, app, ipcMain } from "electron";
+import { join } from "path";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
+
+// Environment configuration
+const env = process.env;
+const is = {
+  dev: process.env.NODE_ENV !== "production"
+};
 
 // Load environment variables from .env file
 import * as dotenv from "dotenv";
@@ -41,6 +48,7 @@ import { activateKeyHandler } from "./license/ipcMain/activate-key";
 import { activationProgressHandler } from "./license/ipcMain/activation-progress";
 import { isSystemActivated } from "./license/validator";
 import { getValidationMode } from "./utils/environment";
+import ActivationStateManager from "./license/activation-state-manager";
 import { IndicatorDevice } from "./indicator";
 /**
  * Indicates whether the application is running in production mode.
@@ -92,32 +100,6 @@ if (isProd) {
     mainWindow
   );
 
-  // PHASE 4.2: DS12-Only Implementation - No fallback strategy
-  console.log("Phase 4.2: Initializing DS12Controller (DS12-only mode)...");
-
-  const ds12Initialized = await BuildTimeController.initialize(
-    mainWindow,
-    settings.ku_port,
-    settings.ku_baudrate
-  );
-
-  if (ds12Initialized) {
-    console.log("✅ Using DS12Controller (Phase 4.2 DS12-only mode)");
-
-    // Start receiving data from DS12Controller
-    const controller = BuildTimeController.getCurrentController();
-    if (controller) {
-      controller.receive();
-    }
-  } else {
-    console.warn("⚠️ DS12Controller unavailable - running in offline mode");
-    console.warn(
-      "⚠️ Hardware operations will be disabled until connection restored"
-    );
-    // Allow app to continue - license validation and UI will work normally
-    // Hardware operations will fail gracefully at IPC level (existing behavior)
-  }
-
   // Initialize authentication system
   const auth = new Authentication();
 
@@ -129,39 +111,37 @@ if (isProd) {
   checkActivationKeyHandler();
   activationProgressHandler();
 
-  // Check license activation status and determine initial page (Phase 4.2)
+  if (is.dev && env.RENDERER_REMOTE_URL) {
+    mainWindow.loadURL(env.RENDERER_REMOTE_URL);
+  } else {
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+  }
+
+  // Initialize unified activation state manager (includes DS12Controller initialization)
   let initialPage = "activate-key"; // Default to activation page
-
+  
   try {
-    // Phase 4.2: Check validation mode first
-    const validationMode = getValidationMode();
-
-    if (validationMode === "bypass") {
-      console.log(
-        "info: Bypass mode detected - proceeding directly to home page"
-      );
-      initialPage = "home";
-    } else {
-      console.log("info: Checking system activation status...");
-      const isActivated = await isSystemActivated();
-
-      if (isActivated) {
-        console.log(
-          "info: System is activated - proceeding to main application"
-        );
-        initialPage = "home";
-      } else {
-        console.log(
-          "info: System not activated - redirecting to activation page"
-        );
-        initialPage = "activate-key";
-      }
-    }
+    // Initialize activation state manager with integrated DS12Controller
+    const activationState = await ActivationStateManager.initialize(mainWindow);
+    
+    // Determine initial page based on activation state
+    initialPage = activationState.isActivated ? "home" : "activate-key";
+    
+    console.log(`info: System activation status: ${activationState.isActivated}`);
+    console.log(`info: DS12Controller status: ${activationState.ds12Available}`);
+    console.log(`info: Initial page set to: ${initialPage}`);
+    
   } catch (error: any) {
-    console.error("error: License activation check failed:", error.message);
+    console.error("error: Failed to initialize activation system:", error.message);
     console.log("info: Defaulting to activation page due to error");
     initialPage = "activate-key";
   }
+
+  // Navigate to the appropriate initial page
+  mainWindow.webContents.once("did-finish-load", () => {
+    console.log(`info: Navigating to initial page: ${initialPage}`);
+    mainWindow?.webContents.send("navigate-to-page", initialPage);
+  });
 
   // Register all IPC handlers for various functionalities
   // PHASE 4.2: Use unified device controller handler registration
