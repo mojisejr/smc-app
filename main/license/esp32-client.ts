@@ -42,18 +42,11 @@ export class ESP32Client {
   static readonly MAC_ENDPOINT = process.env.SMC_ESP32_MAC_ENDPOINT || '/mac';
 
   /**
-   * ทดสอบการเชื่อมต่อกับ ESP32 (Phase 4.2)
-   * รองรับ validation modes: bypass, real-hardware, production
+   * ทดสอบการเชื่อมต่อกับ ESP32 (HKDF v2.0)
+   * 🔒 เสมอต้องเชื่อมต่อกับ ESP32 จริง - ไม่มี bypass
    */
   static async testConnection(ip?: string): Promise<boolean> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
-    const validationMode = getValidationMode();
-    
-    // ตรวจสอบ validation mode
-    if (validationMode === 'bypass') {
-      console.log(`info: [BYPASS] Skipping ESP32 connection test to ${targetIp}`);
-      return true; // Bypass - ข้าม connection test
-    }
     
     try {
       console.log(`info: Testing ESP32 connection to ${targetIp}`);
@@ -75,29 +68,17 @@ export class ESP32Client {
   }
 
   /**
-   * ดึง MAC address จาก ESP32 (Phase 4.2)
+   * ดึง MAC address จาก ESP32 (HKDF v2.0)
+   * 🔒 เสมอต้องได้ MAC จาก ESP32 จริง - ไม่มี bypass
    * พร้อม retry logic และ error handling
-   * รองรับ validation modes: bypass, real-hardware, production
    */
   static async getMacAddress(ip?: string): Promise<string | null> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
-    const validationMode = getValidationMode();
     
-    // ตรวจสอบ validation mode
-    if (validationMode === 'bypass') {
-      console.log('info: [BYPASS] Skipping MAC address retrieval - license validation bypassed');
-      await logger({
-        user: "system",
-        message: "MAC address retrieval bypassed - SMC_LICENSE_BYPASS_MODE=true"
-      });
-      return null; // Bypass - ไม่ต้อง MAC address
-    }
-    
-    // real-hardware และ production modes ใช้ ESP32 จริง
-    console.log(`info: [${validationMode.toUpperCase()}] Connecting to real ESP32 hardware`);
+    console.log('info: Connecting to ESP32 hardware for MAC address retrieval');
     await logger({
       user: "system", 
-      message: `ESP32 MAC address request - mode: ${validationMode}`
+      message: "ESP32 MAC address request - hardware binding required"
     });
     
     let lastError: Error | null = null;

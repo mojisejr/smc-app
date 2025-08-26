@@ -707,10 +707,9 @@ Security:
         throw new Error('License must be HKDF format (version 2.0.0). Please regenerate license with current CLI version.');
       }
       
-      // Parse license data using HKDF
+      // Parse license data using HKDF (WiFi SSID now from KDF context)
       const licenseData = parseLicenseFile(fileContent, {
-        macAddress: options.macAddress.toUpperCase(),
-        wifiSsid: options.wifiSsid
+        macAddress: options.macAddress.toUpperCase()
       });
       
       console.log(chalk.green('✅ License parsed successfully'));

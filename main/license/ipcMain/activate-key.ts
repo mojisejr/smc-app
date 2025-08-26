@@ -47,49 +47,60 @@ export const activateKeyHandler = async () => {
         };
       }
 
-      const licenseData = await LicenseFileManager.parseLicenseFile(filePath);
+      // Step: ดึง WiFi credentials จาก license file (ต้องได้ก่อนการ parse เต็ม)
+      event.sender.send('activation-progress', { step: 'file-parsing', progress: 15 });
+      
+      // อ่าน license file structure เพื่อ extract WiFi SSID (จำเป็นสำหรับ HKDF parsing)
+      const licenseFileContent = await require('fs/promises').readFile(filePath, 'utf8');
+      const licenseFileStructure = JSON.parse(licenseFileContent);
+      
+      if (licenseFileStructure.version !== '2.0.0' || !licenseFileStructure.kdf_context) {
+        return {
+          success: false,
+          error: 'ไฟล์ license format ไม่รองรับ - ต้องการ HKDF v2.0 เท่านั้น',
+          step: 'file-parsing'
+        };
+      }
+      
+      // Extract WiFi SSID จาก KDF context (non-sensitive data)
+      const kdfInfo = licenseFileStructure.kdf_context.info;
+      const infoParts = kdfInfo.split('|');
+      if (infoParts.length < 5) {
+        return {
+          success: false,
+          error: 'ไฟล์ license structure ไม่ถูกต้อง',
+          step: 'file-parsing'
+        };
+      }
+      
+      // Step 2: ดึง MAC address จาก ESP32 ก่อน (เพื่อใช้ในการ parse license)
+      event.sender.send('activation-progress', { step: 'mac-retrieval', progress: 30 });
+      
+      const esp32Mac = await ESP32Client.getMacAddress();
+      if (!esp32Mac) {
+        return {
+          success: false,
+          error: 'ไม่สามารถดึง MAC address จาก ESP32 ได้ กรุณาตรวจสอบการเชื่อมต่อ',
+          step: 'mac-retrieval'
+        };
+      }
+
+      console.log(`info: ESP32 MAC address retrieved: ${esp32Mac}`);
+
+      // Step 3: Parse license file ด้วย ESP32 MAC (HKDF v2.0 - WiFi SSID จาก context)
+      event.sender.send('activation-progress', { step: 'file-parsing', progress: 45 });
+      
+      const licenseData = await LicenseFileManager.parseLicenseFile(filePath, esp32Mac);
       if (!licenseData) {
         return {
           success: false,
-          error: 'ไม่สามารถอ่านไฟล์ license ได้ รูปแบบไฟล์ไม่ถูกต้อง',
+          error: 'ไม่สามารถอ่านไฟล์ license ได้ด้วย ESP32 hardware binding',
           step: 'file-parsing'
         };
       }
 
-      console.log(`info: License file parsed - Organization: ${licenseData.organization}`);
-
-      // Step 2: ตรวจสอบวันหมดอายุ
-      event.sender.send('activation-progress', { step: 'expiry-check', progress: 20 });
-      
-      const expiryDate = new Date(licenseData.expiryDate);
-      const today = new Date();
-      
-      if (expiryDate < today) {
-        await logger({
-          user: "system",
-          message: `License activation failed: License expired on ${licenseData.expiryDate}`
-        });
-        return {
-          success: false,
-          error: `License หมดอายุแล้ว (หมดอายุ: ${licenseData.expiryDate})`,
-          step: 'expiry-check'
-        };
-      }
-
-      // Step 3: ตรวจสอบ organization data
-      event.sender.send('activation-progress', { step: 'organization-validation', progress: 30 });
-      
-      const orgValid = await validateOrganizationData(licenseData);
-      if (!orgValid) {
-        return {
-          success: false,
-          error: 'ข้อมูลองค์กรใน license ไม่ตรงกับการตั้งค่าระบบ',
-          step: 'organization-validation'
-        };
-      }
-
-      // Step 4: ดึง WiFi credentials และเชื่อมต่อ
-      event.sender.send('activation-progress', { step: 'wifi-connecting', progress: 40 });
+      // Step 4: ดึง WiFi credentials จาก license data และเชื่อมต่อ ESP32
+      event.sender.send('activation-progress', { step: 'wifi-connecting', progress: 55 });
       
       const wifiCredentials = await LicenseFileManager.extractWiFiCredentials(licenseData);
       if (!wifiCredentials) {
@@ -111,21 +122,43 @@ export const activateKeyHandler = async () => {
         };
       }
 
-      // Step 5: ดึง MAC address จาก ESP32
-      event.sender.send('activation-progress', { step: 'mac-validation', progress: 70 });
+      console.log(`info: HKDF license file parsed successfully - Organization: ${licenseData.organization}`);
+
+      // Step 5: ตรวจสอบวันหมดอายุ
+      event.sender.send('activation-progress', { step: 'expiry-check', progress: 70 });
       
-      const esp32Mac = await ESP32Client.getMacAddress();
-      if (!esp32Mac) {
+      const expiryDate = new Date(licenseData.expiryDate);
+      const today = new Date();
+      
+      if (expiryDate < today) {
+        await logger({
+          user: "system",
+          message: `License activation failed: License expired on ${licenseData.expiryDate}`
+        });
         return {
           success: false,
-          error: 'ไม่สามารถดึง MAC address จาก ESP32 ได้ กรุณาตรวจสอบการเชื่อมต่อ',
-          step: 'mac-retrieval'
+          error: `License หมดอายุแล้ว (หมดอายุ: ${licenseData.expiryDate})`,
+          step: 'expiry-check'
         };
       }
 
-      // Step 6: ตรวจสอบ MAC address matching
+      // Step 6: ตรวจสอบ organization data
+      event.sender.send('activation-progress', { step: 'organization-validation', progress: 80 });
+      
+      const orgValid = await validateOrganizationData(licenseData);
+      if (!orgValid) {
+        return {
+          success: false,
+          error: 'ข้อมูลองค์กรใน license ไม่ตรงกับการตั้งค่าระบบ',
+          step: 'organization-validation'
+        };
+      }
+
+      // Step 7: MAC address validation (เพิ่มเติม - เผื่อต้องการ double-check)
+      event.sender.send('activation-progress', { step: 'mac-validation', progress: 85 });
+      
       if (licenseData.macAddress.toUpperCase() !== esp32Mac.toUpperCase()) {
-        console.log(`debug: MAC address mismatch`);
+        console.log(`debug: MAC address mismatch in license data validation`);
         console.log(`debug: License MAC: ${licenseData.macAddress}`);
         console.log(`debug: ESP32 MAC: ${esp32Mac}`);
         

@@ -145,16 +145,21 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
       console.log(`info: License file specified: ${licenseFile}`);
 
       const licenseParser = new LicenseParser({ verbose: true });
-      
+
       // For HKDF v2.0 licenses, provide sensitive data matching CLI generation
       // This allows license parsing during build-prep process
       const sensitiveDataForHKDF = {
-        macAddress: 'AA:BB:CC:DD:EE:FF',  // Match CLI test license
-        wifiSsid: 'TestWiFi_HKDF'         // Match CLI test license
+        macAddress: "AA:BB:CC:DD:EE:FF", // Match CLI test license
+        wifiSsid: "TestWiFi_HKDF", // Match CLI test license
       };
-      
-      console.log('info: Parsing license (using sensitive data for HKDF if needed)...');
-      const licenseData = await licenseParser.parseLicenseFile(licenseFile, sensitiveDataForHKDF);
+
+      console.log(
+        "info: Parsing license (using sensitive data for HKDF if needed)..."
+      );
+      const licenseData = await licenseParser.parseLicenseFile(
+        licenseFile,
+        sensitiveDataForHKDF
+      );
 
       // ใช้ข้อมูลจาก license แทน environment variables
       organizationName = licenseData.organization;
@@ -445,7 +450,7 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
         id, name, role, passkey
       ) VALUES (
         1, 'admin1', 'ADMIN', 'admin1'
-      )
+      );
     `);
 
     // Initialize default slots for device type

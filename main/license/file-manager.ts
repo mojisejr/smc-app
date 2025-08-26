@@ -4,27 +4,25 @@ import * as process from 'process';
 import crypto from 'crypto';
 
 /**
- * License File Manager
+ * HKDF v2.0 License File Manager
  * 
- * จัดการ license.lic files สำหรับระบบ CLI License
- * ใช้ encryption logic เดียวกับ CLI tool
+ * จัดการ license.lic files ด้วย HKDF-based encryption
+ * ใช้ ESP32 MAC address เป็น hardware binding เสมอ
+ * ❌ ไม่รองรับ Legacy v1.0 อีกต่อไป
  */
 
-// Shared secret key - ต้องตรงกับ CLI tool
-const SHARED_SECRET_KEY = process.env.SHARED_SECRET_KEY || 
-  'SMC_LICENSE_ENCRYPTION_KEY_2024_SECURE_MEDICAL_DEVICE_BINDING_32CHARS';
+// HKDF configuration (RFC 5869) - ตรงกับ CLI
+const HKDF_CONFIG = {
+  hash: 'sha256',
+  key_length: 32, // 32 bytes for AES-256
+  salt_length: 32, // 32 bytes random salt
+  info_prefix: 'SMC_LICENSE_KDF_v1.0' // Context info prefix
+};
 
-// Pre-computed key สำหรับ performance (32 bytes สำหรับ AES-256)
-const PRECOMPUTED_KEY = crypto.createHash('sha256')
-  .update(SHARED_SECRET_KEY)
-  .digest('hex')
-  .slice(0, 32);
-
-// Encryption configuration
+// Encryption configuration - ตรงกับ CLI
 const ENCRYPTION_CONFIG = {
-  algorithm: 'aes-256-cbc' as const,
-  key: PRECOMPUTED_KEY,
-  iv_length: 16
+  algorithm: 'aes-256-cbc',
+  iv_length: 16 // 16 bytes IV for AES
 };
 
 // License data structure (ตรงกับ CLI types)
@@ -41,12 +39,153 @@ export interface LicenseData {
   checksum?: string;
 }
 
-// License file structure (ตรงกับ CLI types)
+// KDF Context for HKDF key derivation - ตรงกับ CLI types
+export interface KDFContext {
+  salt: string;              // Deterministic salt (Base64)
+  info: string;              // Context info for HKDF (non-sensitive data only)
+  algorithm: 'hkdf-sha256';  // HKDF algorithm identifier
+}
+
+// License file structure (HKDF v2.0 only) - ตรงกับ CLI types
 export interface LicenseFile {
-  version: string;
-  encrypted_data: string;
-  algorithm: string;
-  created_at: string;
+  version: string;           // License file format version (2.0.0 for HKDF)
+  encrypted_data: string;    // AES-256 encrypted license data (Base64)
+  algorithm: string;         // Encryption algorithm used
+  created_at: string;        // Creation timestamp
+  
+  // HKDF context (v2.0+ only, no sensitive data exposed)
+  kdf_context: KDFContext;   // KDF context for HKDF key generation (required)
+}
+
+/**
+ * Generate HKDF key from license data และ KDF context
+ * ใช้ HKDF (RFC 5869) สำหรับ secure key derivation
+ * 
+ * @param licenseData - Complete license data (รวม sensitive data)
+ * @param kdfContext - KDF context จาก license file
+ * @returns 32-byte encryption key
+ */
+function generateHKDFKey(licenseData: LicenseData, kdfContext: KDFContext): Buffer {
+  console.log('info: Generating HKDF key for license decryption...');
+  
+  try {
+    // สร้าง Input Key Material (IKM) จาก sensitive license data
+    const ikm_parts = [
+      licenseData.applicationId,
+      licenseData.customerId,
+      licenseData.wifiSsid,
+      licenseData.macAddress, // Sensitive data - ไม่อยู่ใน context
+      licenseData.expiryDate
+    ];
+    
+    const ikm = Buffer.from(ikm_parts.join('_'), 'utf8');
+    
+    // แปลง salt จาก base64
+    const salt = Buffer.from(kdfContext.salt, 'base64');
+    
+    // แปลง info จาก string
+    const info = Buffer.from(kdfContext.info, 'utf8');
+    
+    console.log(`debug: IKM size: ${ikm.length} bytes`);
+    console.log(`debug: Salt size: ${salt.length} bytes`);
+    console.log(`debug: Info size: ${info.length} bytes`);
+    
+    // HKDF-Extract: PRK = HMAC-Hash(salt, IKM)
+    const prk = crypto.createHmac(HKDF_CONFIG.hash, salt).update(ikm).digest();
+    
+    // HKDF-Expand: OKM = HMAC-Hash(PRK, info + 0x01)
+    const expandInfo = Buffer.concat([info, Buffer.from([0x01])]);
+    const okm = crypto.createHmac(HKDF_CONFIG.hash, prk).update(expandInfo).digest();
+    
+    // ตัด key ให้ได้ขนาดที่ต้องการ (32 bytes สำหรับ AES-256)
+    const derivedKey = okm.slice(0, HKDF_CONFIG.key_length);
+    
+    console.log('info: ✅ HKDF key generated successfully');
+    console.log(`debug: Key size: ${derivedKey.length} bytes`);
+    
+    return derivedKey;
+    
+  } catch (error: any) {
+    console.error(`error: HKDF key generation failed: ${error.message}`);
+    throw new Error(`HKDF key generation failed: ${error.message}`);
+  }
+}
+
+/**
+ * ถอดรหัสข้อมูล license ด้วย AES-256-CBC + HKDF
+ * 
+ * @param encryptedData - Encrypted string (Base64)
+ * @param kdfContext - KDF context จาก license file
+ * @param keyData - Key data for HKDF (เมื่อรู้ sensitive data)
+ * @returns License data object
+ */
+function decryptLicenseData(
+  encryptedData: string,
+  kdfContext: KDFContext,
+  keyData: {
+    applicationId: string;
+    customerId: string;
+    wifiSsid: string;
+    macAddress: string;
+    expiryDate: string;
+  }
+): LicenseData {
+  try {
+    console.log('info: Decrypting HKDF license data...');
+    
+    // สร้าง temporary license data object สำหรับ HKDF key generation
+    const tempLicenseData: LicenseData = {
+      applicationId: keyData.applicationId,
+      customerId: keyData.customerId,
+      wifiSsid: keyData.wifiSsid,
+      macAddress: keyData.macAddress,
+      expiryDate: keyData.expiryDate,
+      organization: '', // จะได้จาก decrypted data
+      generatedAt: '',
+      wifiPassword: '',
+      version: '1.0.0',
+      checksum: ''
+    };
+    
+    // สร้าง HKDF key จาก key data และ KDF context
+    const derivedKey = generateHKDFKey(tempLicenseData, kdfContext);
+    
+    console.log('debug: Using HKDF key for decryption');
+    
+    // Decode จาก Base64
+    const hexData = Buffer.from(encryptedData, 'base64').toString('utf8');
+    
+    // แยก IV กับ encrypted data
+    const parts = hexData.split(':');
+    if (parts.length !== 2) {
+      throw new Error('Invalid encrypted data format');
+    }
+    
+    const iv = Buffer.from(parts[0], 'hex');
+    const encrypted = parts[1];
+    
+    console.log(`debug: IV length: ${iv.length} bytes`);
+    console.log(`debug: Data length: ${encrypted.length} characters`);
+    
+    // สร้าง decipher ด้วย createDecipheriv ด้วย HKDF key
+    const decipher = crypto.createDecipheriv(ENCRYPTION_CONFIG.algorithm, derivedKey, iv);
+    
+    // ถอดรหัสข้อมูล
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    // Parse JSON
+    const decryptedLicenseData = JSON.parse(decrypted);
+    
+    console.log('info: ✅ HKDF license decryption successful');
+    console.log(`info: Organization: ${decryptedLicenseData.organization}`);
+    
+    return decryptedLicenseData as LicenseData;
+    
+  } catch (error: any) {
+    console.error(`error: HKDF license decryption failed: ${error.message}`);
+    throw new Error(`License HKDF decryption failed: ${error.message}`);
+  }
 }
 
 export class LicenseFileManager {
@@ -158,9 +297,18 @@ export class LicenseFileManager {
   }
 
   /**
-   * อ่านและ parse license file จาก path ที่ระบุ
+   * อ่านและ parse HKDF v2.0 license file
+   * 🔒 ต้องใช้ ESP32 MAC address เสมอ - ไม่มี bypass
+   * WiFi SSID จะถูกดึงจาก KDF context โดยอัตโนมัติ
+   * 
+   * @param filePath - License file path (optional, will search if not provided)
+   * @param esp32MacAddress - ESP32 MAC address from real hardware (REQUIRED)
+   * @returns License data หรือ null ถ้า fail
    */
-  static async parseLicenseFile(filePath?: string): Promise<LicenseData | null> {
+  static async parseLicenseFile(
+    filePath?: string, 
+    esp32MacAddress?: string
+  ): Promise<LicenseData | null> {
     try {
       // ถ้าไม่ระบุ path ให้ค้นหาเอง
       const targetPath = filePath || await this.findLicenseFile();
@@ -170,7 +318,16 @@ export class LicenseFileManager {
         return null;
       }
 
-      console.log(`info: Parsing license file: ${targetPath}`);
+      console.log(`info: Parsing HKDF v2.0 license file: ${targetPath}`);
+
+      // ตรวจสอบ ESP32 hardware requirement
+      if (!esp32MacAddress) {
+        console.error('error: ESP32 MAC address จำเป็นสำหรับ HKDF license parsing');
+        console.error('error: license.lic ต้องใช้ ESP32 hardware binding เสมอ');
+        throw new Error('ESP32 MAC address จำเป็นสำหรับการอ่าน license file');
+      }
+
+      console.log(`info: Using ESP32 hardware binding - MAC: ${esp32MacAddress}`);
 
       // อ่านไฟล์
       const fileContent = await fs.readFile(targetPath, 'utf8');
@@ -178,9 +335,12 @@ export class LicenseFileManager {
       // Parse JSON structure
       const licenseFile = JSON.parse(fileContent) as LicenseFile;
 
-      // ตรวจสอบ version compatibility
-      if (licenseFile.version !== '1.0.0') {
-        console.log(`debug: License file version ${licenseFile.version} may not be compatible`);
+      // ตรวจสอบ HKDF v2.0 format
+      if (licenseFile.version !== '2.0.0' || !licenseFile.kdf_context) {
+        console.error(`error: License file version ${licenseFile.version} ไม่รองรับ`);
+        console.error('error: SMC App รองรับเฉพาะ HKDF v2.0 licenses เท่านั้น');
+        console.error('error: Legacy v1.0 licenses ไม่รองรับอีกต่อไป');
+        throw new Error('License file format ไม่รองรับ - ต้องการ HKDF v2.0 (version 2.0.0) เท่านั้น');
       }
 
       // ตรวจสอบ algorithm
@@ -188,84 +348,90 @@ export class LicenseFileManager {
         throw new Error(`Unsupported encryption algorithm: ${licenseFile.algorithm}`);
       }
 
-      // ถอดรหัส license data
-      const licenseData = this.decryptLicenseData(licenseFile.encrypted_data);
+      console.log(`info: ✅ HKDF v2.0 license file detected`);
+      console.log(`info: Algorithm: ${licenseFile.algorithm}`);
+      console.log(`info: Created: ${licenseFile.created_at}`);
 
-      console.log(`info: License file parsed successfully`);
+      // Parse KDF context เพื่อได้ non-sensitive data รวม WiFi SSID
+      const kdfInfo = licenseFile.kdf_context.info;
+      const infoParts = kdfInfo.split('|');
+      
+      if (infoParts.length < 6) {
+        throw new Error('Invalid KDF context info format - missing WiFi SSID (expected 6 parts, got ' + infoParts.length + ')');
+      }
+      
+      // Extract non-sensitive data จาก KDF context
+      const applicationId = infoParts[1];
+      const customerId = infoParts[2];
+      const expiryDate = infoParts[3];
+      const version = infoParts[4];
+      const wifiSsid = infoParts[5];  // WiFi SSID จาก KDF context
+      
+      console.log(`info: Application ID: ${applicationId}`);
+      console.log(`info: Customer ID: ${customerId}`);
+      console.log(`info: Expiry: ${expiryDate}`);
+      console.log(`info: Version: ${version}`);
+      console.log(`info: WiFi SSID from license: ${wifiSsid}`);
+      
+      // สร้าง key data รวม sensitive และ non-sensitive data
+      const keyData = {
+        applicationId,
+        customerId,
+        wifiSsid: wifiSsid,          // จาก KDF context (ไม่ใช่ parameter อีกต่อไป)
+        macAddress: esp32MacAddress,  // จาก ESP32 hardware
+        expiryDate
+      };
+      
+      // ถอดรหัส license data ด้วย HKDF
+      const licenseData = decryptLicenseData(
+        licenseFile.encrypted_data,
+        licenseFile.kdf_context,
+        keyData
+      );
+
+      console.log(`info: ✅ HKDF license file parsed successfully`);
       console.log(`info: Organization: ${licenseData.organization}`);
       console.log(`info: Customer: ${licenseData.customerId}`);
       console.log(`info: Expires: ${licenseData.expiryDate}`);
 
       return licenseData;
 
-    } catch (error) {
-      console.error("error: Failed to parse license file:", error);
+    } catch (error: any) {
+      console.error("error: Failed to parse HKDF license file:", error.message);
       return null;
     }
   }
 
   /**
-   * ถอดรหัส license data ด้วย AES-256-CBC
-   * (เหมือนกับ CLI encryption.ts)
-   */
-  private static decryptLicenseData(encryptedData: string): LicenseData {
-    try {
-      console.log('info: Decrypting license data...');
-      
-      // Decode จาก Base64
-      const hexData = Buffer.from(encryptedData, 'base64').toString('utf8');
-      
-      // แยก IV กับ encrypted data
-      const parts = hexData.split(':');
-      if (parts.length !== 2) {
-        throw new Error('Invalid encrypted data format');
-      }
-      
-      const iv = Buffer.from(parts[0], 'hex');
-      const encrypted = parts[1];
-      
-      console.log(`debug: IV length: ${iv.length} bytes`);
-      console.log(`debug: Data length: ${encrypted.length} characters`);
-      
-      // สร้าง decipher
-      const decipher = crypto.createDecipheriv(
-        ENCRYPTION_CONFIG.algorithm, 
-        ENCRYPTION_CONFIG.key as any, 
-        iv
-      );
-      
-      // ถอดรหัส
-      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      
-      // Parse JSON
-      const licenseData = JSON.parse(decrypted);
-      
-      console.log('info: License data decryption successful');
-      
-      return licenseData as LicenseData;
-      
-    } catch (error: any) {
-      console.error(`error: License decryption failed: ${error.message}`);
-      throw new Error(`License decryption failed: ${error.message}`);
-    }
-  }
-
-  /**
-   * ตรวจสอบ license file structure ว่าถูกต้องหรือไม่
+   * ตรวจสอบ HKDF v2.0 license file structure ว่าถูกต้องหรือไม่
    */
   static async validateFileStructure(filePath: string): Promise<boolean> {
     try {
       const fileContent = await fs.readFile(filePath, 'utf8');
       const licenseFile = JSON.parse(fileContent) as LicenseFile;
       
-      // ตรวจสอบ required fields
-      const requiredFields = ['version', 'encrypted_data', 'algorithm', 'created_at'];
+      // ตรวจสอบ HKDF v2.0 required fields
+      const requiredFields = ['version', 'encrypted_data', 'algorithm', 'created_at', 'kdf_context'];
       for (const field of requiredFields) {
         if (!licenseFile[field as keyof LicenseFile]) {
-          console.log(`debug: Missing required field in license file: ${field}`);
+          console.log(`debug: Missing required field in HKDF license file: ${field}`);
           return false;
         }
+      }
+      
+      // ตรวจสอบ HKDF v2.0 version
+      if (licenseFile.version !== '2.0.0') {
+        console.log(`debug: Unsupported license version: ${licenseFile.version} (expected: 2.0.0)`);
+        return false;
+      }
+      
+      // ตรวจสอบ KDF context structure
+      if (!licenseFile.kdf_context || 
+          !licenseFile.kdf_context.salt || 
+          !licenseFile.kdf_context.info || 
+          licenseFile.kdf_context.algorithm !== 'hkdf-sha256') {
+        console.log('debug: Invalid KDF context structure');
+        return false;
       }
       
       // ตรวจสอบ algorithm support
@@ -274,13 +440,15 @@ export class LicenseFileManager {
         return false;
       }
       
+      console.log('info: ✅ HKDF v2.0 license file structure validation passed');
       return true;
       
     } catch (error) {
-      console.error("error: License file structure validation failed:", error);
+      console.error("error: HKDF license file structure validation failed:", error);
       return false;
     }
   }
+
 
   /**
    * ดึง WiFi credentials จาก license data

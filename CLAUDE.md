@@ -296,6 +296,72 @@ useEffect(() => {
 - พยายาม commit checkpoint เมื่อจบ แต่ละ phase
 - หลังจากจบแต่ละ phase ถ้ามี run dev server ให้ kill ด้วย
 
+\*\* Shortcut Commands
+
+คำสั่งลัดสำหรับการทำงานต่างๆ:
+
+1. `=fcs` - คำสั่งสำหรับ update current focus file (`docs/current-focus.md`)
+2. `=atc` - คำสั่งสำหรับ update architecture docs file
+3. `=impl` - คำสั่งสำหรับเริ่ม implement ได้ทันที
+4. `=rrr` - คำสั่งสำหรับ update retrospective file
+
+\*\* Retrospective Workflow
+
+เมื่อพิมพ์ `=rrr` จะทำการ update retrospective file ตามขั้นตอนดังนี้:
+
+1. โครงสร้างไฟล์: `docs/retrospective/<folder ชื่อเดือนปี>/<file retrospective ของแต่ละวัน>`
+2. การทำงาน:
+   - เมื่อเริ่มต้นวันใหม่: สร้าง retrospective file ของวันนั้น
+   - ระหว่างวัน: update retrospective file ของวันนั้นไปเรื่อยๆ
+   - เมื่อจบวันและขึ้นวันใหม่: สร้างไฟล์ใหม่และทำงานกับไฟล์ใหม่
+   - เมื่อครบเดือน: สร้าง folder ของเดือนใหม่และเขียนไฟล์ใหม่ในนั้น
+
+3. Template ของ Retrospective File:
+
+```markdown
+# Retrospective วันที่ [วัน-เดือน-ปี]
+
+## 1. งานที่ทำไป
+
+- [Topic/Task 1]
+  - [รายละเอียดงานย่อย]
+  - [รายละเอียดงานย่อย]
+- [Topic/Task 2]
+  - [รายละเอียดงานย่อย]
+
+## 2. Bug/Error ที่เกิดขึ้นและการแก้ไข
+
+- [Bug/Error 1]
+  - สาเหตุ: [อธิบายสาเหตุ]
+  - วิธีแก้ไข: [อธิบายวิธีแก้ไข]
+- [Bug/Error 2]
+  - สาเหตุ: [อธิบายสาเหตุ]
+  - วิธีแก้ไข: [อธิบายวิธีแก้ไข]
+
+## 3. สิ่งที่ได้เรียนรู้ (Lesson Learned)
+
+- [Lesson 1]
+- [Lesson 2]
+- [Lesson 3]
+
+## 4. สิ่งสำคัญและข้อควรจำ
+
+- [ข้อควรระวัง 1]
+- [สิ่งที่ต้องจำ 2]
+- [ข้อสังเกตสำคัญ 3]
+
+## 5. หมายเหตุเพิ่มเติม (ถ้ามี)
+
+- [หมายเหตุ 1]
+- [หมายเหตุ 2]
+
+## 6. แผนของวันพรุ่งนี้ (ถ้ามี)
+
+- [แผนงาน 1]
+- [แผนงาน 2]
+- [แผนงาน 3]
+```
+
 \*\* When you need to write console.log
 
 - ผมต้องการให้แบ่ง category เป็นดังนี้

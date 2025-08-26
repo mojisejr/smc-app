@@ -24,55 +24,57 @@ export interface ValidationResult {
 
 export const checkActivationKeyHandler = async () => {
   
-  // Primary handler - ใช้ quick validation
+  // Primary handler - HKDF v2.0 validation (always requires ESP32)
   ipcMain.handle("check-activation", async (): Promise<ValidationResult> => {
     try {
-      console.log("info: Checking license activation status");
+      console.log("info: Checking HKDF v2.0 license activation status");
       
       const isValid = await validateLicense();
       
       if (isValid) {
         await logger({
           user: "system",
-          message: "License validation successful (quick check)"
+          message: "HKDF license validation successful (ESP32 hardware binding)"
         });
         
         return {
           isValid: true,
-          method: 'quick',
+          method: 'full', // HKDF v2.0 เสมอใช้ ESP32 validation
           details: {
             databaseFlag: true,
-            licenseFileExists: true
+            licenseFileExists: true,
+            esp32Connected: true,
+            macAddressValid: true
           }
         };
       } else {
         return {
           isValid: false,
-          method: 'quick',
-          error: 'License validation failed - system not activated or license file missing'
+          method: 'full',
+          error: 'HKDF license validation failed - ESP32 hardware binding required'
         };
       }
       
     } catch (error: any) {
-      console.error("error: License validation failed:", error);
+      console.error("error: HKDF license validation failed:", error);
       
       await logger({
         user: "system",
-        message: `License validation error: ${error.message}`
+        message: `HKDF license validation error: ${error.message}`
       });
       
       return {
         isValid: false,
-        method: 'quick',
+        method: 'full',
         error: error.message
       };
     }
   });
 
-  // Full validation with ESP32 - ใช้เมื่อต้องการความแม่นยำสูง
+  // Full validation handler - same as primary handler in HKDF v2.0
   ipcMain.handle("check-activation-full", async (): Promise<ValidationResult> => {
     try {
-      console.log("info: Performing full license validation with ESP32");
+      console.log("info: Performing HKDF v2.0 license validation (always full ESP32 validation)");
       
       // เริ่มด้วยการตรวจสอบ database flag
       const databaseFlag = await isSystemActivated();
@@ -87,13 +89,13 @@ export const checkActivationKeyHandler = async () => {
         };
       }
 
-      // Full validation กับ ESP32
+      // HKDF v2.0 validation (เสมอใช้ ESP32 hardware binding)
       const isValid = await validateLicenseWithESP32();
       
       if (isValid) {
         await logger({
           user: "system",
-          message: "License validation successful (full ESP32 validation)"
+          message: "HKDF license validation successful (full ESP32 hardware binding)"
         });
         
         return {
@@ -111,21 +113,21 @@ export const checkActivationKeyHandler = async () => {
         return {
           isValid: false,
           method: 'full',
-          error: 'Full ESP32 validation failed',
+          error: 'HKDF ESP32 hardware binding validation failed',
           details: {
             databaseFlag: true,
             licenseFileExists: true,
-            esp32Connected: false, // อาจมีปัญหาตรงนี้
+            esp32Connected: false, // ESP32 connection issue
           }
         };
       }
       
     } catch (error: any) {
-      console.error("error: Full license validation failed:", error);
+      console.error("error: HKDF license validation failed:", error);
       
       await logger({
         user: "system",
-        message: `Full license validation error: ${error.message}`
+        message: `HKDF license validation error: ${error.message}`
       });
       
       return {

@@ -235,40 +235,20 @@ export async function validateOrganizationData(licenseData: any): Promise<boolea
 }
 
 /**
- * ฟังก์ชันหลักสำหรับการตรวจสอบ license (Phase 4.2)
- * รองรับ validation modes ใหม่: bypass, real-hardware, production
+ * ฟังก์ชันหลักสำหรับการตรวจสอบ license (HKDF v2.0 Only)
+ * 🔒 ใช้ ESP32 hardware binding เสมอ - ไม่มี bypass modes อีกต่อไป
  */
 export async function validateLicense(): Promise<boolean> {
-  const validationMode = getValidationMode();
+  console.log('info: HKDF v2.0 License Validation - Always requires ESP32 hardware');
   
-  console.log('info: Phase 4.2 License Validation');
-  logPhase42Configuration();
+  await logger({
+    user: 'system',
+    message: 'License validation starting - ESP32 hardware binding required'
+  });
   
-  switch (validationMode) {
-    case 'bypass':
-      console.log('info: 🔓 License validation bypassed (development mode)');
-      await logger({
-        user: 'system',
-        message: 'License validation bypassed - SMC_LICENSE_BYPASS_MODE=true'
-      });
-      return true;
-      
-    case 'real-hardware':
-      console.log('info: 🔧 Development mode with real ESP32 hardware');
-      await logger({
-        user: 'system', 
-        message: 'License validation with real hardware - SMC_DEV_REAL_HARDWARE=true'
-      });
-      return await validateLicenseWithESP32();
-      
-    case 'production':
-      console.log('info: 🏭 Production license validation');
-      return await validateLicenseQuick();
-      
-    default:
-      console.error('error: Unknown validation mode:', validationMode);
-      return false;
-  }
+  // เสมอใช้ ESP32 hardware validation ไม่ว่าจะเป็น development หรือ production
+  console.log('info: 🔒 Hardware binding validation (ESP32 required)');
+  return await validateLicenseWithESP32();
 }
 
 /**

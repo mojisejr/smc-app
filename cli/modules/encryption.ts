@@ -47,13 +47,14 @@ export function createKDFContext(licenseData: LicenseData): KDFContext {
   const saltInput = `${licenseData.applicationId}|${licenseData.customerId}|${licenseData.expiryDate}`;
   const salt = crypto.createHash('sha256').update(saltInput).digest();
   
-  // สร้าง info context จาก non-sensitive data เท่านั้น
+  // สร้าง info context รวม WiFi SSID (เพื่อแก้ chicken-and-egg problem)
   const contextParts = [
     HKDF_CONFIG.info_prefix,
     licenseData.applicationId,
     licenseData.customerId,
     licenseData.expiryDate,
-    licenseData.version || '1.0.0'
+    licenseData.version || '1.0.0',
+    licenseData.wifiSsid  // เพิ่ม WiFi SSID ใน context เพื่อให้ SMC App ใช้ได้
   ];
   
   const info = contextParts.join('|');
@@ -372,16 +373,16 @@ export function createLicenseFile(licenseData: LicenseData): LicenseFile {
 
 /**
  * อ่านและ parse license file ด้วย HKDF v2.0
+ * WiFi SSID จะถูกดึงจาก KDF context แทนการส่งเป็น parameter
  * 
  * @param licenseFileContent - License file content (JSON string)
- * @param sensitiveData - Sensitive data for key generation (MAC address, WiFi SSID)
+ * @param sensitiveData - Sensitive data for key generation (MAC address only)
  * @returns LicenseData object
  */
 export function parseLicenseFile(
   licenseFileContent: string,
   sensitiveData: {
     macAddress: string;
-    wifiSsid: string;
   }
 ): LicenseData {
   try {
@@ -403,28 +404,32 @@ export function parseLicenseFile(
       console.log(chalk.gray(`   Algorithm: ${licenseFile.algorithm}`));
       console.log(chalk.gray(`   Created: ${licenseFile.created_at}`));
       
-      // Parse KDF context เพื่อได้ non-sensitive data
+      // Parse KDF context เพื่อได้ non-sensitive data รวม WiFi SSID
       const kdfInfo = licenseFile.kdf_context.info;
       const infoParts = kdfInfo.split('|');
       
-      if (infoParts.length < 5) {
-        throw new Error('Invalid KDF context info format');
+      if (infoParts.length < 6) {
+        throw new Error('Invalid KDF context info format - missing WiFi SSID (expected 6 parts, got ' + infoParts.length + ')');
       }
       
       // Extract non-sensitive data จาก KDF context
       const applicationId = infoParts[1];
       const customerId = infoParts[2];
       const expiryDate = infoParts[3];
+      const version = infoParts[4];
+      const wifiSsid = infoParts[5];  // WiFi SSID จาก KDF context
       
       console.log(chalk.gray(`   Application ID: ${applicationId}`));
       console.log(chalk.gray(`   Customer ID: ${customerId}`));
       console.log(chalk.gray(`   Expiry: ${expiryDate}`));
+      console.log(chalk.gray(`   Version: ${version}`));
+      console.log(chalk.gray(`   WiFi SSID: ${wifiSsid}`));
       
       // สร้าง key data รวม sensitive และ non-sensitive data
       const keyData = {
         applicationId,
         customerId,
-        wifiSsid: sensitiveData.wifiSsid,
+        wifiSsid: wifiSsid,  // ใช้ WiFi SSID จาก KDF context แทน parameter
         macAddress: sensitiveData.macAddress,
         expiryDate
       };
