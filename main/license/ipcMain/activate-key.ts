@@ -54,21 +54,28 @@ export const activateKeyHandler = async () => {
       const licenseFileContent = await require('fs/promises').readFile(filePath, 'utf8');
       const licenseFileStructure = JSON.parse(licenseFileContent);
       
-      if (licenseFileStructure.version !== '2.0.0' || !licenseFileStructure.kdf_context) {
+      // ตรวจสอบ HKDF v2.0+ format (รองรับทั้ง v2.0.x และ v2.1.x)
+      if ((!licenseFileStructure.version.startsWith('2.0') && !licenseFileStructure.version.startsWith('2.1')) || !licenseFileStructure.kdf_context) {
         return {
           success: false,
-          error: 'ไฟล์ license format ไม่รองรับ - ต้องการ HKDF v2.0 เท่านั้น',
+          error: 'ไฟล์ license format ไม่รองรับ - ต้องการ HKDF v2.0+ (version 2.0.x หรือ 2.1.x) เท่านั้น',
           step: 'file-parsing'
         };
       }
       
-      // Extract WiFi SSID จาก KDF context (non-sensitive data)
+      // ตรวจสอบ version เพื่อกำหนด activation flow
+      const isWiFiFree = licenseFileStructure.version.startsWith('2.1');
+      console.log(`info: License version ${licenseFileStructure.version} detected (WiFi-free: ${isWiFiFree})`);
+      
+      // Validate KDF context structure (dynamic based on version)
       const kdfInfo = licenseFileStructure.kdf_context.info;
       const infoParts = kdfInfo.split('|');
-      if (infoParts.length < 5) {
+      const expectedParts = isWiFiFree ? 5 : 6; // v2.1.x = 5 parts, v2.0.x = 6 parts
+      
+      if (infoParts.length < expectedParts) {
         return {
           success: false,
-          error: 'ไฟล์ license structure ไม่ถูกต้อง',
+          error: `ไฟล์ license structure ไม่ถูกต้อง (expected ${expectedParts} parts, got ${infoParts.length})`,
           step: 'file-parsing'
         };
       }
@@ -99,27 +106,34 @@ export const activateKeyHandler = async () => {
         };
       }
 
-      // Step 4: ดึง WiFi credentials จาก license data และเชื่อมต่อ ESP32
-      event.sender.send('activation-progress', { step: 'wifi-connecting', progress: 55 });
-      
-      const wifiCredentials = await LicenseFileManager.extractWiFiCredentials(licenseData);
-      if (!wifiCredentials) {
-        return {
-          success: false,
-          error: 'ไม่พบข้อมูล WiFi ใน license file',
-          step: 'wifi-credentials'
-        };
-      }
+      // Step 4: WiFi connection (v2.0.x only - v2.1.x is WiFi-free)
+      if (!isWiFiFree) {
+        // v2.0.x: ดึง WiFi credentials จาก license data และเชื่อมต่อ ESP32
+        event.sender.send('activation-progress', { step: 'wifi-connecting', progress: 55 });
+        
+        const wifiCredentials = await LicenseFileManager.extractWiFiCredentials(licenseData);
+        if (!wifiCredentials) {
+          return {
+            success: false,
+            error: 'ไม่พบข้อมูล WiFi ใน license file',
+            step: 'wifi-credentials'
+          };
+        }
 
-      console.log(`info: Connecting to ESP32 WiFi: ${wifiCredentials.ssid}`);
-      const wifiConnected = await ESP32Client.connectToWiFi(wifiCredentials.ssid, wifiCredentials.password);
-      
-      if (!wifiConnected) {
-        return {
-          success: false,
-          error: `ไม่สามารถเชื่อมต่อ WiFi ESP32 ได้ (${wifiCredentials.ssid})`,
-          step: 'wifi-connecting'
-        };
+        console.log(`info: Connecting to ESP32 WiFi: ${wifiCredentials.ssid}`);
+        const wifiConnected = await ESP32Client.connectToWiFi(wifiCredentials.ssid, wifiCredentials.password);
+        
+        if (!wifiConnected) {
+          return {
+            success: false,
+            error: `ไม่สามารถเชื่อมต่อ WiFi ESP32 ได้ (${wifiCredentials.ssid})`,
+            step: 'wifi-connecting'
+          };
+        }
+      } else {
+        // v2.1.x: WiFi-free activation - skip WiFi connection
+        console.log('info: WiFi-free license detected - skipping WiFi connection step');
+        event.sender.send('activation-progress', { step: 'wifi-free-mode', progress: 55 });
       }
 
       console.log(`info: HKDF license file parsed successfully - Organization: ${licenseData.organization}`);

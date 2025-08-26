@@ -23,6 +23,84 @@ import { LicenseParser, LicenseParserError } from "./utils/licenseParser";
 // Load environment variables
 dotenv.config();
 
+/**
+ * Phase 9: Detect organization data from registry files
+ */
+async function detectOrganizationFromRegistry(): Promise<{organization: string, customerId: string} | null> {
+  console.log("debug: Searching for registry files...");
+  
+  // Look for registry files in common locations
+  const registryPaths = [
+    path.join(process.cwd(), "cli/registry/"),
+    path.join(process.cwd(), "../cli/registry/"),
+    path.join(process.cwd(), "registry/"),
+  ];
+
+  for (const registryDir of registryPaths) {
+    try {
+      console.log(`debug: Checking registry directory: ${registryDir}`);
+      
+      if (!fs.existsSync(registryDir)) {
+        console.log(`debug: Registry directory not found: ${registryDir}`);
+        continue;
+      }
+
+      const files = fs.readdirSync(registryDir);
+      const csvFiles = files.filter(f => f.endsWith('.csv') && f.includes('license-registry'));
+      
+      if (csvFiles.length === 0) {
+        console.log(`debug: No registry CSV files found in: ${registryDir}`);
+        continue;
+      }
+
+      // Sort by name (latest date first)
+      csvFiles.sort().reverse();
+      const latestCsv = csvFiles[0];
+      const csvPath = path.join(registryDir, latestCsv);
+      
+      console.log(`info: Reading latest registry file: ${latestCsv}`);
+      
+      const csvContent = fs.readFileSync(csvPath, 'utf8');
+      const lines = csvContent.trim().split('\n');
+      
+      if (lines.length < 2) {
+        console.log("debug: Registry file is empty or has no data rows");
+        continue;
+      }
+
+      // Parse header to find column indices
+      const header = lines[0].split(',');
+      const orgIndex = header.indexOf('organization');
+      const customerIndex = header.indexOf('customer_id');
+
+      if (orgIndex === -1 || customerIndex === -1) {
+        console.log("debug: Required columns not found in registry CSV");
+        continue;
+      }
+
+      // Parse the first data row (most recent)
+      const firstDataLine = lines[1].split(',');
+      if (firstDataLine.length > Math.max(orgIndex, customerIndex)) {
+        const organization = firstDataLine[orgIndex]?.trim();
+        const customerId = firstDataLine[customerIndex]?.trim();
+
+        if (organization && customerId) {
+          console.log(`info: ✅ Organization detected from registry: ${organization}`);
+          console.log(`info: Customer ID: ${customerId}`);
+          return { organization, customerId };
+        }
+      }
+
+    } catch (error) {
+      console.log(`debug: Error reading registry from ${registryDir}: ${error.message}`);
+      continue;
+    }
+  }
+
+  console.log("debug: No valid registry data found");
+  return null;
+}
+
 interface DevResetConfig {
   organizationName: string;
   customerName: string;
@@ -111,6 +189,20 @@ async function parseDevConfiguration(): Promise<DevResetConfig> {
   let customerName = "DEV_CUSTOMER_001";
   let useLicenseData = false;
 
+  // Phase 9: Try to detect organization from registry first
+  console.log("info: Phase 9: Attempting registry-based organization detection...");
+  try {
+    const registryOrgData = await detectOrganizationFromRegistry();
+    if (registryOrgData) {
+      organizationName = registryOrgData.organization;
+      customerName = registryOrgData.customerId;
+      console.log(`info: Found organization from registry: ${organizationName}`);
+      console.log(`info: Customer ID from registry: ${customerName}`);
+    }
+  } catch (error) {
+    console.log("debug: Registry organization detection failed, using defaults");
+  }
+
   // ถ้ามี --license parameter ให้อ่านข้อมูลจาก license
   if (licenseFile) {
     try {
@@ -124,15 +216,14 @@ async function parseDevConfiguration(): Promise<DevResetConfig> {
 
       const licenseParser = new LicenseParser({ verbose: true });
 
-      // For HKDF v2.0 licenses, provide sensitive data matching CLI generation
-      // This allows license parsing during development reset
+      // Phase 9: For HKDF licenses, only MAC address is needed (WiFi-free)
       const sensitiveDataForHKDF = {
         macAddress: "F4:65:0B:58:66:A4", // Match real ESP32 MAC address
-        wifiSsid: "SMC_ESP32_ATEST", // Match CLI generated license
+        // Phase 9: WiFi SSID no longer needed for license parsing
       };
 
       console.log(
-        "info: Parsing license (using sensitive data for HKDF if needed)..."
+        "info: Phase 9: Parsing license with MAC-only approach (WiFi-free)..."
       );
       const licenseData = await licenseParser.parseLicenseFile(
         licenseFile,

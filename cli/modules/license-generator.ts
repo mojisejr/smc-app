@@ -42,20 +42,15 @@ export async function generateLicenseFile(options: GenerateOptions): Promise<str
     // Step 2: สร้าง license data structure
     console.log(chalk.cyan('\n📝 Step 2: Creating license data...'));
     
-    // ตรวจสอบ WiFi credentials
-    if (!options.wifiSsid || !options.wifiPassword) {
-      throw new Error('WiFi SSID and password are required for license generation');
-    }
+    // Phase 9: ไม่ต้องการ WiFi credentials อีกต่อไป
+    console.log(chalk.yellow('   ⚠️  Phase 9: WiFi credentials no longer required for license generation'));
     
     const licenseData = createLicenseData({
       org: options.org,
       customer: options.customer,
       app: options.app,
       expiry: options.expiry
-    }, macAddress, {
-      ssid: options.wifiSsid,
-      password: options.wifiPassword
-    });
+    }, macAddress);
     
     // Step 3: Validate license data
     console.log(chalk.cyan('\n✅ Step 3: Validating license data...'));
@@ -160,19 +155,15 @@ export async function generateSampleLicenseFile(
     // สร้าง license data ด้วย mock MAC
     console.log(chalk.cyan('\n📝 Creating license data with mock MAC...'));
     
-    // ใช้ test WiFi credentials หรือที่ระบุมา
-    const testWifiSsid = options.wifiSsid || 'SMC_ESP32_TEST';
-    const testWifiPassword = options.wifiPassword || 'smc123test';
+    // Phase 9: ไม่ต้องการ WiFi credentials สำหรับ test license
+    console.log(chalk.yellow('   ⚠️  Phase 9: Test license generation without WiFi credentials'));
     
     const licenseData = createLicenseData({
       org: options.org,
       customer: options.customer,
       app: `${options.app}_TEST`, // เพิ่ม _TEST ก่อนสร้าง checksum
       expiry: options.expiry
-    }, mockMacAddress, {
-      ssid: testWifiSsid,
-      password: testWifiPassword
-    });
+    }, mockMacAddress);
     
     // Validate และสร้างไฟล์
     validateLicenseData(licenseData);

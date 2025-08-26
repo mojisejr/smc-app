@@ -3,10 +3,11 @@ import { logger } from "../logger";
 import { getValidationMode, logPhase42Configuration } from "../utils/environment";
 
 /**
- * CLI License Validator
+ * CLI License Validator - Phase 9: WiFi-Free Version
  * 
  * แทนที่ระบบ Base64 license เดิมด้วย CLI License File System
  * ใช้ AES-256-CBC encryption และ ESP32 MAC address binding
+ * Phase 9: ลบ WiFi dependency ออกเพื่อแก้ Chicken-Egg Problem
  */
 
 // Database activation flag
@@ -235,25 +236,25 @@ export async function validateOrganizationData(licenseData: any): Promise<boolea
 }
 
 /**
- * ฟังก์ชันหลักสำหรับการตรวจสอบ license (HKDF v2.0 Only)
- * 🔒 ใช้ ESP32 hardware binding เสมอ - ไม่มี bypass modes อีกต่อไป
+ * ฟังก์ชันหลักสำหรับการตรวจสอบ license (Phase 9: WiFi-Free)
+ * 🔒 ใช้ ESP32 MAC address binding เสมอ - ไม่ต้องการ WiFi credentials
  */
 export async function validateLicense(): Promise<boolean> {
-  console.log('info: HKDF v2.0 License Validation - Always requires ESP32 hardware');
+  console.log('info: Phase 9: WiFi-Free License Validation - MAC address binding only');
   
   await logger({
     user: 'system',
-    message: 'License validation starting - ESP32 hardware binding required'
+    message: 'Phase 9: License validation starting - WiFi-free approach with ESP32 MAC binding'
   });
   
-  // เสมอใช้ ESP32 hardware validation ไม่ว่าจะเป็น development หรือ production
-  console.log('info: 🔒 Hardware binding validation (ESP32 required)');
+  // Phase 9: ใช้ ESP32 hardware validation แต่ไม่ต้องการ WiFi credentials
+  console.log('info: 🔒 MAC-only hardware binding validation (WiFi-free)');
   return await validateLicenseWithESP32();
 }
 
 /**
- * Enhanced validation สำหรับ production deployment
- * รวม ESP32 และ network connectivity validation
+ * Enhanced validation สำหรับ production deployment (Phase 9: WiFi-Free)
+ * รวม ESP32 และ MAC address validation แต่ไม่ต้องการ WiFi credentials
  */
 export async function validateLicenseForProduction(): Promise<{
   valid: boolean;
@@ -266,7 +267,7 @@ export async function validateLicenseForProduction(): Promise<{
     licenseExpired: boolean;
   };
 }> {
-  console.log('info: Running production license validation...');
+  console.log('info: Running production license validation (Phase 9: WiFi-free)...');
   
   const details = {
     licenseFileFound: false,
@@ -348,7 +349,7 @@ export async function validateLicenseForProduction(): Promise<{
 
     await logger({
       user: 'system',
-      message: `Production license validation successful - expires: ${licenseData.expiryDate}, ESP32: ${details.esp32Connected ? 'connected' : 'offline'}`
+      message: `Phase 9: Production license validation successful - expires: ${licenseData.expiryDate}, ESP32: ${details.esp32Connected ? 'connected' : 'offline'} (WiFi-free)`
     });
 
     return {

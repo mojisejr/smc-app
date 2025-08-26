@@ -111,7 +111,9 @@ if (isProd) {
     }
   } else {
     console.warn("⚠️ DS12Controller unavailable - running in offline mode");
-    console.warn("⚠️ Hardware operations will be disabled until connection restored");
+    console.warn(
+      "⚠️ Hardware operations will be disabled until connection restored"
+    );
     // Allow app to continue - license validation and UI will work normally
     // Hardware operations will fail gracefully at IPC level (existing behavior)
   }
@@ -129,23 +131,29 @@ if (isProd) {
 
   // Check license activation status and determine initial page (Phase 4.2)
   let initialPage = "activate-key"; // Default to activation page
-  
+
   try {
     // Phase 4.2: Check validation mode first
     const validationMode = getValidationMode();
-    
-    if (validationMode === 'bypass') {
-      console.log("info: Bypass mode detected - proceeding directly to home page");
+
+    if (validationMode === "bypass") {
+      console.log(
+        "info: Bypass mode detected - proceeding directly to home page"
+      );
       initialPage = "home";
     } else {
       console.log("info: Checking system activation status...");
       const isActivated = await isSystemActivated();
-      
+
       if (isActivated) {
-        console.log("info: System is activated - proceeding to main application");
+        console.log(
+          "info: System is activated - proceeding to main application"
+        );
         initialPage = "home";
       } else {
-        console.log("info: System not activated - redirecting to activation page");
+        console.log(
+          "info: System not activated - redirecting to activation page"
+        );
         initialPage = "activate-key";
       }
     }
@@ -180,7 +188,7 @@ if (isProd) {
 
   // Load the application UI based on environment and license status
   console.log(`info: Loading initial page: ${initialPage}`);
-  
+
   if (isProd) {
     await mainWindow.loadURL(`app://./${initialPage}.html`);
   } else {

@@ -46,15 +46,16 @@ program
   .addHelpText(
     "after",
     `
-Examples:
-  $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" --wifi-ssid "SMC_ESP32_001" --wifi-password "SecurePass123!"
+Examples (Phase 9 - WiFi-Free):
+  $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31"
   $ smc-license batch --input esp32-deployments-2025-08-22.csv --update-csv
-  $ smc-license update-expiry -f license.lic -e "2026-12-31" --mac-address "AA:BB:CC:DD:EE:FF" --wifi-ssid "SMC_ESP32_001"
   $ smc-license validate -f license.lic  
   $ smc-license info -f license.lic
   $ smc-license show-key
-  $ smc-license export-env --output .env
   $ smc-license test-esp32 --ip 192.168.4.1
+
+⚠️  Phase 9 Update: WiFi credentials no longer required for license generation
+    Sales team will connect WiFi manually using CSV data during deployment
 
 For detailed command help: smc-license <command> --help
 `
@@ -80,13 +81,14 @@ program
     "-e, --expiry <date>",
     'Expiry date in YYYY-MM-DD format (e.g., "2025-12-31")'
   )
-  .requiredOption(
+  // Phase 9: WiFi credentials no longer required for license generation
+  .option(
     "--wifi-ssid <ssid>",
-    "WiFi SSID for ESP32 connection (REQUIRED)"
+    "[DEPRECATED] WiFi SSID - no longer used in Phase 9"
   )
-  .requiredOption(
+  .option(
     "--wifi-password <password>",
-    "WiFi password for ESP32 connection (REQUIRED)"
+    "[DEPRECATED] WiFi password - no longer used in Phase 9"
   )
   .option("--esp32-ip <ip>", "ESP32 device IP address", "192.168.4.1")
   .option(
@@ -100,51 +102,33 @@ program
   )
   .option(
     "--bypass-password-check",
-    "Bypass WiFi password strength validation (development only)"
+    "[DEPRECATED] WiFi password validation - not used in Phase 9"
   )
   .addHelpText(
     "after",
     `
-Examples:
-  $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31" --wifi-ssid "SMC_ESP32_001" --wifi-password "SecurePass123!"
-  $ smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-06-30" --wifi-ssid "TEST_WIFI" --wifi-password "simple123" --test-mode --bypass-password-check
-  $ smc-license generate -o "Hospital ABC" -c "ABC001" -a "SMC_Pro" -e "2026-01-15" --wifi-ssid "HOSPITAL_ESP32" --wifi-password "HospitalSecure2024" --esp32-ip "192.168.1.100"
+Examples (Phase 9 - WiFi-Free):
+  $ smc-license generate -o "SMC Medical" -c "HOSP001" -a "SMC_Cabinet" -e "2025-12-31"
+  $ smc-license generate -o "Test Org" -c "TEST001" -a "SMC_Test" -e "2025-06-30" --test-mode
+  $ smc-license generate -o "Hospital ABC" -c "ABC001" -a "SMC_Pro" -e "2026-01-15" --esp32-ip "192.168.1.100"
+
+⚠️  Phase 9 Update: WiFi credentials removed from license generation
+    WiFi connection will be handled manually by sales team during deployment
 `
   )
   .action(async (options) => {
     try {
-      // Step 1: ตรวจสอบ WiFi password strength
-      console.log(chalk.blue("🔐 Validating WiFi password..."));
-      const passwordValidation = validateWiFiPassword(
-        options.wifiPassword,
-        options.bypassPasswordCheck
-      );
-
-      // แสดงผล validation
-      if (passwordValidation.errors.length > 0) {
-        console.log(chalk.red("❌ WiFi password validation failed:"));
-        passwordValidation.errors.forEach((error) => {
-          console.log(chalk.red(`   • ${error}`));
-        });
-        throw new Error("WiFi password does not meet security requirements");
+      // Phase 9: Skip WiFi password validation (no longer required)
+      if (options.wifiSsid || options.wifiPassword) {
+        console.log(chalk.yellow("⚠️  Phase 9: WiFi credentials are deprecated and will be ignored"));
+        console.log(chalk.gray("   WiFi connection will be handled manually during deployment"));
       }
-
-      if (passwordValidation.warnings.length > 0) {
-        console.log(chalk.yellow("⚠️  WiFi password warnings:"));
-        passwordValidation.warnings.forEach((warning) => {
-          console.log(chalk.yellow(`   • ${warning}`));
-        });
-      }
-
-      console.log(
-        chalk.green(
-          `✅ WiFi password strength: ${passwordValidation.strength.toUpperCase()}`
-        )
-      );
+      
+      console.log(chalk.blue("🚀 Phase 9: WiFi-free license generation starting..."));
 
       if (options.testMode) {
         console.log(
-          chalk.yellow("🧪 Test Mode: Generating license with mock MAC address")
+          chalk.yellow("🧪 Test Mode: Generating license with mock MAC address (WiFi-free)")
         );
         await generateSampleLicenseFile({
           org: options.org,
@@ -152,9 +136,10 @@ Examples:
           app: options.app,
           expiry: options.expiry,
           esp32Ip: options.esp32Ip,
-          wifiSsid: options.wifiSsid,
-          wifiPassword: options.wifiPassword,
           output: options.output,
+          // Phase 9: WiFi credentials removed
+          wifiSsid: undefined,
+          wifiPassword: undefined,
         });
       } else {
         await generateLicenseFile({
@@ -163,9 +148,10 @@ Examples:
           app: options.app,
           expiry: options.expiry,
           esp32Ip: options.esp32Ip,
-          wifiSsid: options.wifiSsid,
-          wifiPassword: options.wifiPassword,
           output: options.output,
+          // Phase 9: WiFi credentials removed
+          wifiSsid: undefined,
+          wifiPassword: undefined,
         });
       }
     } catch (error: any) {
@@ -703,8 +689,9 @@ Security:
       // Step 3: Parse license with HKDF
       console.log(chalk.cyan('\n🔓 Step 3: Parsing license with HKDF...'));
       
-      if (licenseFile.version !== '2.0.0' || !licenseFile.kdf_context) {
-        throw new Error('License must be HKDF format (version 2.0.0). Please regenerate license with current CLI version.');
+      // ตรวจสอบ HKDF v2.0+ format (รองรับทั้ง v2.0.x และ v2.1.x)
+      if ((!licenseFile.version.startsWith('2.0') && !licenseFile.version.startsWith('2.1')) || !licenseFile.kdf_context) {
+        throw new Error('License must be HKDF format (version 2.0.x or 2.1.x). Please regenerate license with current CLI version.');
       }
       
       // Parse license data using HKDF (WiFi SSID now from KDF context)

@@ -25,7 +25,7 @@ const ENCRYPTION_CONFIG = {
   iv_length: 16 // 16 bytes IV for AES
 };
 
-// License data structure (ตรงกับ CLI types)
+// License data structure (Phase 9: WiFi-free)
 export interface LicenseData {
   organization: string;
   customerId: string;
@@ -33,10 +33,11 @@ export interface LicenseData {
   generatedAt: string;
   expiryDate: string;
   macAddress: string;
-  wifiSsid: string;           // WiFi SSID สำหรับเชื่อมต่อ ESP32
-  wifiPassword: string;       // WiFi Password
   version: string;
   checksum?: string;
+  // Phase 9: WiFi credentials removed but kept for backward compatibility
+  wifiSsid: string;
+  wifiPassword: string;
 }
 
 // KDF Context for HKDF key derivation - ตรงกับ CLI types
@@ -69,13 +70,13 @@ function generateHKDFKey(licenseData: LicenseData, kdfContext: KDFContext): Buff
   console.log('info: Generating HKDF key for license decryption...');
   
   try {
-    // สร้าง Input Key Material (IKM) จาก sensitive license data
+    // สร้าง Input Key Material (IKM) จาก sensitive license data (WiFi-free for Phase 9)
     const ikm_parts = [
       licenseData.applicationId,
       licenseData.customerId,
-      licenseData.wifiSsid,
       licenseData.macAddress, // Sensitive data - ไม่อยู่ใน context
       licenseData.expiryDate
+      // Phase 9: ลบ wifiSsid ออกจาก key derivation
     ];
     
     const ikm = Buffer.from(ikm_parts.join('_'), 'utf8');
@@ -125,26 +126,27 @@ function decryptLicenseData(
   keyData: {
     applicationId: string;
     customerId: string;
-    wifiSsid: string;
     macAddress: string;
     expiryDate: string;
+    // Phase 9: wifiSsid no longer required for key derivation
   }
 ): LicenseData {
   try {
     console.log('info: Decrypting HKDF license data...');
     
-    // สร้าง temporary license data object สำหรับ HKDF key generation
+    // สร้าง temporary license data object สำหรับ HKDF key generation (WiFi-free)
     const tempLicenseData: LicenseData = {
       applicationId: keyData.applicationId,
       customerId: keyData.customerId,
-      wifiSsid: keyData.wifiSsid,
       macAddress: keyData.macAddress,
       expiryDate: keyData.expiryDate,
       organization: '', // จะได้จาก decrypted data
       generatedAt: '',
-      wifiPassword: '',
       version: '1.0.0',
-      checksum: ''
+      checksum: '',
+      // Phase 9: WiFi fields empty for key derivation
+      wifiSsid: '',
+      wifiPassword: ''
     };
     
     // สร้าง HKDF key จาก key data และ KDF context
@@ -335,12 +337,12 @@ export class LicenseFileManager {
       // Parse JSON structure
       const licenseFile = JSON.parse(fileContent) as LicenseFile;
 
-      // ตรวจสอบ HKDF v2.0 format
-      if (licenseFile.version !== '2.0.0' || !licenseFile.kdf_context) {
+      // ตรวจสอบ HKDF v2.0+ format (รองรับ Phase 9 v2.1.0)
+      if ((!licenseFile.version.startsWith('2.0') && !licenseFile.version.startsWith('2.1')) || !licenseFile.kdf_context) {
         console.error(`error: License file version ${licenseFile.version} ไม่รองรับ`);
-        console.error('error: SMC App รองรับเฉพาะ HKDF v2.0 licenses เท่านั้น');
+        console.error('error: SMC App รองรับเฉพาะ HKDF v2.0+ licenses เท่านั้น');
         console.error('error: Legacy v1.0 licenses ไม่รองรับอีกต่อไป');
-        throw new Error('License file format ไม่รองรับ - ต้องการ HKDF v2.0 (version 2.0.0) เท่านั้น');
+        throw new Error('License file format ไม่รองรับ - ต้องการ HKDF v2.0+ (version 2.0.x หรือ 2.1.x) เท่านั้น');
       }
 
       // ตรวจสอบ algorithm
@@ -348,16 +350,20 @@ export class LicenseFileManager {
         throw new Error(`Unsupported encryption algorithm: ${licenseFile.algorithm}`);
       }
 
-      console.log(`info: ✅ HKDF v2.0 license file detected`);
+      console.log(`info: ✅ HKDF license file detected (${licenseFile.version})`);
       console.log(`info: Algorithm: ${licenseFile.algorithm}`);
       console.log(`info: Created: ${licenseFile.created_at}`);
 
-      // Parse KDF context เพื่อได้ non-sensitive data รวม WiFi SSID
+      // Parse KDF context เพื่อได้ non-sensitive data
       const kdfInfo = licenseFile.kdf_context.info;
       const infoParts = kdfInfo.split('|');
       
-      if (infoParts.length < 6) {
-        throw new Error('Invalid KDF context info format - missing WiFi SSID (expected 6 parts, got ' + infoParts.length + ')');
+      // Phase 9: Support both v2.0.0 (6 parts with WiFi) and v2.1.0 (5 parts WiFi-free)
+      const isWiFiFree = licenseFile.version.startsWith('2.1');
+      const expectedParts = isWiFiFree ? 5 : 6;
+      
+      if (infoParts.length < expectedParts) {
+        throw new Error(`Invalid KDF context info format (expected ${expectedParts} parts, got ${infoParts.length})`);
       }
       
       // Extract non-sensitive data จาก KDF context
@@ -365,21 +371,25 @@ export class LicenseFileManager {
       const customerId = infoParts[2];
       const expiryDate = infoParts[3];
       const version = infoParts[4];
-      const wifiSsid = infoParts[5];  // WiFi SSID จาก KDF context
+      const wifiSsid = isWiFiFree ? '' : infoParts[5];  // WiFi SSID (Phase 9: empty for v2.1.0)
       
       console.log(`info: Application ID: ${applicationId}`);
       console.log(`info: Customer ID: ${customerId}`);
       console.log(`info: Expiry: ${expiryDate}`);
       console.log(`info: Version: ${version}`);
-      console.log(`info: WiFi SSID from license: ${wifiSsid}`);
+      if (isWiFiFree) {
+        console.log(`info: Phase 9: WiFi-free license (v2.1.0)`);
+      } else {
+        console.log(`info: WiFi SSID from license: ${wifiSsid}`);
+      }
       
-      // สร้าง key data รวม sensitive และ non-sensitive data
+      // สร้าง key data รวม sensitive และ non-sensitive data (Phase 9: WiFi-free)
       const keyData = {
         applicationId,
         customerId,
-        wifiSsid: wifiSsid,          // จาก KDF context (ไม่ใช่ parameter อีกต่อไป)
         macAddress: esp32MacAddress,  // จาก ESP32 hardware
         expiryDate
+        // Phase 9: ลบ wifiSsid ออกจาก key data สำหรับ v2.1.0
       };
       
       // ถอดรหัส license data ด้วย HKDF
@@ -419,9 +429,9 @@ export class LicenseFileManager {
         }
       }
       
-      // ตรวจสอบ HKDF v2.0 version
-      if (licenseFile.version !== '2.0.0') {
-        console.log(`debug: Unsupported license version: ${licenseFile.version} (expected: 2.0.0)`);
+      // ตรวจสอบ HKDF v2.0+ version (รองรับ Phase 9)
+      if (!licenseFile.version.startsWith('2.0') && !licenseFile.version.startsWith('2.1')) {
+        console.log(`debug: Unsupported license version: ${licenseFile.version} (expected: 2.0.x or 2.1.x)`);
         return false;
       }
       
@@ -451,46 +461,34 @@ export class LicenseFileManager {
 
 
   /**
-   * ดึง WiFi credentials จาก license data
-   * อ่านจาก wifiSsid และ wifiPassword ที่ถูก decrypt จาก license โดยตรง
+   * ดึง WiFi credentials จาก license data (backward compatibility)
+   * Phase 9: WiFi credentials available for v2.0.x, not available for v2.1.x
+   * 
+   * @param licenseData - License data object
+   * @returns WiFi credentials object or null for WiFi-free licenses
    */
   static async extractWiFiCredentials(licenseData: LicenseData): Promise<{ssid: string, password: string} | null> {
     try {
-      console.log('info: Extracting WiFi credentials from license data...');
-      
-      // ตรวจสอบว่ามี WiFi credentials ใน license data
-      if (!licenseData.wifiSsid || !licenseData.wifiPassword) {
-        console.log("error: WiFi credentials not found in license data");
-        console.log(`debug: wifiSsid: ${licenseData.wifiSsid || 'undefined'}`);
-        console.log(`debug: wifiPassword: ${licenseData.wifiPassword ? '***hidden***' : 'undefined'}`);
+      // v2.1.x: WiFi-free licenses don't have WiFi credentials
+      if (licenseData.version.startsWith('2.1')) {
+        console.log('info: WiFi-free license detected - no WiFi credentials available');
         return null;
       }
       
-      // Validate WiFi credentials format
-      const ssid = licenseData.wifiSsid.trim();
-      const password = licenseData.wifiPassword;
-      
-      if (!ssid || ssid.length === 0) {
-        console.log("error: WiFi SSID is empty or invalid");
-        return null;
+      // v2.0.x: WiFi credentials should be available
+      if (licenseData.wifiSsid && licenseData.wifiPassword) {
+        console.log(`info: WiFi credentials extracted for v${licenseData.version}`);
+        return {
+          ssid: licenseData.wifiSsid,
+          password: licenseData.wifiPassword
+        };
       }
       
-      if (!password || password.length < 4) {
-        console.log("error: WiFi password is too short or invalid");
-        return null;
-      }
+      console.log('warn: WiFi credentials missing from v2.0.x license');
+      return null;
       
-      console.log(`info: WiFi credentials extracted successfully`);
-      console.log(`info: SSID: ${ssid}`);
-      console.log(`info: Password: ${'*'.repeat(password.length)} (${password.length} characters)`);
-      
-      return {
-        ssid: ssid,
-        password: password
-      };
-      
-    } catch (error) {
-      console.error("error: Failed to extract WiFi credentials:", error);
+    } catch (error: any) {
+      console.error(`error: WiFi credential extraction failed: ${error.message}`);
       return null;
     }
   }
@@ -500,8 +498,8 @@ export class LicenseFileManager {
    */
   static validateLicenseData(licenseData: LicenseData): boolean {
     try {
-      // ตรวจสอบ required fields (รวม WiFi credentials)
-      const requiredFields = ['organization', 'customerId', 'applicationId', 'expiryDate', 'macAddress', 'wifiSsid', 'wifiPassword'];
+      // ตรวจสอบ required fields (Phase 9: WiFi-free)
+      const requiredFields = ['organization', 'customerId', 'applicationId', 'expiryDate', 'macAddress'];
       for (const field of requiredFields) {
         if (!licenseData[field as keyof LicenseData]) {
           console.log(`debug: Missing required field in license data: ${field}`);
@@ -509,9 +507,9 @@ export class LicenseFileManager {
         }
       }
       
-      // ตรวจสอบ checksum ถ้ามี (รวม WiFi SSID)
+      // ตรวจสอบ checksum ถ้ามี (Phase 9: WiFi-free checksum)
       if (licenseData.checksum) {
-        const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}${licenseData.wifiSsid}`;
+        const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}`;
         const expectedChecksum = crypto.createHash('sha256')
           .update(checksumData)
           .digest('hex')
@@ -523,7 +521,7 @@ export class LicenseFileManager {
         }
       }
       
-      console.log("info: License data validation passed");
+      console.log("info: License data validation passed (Phase 9: WiFi-free)");
       return true;
       
     } catch (error) {

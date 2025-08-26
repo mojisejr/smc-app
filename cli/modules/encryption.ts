@@ -47,14 +47,14 @@ export function createKDFContext(licenseData: LicenseData): KDFContext {
   const saltInput = `${licenseData.applicationId}|${licenseData.customerId}|${licenseData.expiryDate}`;
   const salt = crypto.createHash('sha256').update(saltInput).digest();
   
-  // สร้าง info context รวม WiFi SSID (เพื่อแก้ chicken-and-egg problem)
+  // สร้าง info context (WiFi-free for Phase 9)
   const contextParts = [
     HKDF_CONFIG.info_prefix,
     licenseData.applicationId,
     licenseData.customerId,
     licenseData.expiryDate,
-    licenseData.version || '1.0.0',
-    licenseData.wifiSsid  // เพิ่ม WiFi SSID ใน context เพื่อให้ SMC App ใช้ได้
+    licenseData.version || '1.0.0'
+    // Phase 9: ลบ wifiSsid ออกเพื่อแก้ Chicken-Egg Problem
   ];
   
   const info = contextParts.join('|');
@@ -85,13 +85,13 @@ export function generateHKDFKey(licenseData: LicenseData, kdfContext: KDFContext
   console.log(chalk.blue('🔐 Generating HKDF key...'));
   
   try {
-    // สร้าง Input Key Material (IKM) จาก sensitive license data
+    // สร้าง Input Key Material (IKM) จาก sensitive license data (WiFi-free)
     const ikm_parts = [
       licenseData.applicationId,
       licenseData.customerId,
-      licenseData.wifiSsid,
       licenseData.macAddress, // Sensitive data - ไม่อยู่ใน context
       licenseData.expiryDate
+      // Phase 9: ลบ wifiSsid ออกจาก key derivation
     ];
     
     const ikm = Buffer.from(ikm_parts.join('_'), 'utf8');
@@ -141,8 +141,8 @@ function generateIV(): Buffer {
  * Same input data → Same IV → Same license
  */
 function generateDeterministicIV(licenseData: LicenseData): Buffer {
-  // สร้าง IV จาก hash ของข้อมูลสำคัญ
-  const ivSource = `${licenseData.applicationId}_${licenseData.customerId}_${licenseData.expiryDate}_${licenseData.macAddress}_${licenseData.wifiSsid}`;
+  // สร้าง IV จาก hash ของข้อมูลสำคัญ (WiFi-free for Phase 9)
+  const ivSource = `${licenseData.applicationId}_${licenseData.customerId}_${licenseData.expiryDate}_${licenseData.macAddress}`;
   const hash = crypto.createHash('sha256').update(ivSource).digest();
   return hash.slice(0, ENCRYPTION_CONFIG.iv_length); // ใช้ 16 bytes แรก
 }
@@ -203,7 +203,6 @@ export function decryptLicenseData(
   keyData: {
     applicationId: string;
     customerId: string;
-    wifiSsid: string;
     macAddress: string;
     expiryDate: string;
   }
@@ -211,18 +210,19 @@ export function decryptLicenseData(
   try {
     console.log(chalk.blue('🔓 Decrypting license data with HKDF...'));
     
-    // สร้าง temporary license data object สำหรับ HKDF key generation
+    // สร้าง temporary license data object สำหรับ HKDF key generation (WiFi-free)
     const tempLicenseData: LicenseData = {
       applicationId: keyData.applicationId,
       customerId: keyData.customerId,
-      wifiSsid: keyData.wifiSsid,
       macAddress: keyData.macAddress,
       expiryDate: keyData.expiryDate,
       organization: '', // จะได้จาก decrypted data
       generatedAt: '',
-      wifiPassword: '',
       version: '1.0.0',
-      checksum: ''
+      checksum: '',
+      // Phase 9: ลบ WiFi fields ออก
+      wifiSsid: '',
+      wifiPassword: ''
     };
     
     // สร้าง HKDF key จาก key data และ KDF context
@@ -281,11 +281,8 @@ export function createLicenseData(
     app: string;
     expiry: string;
   },
-  macAddress: string,
-  wifiCredentials: {
-    ssid: string;
-    password: string;
-  }
+  macAddress: string
+  // Phase 9: ลบ wifiCredentials parameter ออก
 ): LicenseData {
   
   console.log(chalk.blue('📝 Creating license data structure...'));
@@ -305,7 +302,7 @@ export function createLicenseData(
     throw new Error('Expiry date cannot be in the past');
   }
   
-  // สร้าง license data
+  // สร้าง license data (WiFi-free for Phase 9)
   const licenseData: LicenseData = {
     organization: options.org.trim(),
     customerId: options.customer.trim(),
@@ -313,24 +310,24 @@ export function createLicenseData(
     generatedAt: new Date().toISOString(),
     expiryDate: options.expiry,
     macAddress: macAddress.toUpperCase(), // Normalize MAC address เป็นตัวใหญ่
-    wifiSsid: wifiCredentials.ssid.trim(),
-    wifiPassword: wifiCredentials.password,
     version: '1.0.0',
-    checksum: '' // จะถูกสร้างหลังจากนี้
+    checksum: '', // จะถูกสร้างหลังจากนี้
+    // Phase 9: ลบ WiFi credentials ออกจาก license data
+    wifiSsid: '',
+    wifiPassword: ''
   };
   
-  // สร้าง checksum สำหรับ verification (รวม WiFi data)
-  const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}${licenseData.wifiSsid}`;
+  // สร้าง checksum สำหรับ verification (WiFi-free for Phase 9)
+  const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}`;
   licenseData.checksum = crypto.createHash('sha256').update(checksumData).digest('hex').slice(0, 16);
   
-  console.log(chalk.green('   ✅ License data created'));
+  console.log(chalk.green('   ✅ License data created (WiFi-free)'));
   console.log(chalk.gray(`   Organization: ${licenseData.organization}`));
   console.log(chalk.gray(`   Customer ID: ${licenseData.customerId}`));
   console.log(chalk.gray(`   Application: ${licenseData.applicationId}`));
   console.log(chalk.gray(`   Expiry: ${licenseData.expiryDate}`));
   console.log(chalk.gray(`   MAC Address: ${licenseData.macAddress}`));
-  console.log(chalk.gray(`   WiFi SSID: ${licenseData.wifiSsid}`));
-  console.log(chalk.gray(`   WiFi Password: ${'*'.repeat(licenseData.wifiPassword.length)}`)); // ซ่อน password
+  console.log(chalk.yellow(`   ⚠️  Phase 9: WiFi credentials removed from license`));
   console.log(chalk.gray(`   Checksum: ${licenseData.checksum}`));
   
   return licenseData;
@@ -353,7 +350,7 @@ export function createLicenseFile(licenseData: LicenseData): LicenseFile {
   
   // สร้าง license file structure พร้อม KDF context (ปลอดภัย)
   const licenseFile: LicenseFile = {
-    version: '2.0.0', // เพิ่ม version เพื่อระบุ HKDF format
+    version: '2.1.0', // Phase 9: WiFi-free license structure
     encrypted_data: encryptedData,
     algorithm: ENCRYPTION_CONFIG.algorithm,
     created_at: new Date().toISOString(),
@@ -391,9 +388,9 @@ export function parseLicenseFile(
     // Parse JSON
     const licenseFile = JSON.parse(licenseFileContent) as LicenseFile;
     
-    // ตรวจสอบ HKDF version
-    if (licenseFile.version === '2.0.0' && licenseFile.kdf_context) {
-      console.log(chalk.green('   ✅ HKDF format detected'));
+    // ตรวจสอบ HKDF version (support both 2.0.x and 2.1.x)
+    if ((licenseFile.version.startsWith('2.0') || licenseFile.version.startsWith('2.1')) && licenseFile.kdf_context) {
+      console.log(chalk.green(`   ✅ HKDF format detected (v${licenseFile.version})`));
       
       // ตรวจสอบ algorithm
       if (licenseFile.algorithm !== ENCRYPTION_CONFIG.algorithm) {
@@ -404,35 +401,47 @@ export function parseLicenseFile(
       console.log(chalk.gray(`   Algorithm: ${licenseFile.algorithm}`));
       console.log(chalk.gray(`   Created: ${licenseFile.created_at}`));
       
-      // Parse KDF context เพื่อได้ non-sensitive data รวม WiFi SSID
+      // Parse KDF context เพื่อได้ non-sensitive data (support both WiFi and WiFi-free)
       const kdfInfo = licenseFile.kdf_context.info;
       const infoParts = kdfInfo.split('|');
       
-      if (infoParts.length < 6) {
-        throw new Error('Invalid KDF context info format - missing WiFi SSID (expected 6 parts, got ' + infoParts.length + ')');
+      // Dynamic part detection: v2.1.x = 5 parts (WiFi-free), v2.0.x = 6 parts (WiFi-enabled)
+      const isWiFiFree = licenseFile.version.startsWith('2.1');
+      const expectedParts = isWiFiFree ? 5 : 6;
+      
+      if (infoParts.length < expectedParts) {
+        throw new Error(`Invalid KDF context info format (expected ${expectedParts} parts for v${licenseFile.version}, got ${infoParts.length})`);
       }
       
-      // Extract non-sensitive data จาก KDF context
+      // Extract non-sensitive data จาก KDF context (support both formats)
       const applicationId = infoParts[1];
       const customerId = infoParts[2];
       const expiryDate = infoParts[3];
       const version = infoParts[4];
-      const wifiSsid = infoParts[5];  // WiFi SSID จาก KDF context
+      
+      // WiFi SSID extraction (v2.0.x only, v2.1.x is WiFi-free)
+      const wifiSsid = isWiFiFree ? undefined : infoParts[5];
       
       console.log(chalk.gray(`   Application ID: ${applicationId}`));
       console.log(chalk.gray(`   Customer ID: ${customerId}`));
       console.log(chalk.gray(`   Expiry: ${expiryDate}`));
       console.log(chalk.gray(`   Version: ${version}`));
-      console.log(chalk.gray(`   WiFi SSID: ${wifiSsid}`));
+      if (!isWiFiFree && wifiSsid) {
+        console.log(chalk.gray(`   WiFi SSID: ${wifiSsid}`));
+      }
       
-      // สร้าง key data รวม sensitive และ non-sensitive data
-      const keyData = {
+      // สร้าง key data รวม sensitive และ non-sensitive data (dynamic based on version)
+      const keyData: any = {
         applicationId,
         customerId,
-        wifiSsid: wifiSsid,  // ใช้ WiFi SSID จาก KDF context แทน parameter
         macAddress: sensitiveData.macAddress,
         expiryDate
       };
+      
+      // เพิ่ม WiFi SSID สำหรับ v2.0.x compatibility
+      if (!isWiFiFree && wifiSsid) {
+        keyData.wifiSsid = wifiSsid;
+      }
       
       // ถอดรหัส license data
       const licenseData = decryptLicenseData(
@@ -445,7 +454,7 @@ export function parseLicenseFile(
       
       return licenseData;
     } else {
-      throw new Error('Not a valid HKDF license file format (expected version 2.0.0 with kdf_context)');
+      throw new Error('Not a valid HKDF license file format (expected version 2.0.x or 2.1.x with kdf_context)');
     }
     
   } catch (error: any) {
@@ -464,8 +473,8 @@ export function parseLicenseFile(
 export function validateLicenseData(licenseData: LicenseData): boolean {
   console.log(chalk.blue('✅ Validating license data...'));
   
-  // ตรวจสอบ required fields (รวม WiFi credentials)
-  const requiredFields = ['organization', 'customerId', 'applicationId', 'expiryDate', 'macAddress', 'wifiSsid', 'wifiPassword'];
+  // ตรวจสอบ required fields (WiFi-free for Phase 9)
+  const requiredFields = ['organization', 'customerId', 'applicationId', 'expiryDate', 'macAddress'];
   for (const field of requiredFields) {
     if (!licenseData[field as keyof LicenseData]) {
       throw new Error(`Missing required field: ${field}`);
@@ -480,9 +489,9 @@ export function validateLicenseData(licenseData: LicenseData): boolean {
     throw new Error('License has expired');
   }
   
-  // ตรวจสอบ checksum ถ้ามี (รวม WiFi SSID)
+  // ตรวจสอบ checksum ถ้ามี (WiFi-free for Phase 9)
   if (licenseData.checksum) {
-    const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}${licenseData.wifiSsid}`;
+    const checksumData = `${licenseData.organization}${licenseData.customerId}${licenseData.applicationId}${licenseData.expiryDate}${licenseData.macAddress}`;
     const expectedChecksum = crypto.createHash('sha256').update(checksumData).digest('hex').slice(0, 16);
     
     if (licenseData.checksum !== expectedChecksum) {
@@ -552,9 +561,9 @@ export function getLicenseFileBasicInfo(licenseFileContent: string): {
       return result;
     }
     
-    // ตรวจสอบ version compatibility
-    if (!licenseFile.version.startsWith('2.0')) {
-      result.errors.push(`Unsupported license version: ${licenseFile.version}. HKDF system requires version 2.0.x`);
+    // ตรวจสอบ version compatibility (support 2.0.x and 2.1.x)
+    if (!licenseFile.version.startsWith('2.0') && !licenseFile.version.startsWith('2.1')) {
+      result.errors.push(`Unsupported license version: ${licenseFile.version}. HKDF system requires version 2.0.x or 2.1.x`);
       return result;
     }
     

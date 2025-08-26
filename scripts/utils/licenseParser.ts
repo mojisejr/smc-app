@@ -165,7 +165,7 @@ export class LicenseParser {
    */
   private parseHKDFLicense(licenseWrapper: CLILicenseWrapper, sensitiveData: {
     macAddress: string;
-    wifiSsid: string;
+    wifiSsid?: string; // Phase 9: WiFi SSID is optional
   }): HKDFLicenseData {
     if (!licenseWrapper.kdf_context) {
       throw new LicenseParserError('Missing KDF context for HKDF v2.0 license', 'MISSING_KDF_CONTEXT');
@@ -177,12 +177,14 @@ export class LicenseParser {
       throw new LicenseParserError(`Unsupported KDF algorithm: ${algorithm}`, 'UNSUPPORTED_KDF');
     }
     
-    // สร้าง IKM (Input Keying Material) จาก sensitive data (ต้องตรงกับ CLI)
-    // CLI pattern: applicationId_customerId_wifiSsid_macAddress_expiryDate
-    // CLI info format: "SMC_LICENSE_KDF_v1.0|applicationId|customerId|expiryDate|version"
+    // สร้าง IKM (Input Keying Material) จาก sensitive data (Phase 9: WiFi-free)
+    // Phase 9 pattern: applicationId_customerId_macAddress_expiryDate (no WiFi SSID)
+    // CLI info format: "SMC_LICENSE_KDF_v1.0|applicationId|customerId|expiryDate|version" (5 parts for v2.1.0)
     const infoComponents = info.split('|');
+    const isWiFiFree = infoComponents.length === 5; // Phase 9: 5 parts (no WiFi in context)
+    
     if (infoComponents.length < 5) {
-      throw new LicenseParserError(`Invalid KDF info format, expected 5 components, got ${infoComponents.length}`, 'INVALID_KDF_INFO');
+      throw new LicenseParserError(`Invalid KDF info format, expected at least 5 components, got ${infoComponents.length}`, 'INVALID_KDF_INFO');
     }
     
     const applicationId = infoComponents[1]; 
@@ -190,11 +192,17 @@ export class LicenseParser {
     const expiryDate = infoComponents[3];
     // infoComponents[4] is version, not needed for IKM
     
-    // Match CLI IKM pattern exactly
-    const ikm_parts = [
+    // Phase 9: Match CLI IKM pattern (WiFi-free for v2.1.0)
+    const ikm_parts = isWiFiFree ? [
       applicationId,
       customerId,
-      sensitiveData.wifiSsid,
+      sensitiveData.macAddress,
+      expiryDate
+      // Phase 9: No WiFi SSID in IKM for v2.1.0 licenses
+    ] : [
+      applicationId,
+      customerId,
+      sensitiveData.wifiSsid || '', // fallback for legacy licenses
       sensitiveData.macAddress,
       expiryDate
     ];
@@ -287,7 +295,7 @@ export class LicenseParser {
    */
   public async parseLicenseFile(filePath: string, sensitiveData?: {
     macAddress: string;
-    wifiSsid: string;
+    wifiSsid?: string; // Phase 9: WiFi SSID is optional now
   }): Promise<LicenseData> {
     try {
       if (this.verbose) {

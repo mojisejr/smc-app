@@ -1,0 +1,2 @@
+timestamp,customer_id,organization,application_name,expiry_date,license_status,license_file,mac_address,wifi_ssid,created_at,updated_at,notes
+2025-08-26T12:35:39.628Z,ATEST,ATEST,SMC_Cabinet_TEST,2025-12-31,generated,phase9-license_test.lic,ENCRYPTED,ENCRYPTED,2025-08-26T12:35:39.628Z,2025-08-26T12:35:39.628Z,Phase 9 WiFi-free license
