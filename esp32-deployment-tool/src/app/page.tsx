@@ -4,6 +4,7 @@ import { useState } from 'react';
 import CustomerForm from '@/components/CustomerForm';
 import DeviceList from '@/components/DeviceList';
 import ProgressBar from '@/components/ProgressBar';
+import SensorTestPanel from '@/components/SensorTestPanel';
 import { CustomerInfo, ESP32Device, DeploymentState } from '@/types';
 
 export default function Home() {
@@ -12,8 +13,12 @@ export default function Home() {
     selectedDevice: null,
     isDeploying: false,
     progress: 0,
-    status: 'กรุณากรอกข้อมูลลูกค้า'
+    status: 'กรุณากรอกข้อมูลลูกค้า',
+    deploymentComplete: false,
+    deviceIP: '192.168.4.1'
   });
+
+  const [showSensorTest, setShowSensorTest] = useState(false);
 
   const handleCustomerSubmit = (customer: CustomerInfo) => {
     setDeploymentState(prev => ({
@@ -106,7 +111,9 @@ export default function Home() {
         ...prev,
         progress: 100,
         status: `เสร็จสิ้น! ไฟล์: ${exportResult.filename}`,
-        isDeploying: false
+        isDeploying: false,
+        deploymentComplete: true,
+        macAddress: extractResult.macAddress
       }));
 
       console.log('info: Complete deployment workflow finished successfully');
@@ -191,20 +198,70 @@ export default function Home() {
         </div>
       )}
 
-      {/* Phase 2 Complete Message */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <h4 className="font-medium text-green-800 mb-2">✅ Phase 2 Complete: Core Deployment</h4>
-        <ul className="text-green-700 text-sm space-y-1">
-          <li>• Template system พร้อม AM2302 sensor integration</li>
-          <li>• WiFi credentials auto-generation</li>
-          <li>• PlatformIO build และ upload workflow</li>
-          <li>• MAC address extraction และ JSON export</li>
-          <li>• Complete end-to-end deployment ready!</li>
-        </ul>
-        <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-800">
-          <strong>Ready for production:</strong> กรอกข้อมูล → เลือก ESP32 → Deploy → ได้ JSON file ลง Desktop
+      {/* Deployment Success Message */}
+      {deploymentState.deploymentComplete && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <h4 className="font-medium text-green-800 mb-3">✅ Deployment สำเร็จ!</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="text-sm">
+              <div className="text-gray-700">📋 ข้อมูลสำคัญ:</div>
+              <ul className="text-green-700 mt-1 space-y-1">
+                <li>• ลูกค้า: {deploymentState.customer?.organization}</li>
+                <li>• Customer ID: {deploymentState.customer?.customerId}</li>
+                <li>• MAC Address: {deploymentState.macAddress}</li>
+                <li>• Device IP: {deploymentState.deviceIP}</li>
+              </ul>
+            </div>
+            <div className="text-sm">
+              <div className="text-gray-700">🔧 ขั้นตอนถัดไป:</div>
+              <ul className="text-green-700 mt-1 space-y-1">
+                <li>• ทดสอบเซ็นเซอร์ DHT22</li>
+                <li>• ส่งออกข้อมูลเป็น CSV file</li>
+                <li>• ส่งมอบไฟล์ให้ทีมพัฒนา</li>
+              </ul>
+            </div>
+          </div>
+          
+          {/* Test Sensor Button */}
+          <div className="text-center">
+            <button
+              onClick={() => setShowSensorTest(true)}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              🌡️ ทดสอบเซ็นเซอร์ DHT22
+            </button>
+            <p className="text-xs text-green-700 mt-2">
+              คลิกเพื่อทดสอบการทำงานของเซ็นเซอร์อุณหภูมิและความชื้น
+            </p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Sensor Test Panel */}
+      {deploymentState.deviceIP && (
+        <SensorTestPanel
+          deviceIP={deploymentState.deviceIP}
+          isVisible={showSensorTest}
+          onClose={() => setShowSensorTest(false)}
+        />
+      )}
+
+      {/* Phase Information */}
+      {!deploymentState.deploymentComplete && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 className="font-medium text-green-800 mb-2">✅ Phase 2 Complete: Core Deployment</h4>
+          <ul className="text-green-700 text-sm space-y-1">
+            <li>• Template system พร้อม AM2302 sensor integration</li>
+            <li>• WiFi credentials auto-generation</li>
+            <li>• PlatformIO build และ upload workflow</li>
+            <li>• MAC address extraction และ JSON export</li>
+            <li>• Complete end-to-end deployment ready!</li>
+          </ul>
+          <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-800">
+            <strong>Ready for production:</strong> กรอกข้อมูล → เลือก ESP32 → Deploy → ได้ JSON file ลง Desktop
+          </div>
+        </div>
+      )}
     </div>
   );
 }

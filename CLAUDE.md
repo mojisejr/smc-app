@@ -80,23 +80,71 @@ This section lists common commands for this project.
 
 These commands streamline our communication. You can use them with or without a message.
 
-- **`=fcs > [message]`**: Update `current-focus.md`. If a message is provided, I will add it to the file. If no message is provided, I will simply open/focus on the file for you to edit.
-- **`=atc > [message]`**: Update architecture documentation.
-- **`=impl > [message]`**: Begin implementation immediately.
-- **`=rrr > [message]`**: Update the retrospective file for the current day based on the provided message.
+- **`=fcs > [ข้อความ]`**: Update `current-focus.md`. If a message is provided, I will add it to the file. If no message is provided, I will simply open/focus on the file for you to edit.
+- **`=atc > [ข้อความ]`**: Update architecture documentation.
+- **`=impl > [ข้อความ]`**: Begin implementation immediately.
+- **`=rrr > [ข้อความ]`**: Update the retrospective file for the current day based on the provided message.
+- **`=plan > [ข้อความคำถาม/โจทย์]`**: คำสั่งสำหรับวางแผนงานโดยละเอียดแต่ยังไม่ลงมือเขียนโค้ด
+- **`=plan --retro --focus > [ข้อความคำถาม/โจทย์]`**: ใช้สำหรับวางแผนงานโดยอ้างอิงจากบริบทที่กำหนด
+  - **--retro**: อ้างอิงจากข้อมูลใน `retrospective` ของวันก่อนหน้า
+  - **--focus**: อ้างอิงจากข้อมูลใน `current-focus.md`
 
 ### Retrospective Workflow
 
 - **File Structure**: `docs/retrospective/<folder ชื่อเดือนปี>/<file ของแต่ละวัน>`
 - **Template**: Each file follows a template with sections for tasks, bugs, lessons learned, and notes. I will add the message from `=rrr` to the appropriate section.
 
+  ```markdown
+  # Retrospective วันที่ [วัน-เดือน-ปี]
+
+  ## 1. งานที่ทำไป
+
+  - [Topic/Task 1]
+    - [รายละเอียดงานย่อย]
+    - [รายละเอียดงานย่อย]
+  - [Topic/Task 2]
+    - [รายละเอียดงานย่อย]
+
+  ## 2. Bug/Error ที่เกิดขึ้นและการแก้ไข
+
+  - [Bug/Error 1]
+    - สาเหตุ: [อธิบายสาเหตุ]
+    - วิธีแก้ไข: [อธิบายวิธีแก้ไข]
+  - [Bug/Error 2]
+    - สาเหตุ: [อธิบายสาเหตุ]
+    - วิธีแก้ไข: [อธิบายวิธีแก้ไข]
+
+  ## 3. สิ่งที่ได้เรียนรู้ (Lesson Learned)
+
+  - [Lesson 1]
+  - [Lesson 2]
+  - [Lesson 3]
+
+  ## 4. สิ่งสำคัญและข้อควรจำ
+
+  - [ข้อควรระวัง 1]
+  - [สิ่งที่ต้องจำ 2]
+  - [ข้อสังเกตสำคัญ 3]
+
+  ## 5. หมายเหตุเพิ่มเติม (ถ้ามี)
+
+  - [หมายเหตุ 1]
+  - [หมายเหตุ 2]
+
+  ## 6. แผนของวันพรุ่งนี้ (ถ้ามี)
+
+  - [แผนงาน 1]
+  - [แผนงาน 2]
+  - [แผนงาน 3]
+  ```
+
 ### Maintenance & Review
 
 - **`=check-md > [section]`**: Use this command when you think the core project architecture or tools have changed significantly. I will then review the project context and provide a summary of potential updates or missing information for the `claude.md` file. This command should be used sparingly.
 - **ตัวอย่างการใช้งาน**:
-  - `=check-md` (whole file)
-  - `=check-md > Architecture Overview` (check only `Architecture Overview` section)
-  - `=check-md > Core Code Patterns` (check only `Core Code Patterns` section)
+  - `=check-md` (ตรวจสอบทั้งไฟล์)
+  - `=check-md > Architecture Overview` (ตรวจสอบเฉพาะส่วน `Architecture Overview` ว่ามีข้อมูลใดที่ล้าสมัยหรือไม่)
+  - `=check-md > Core Code Patterns` (ตรวจสอบเฉพาะส่วน `Core Code Patterns` ว่ามีรูปแบบโค้ดใหม่ๆ ที่ควรเพิ่มหรือไม่)
 
 ---
 

@@ -21,6 +21,9 @@ export interface DeploymentState {
   isDeploying: boolean;
   progress: number;
   status: string;
+  deploymentComplete?: boolean;
+  deviceIP?: string;
+  macAddress?: string;
 }
 
 // CSV Export related types
@@ -57,4 +60,22 @@ export interface DualExportResult {
     error?: string;
   };
   csv: CSVExportResult;
+}
+
+// Sensor testing related types
+export interface SensorReading {
+  temp: number;
+  humid: number;
+  sensor: string;
+  gpio: number;
+  mode: "live" | "mock" | "mock_fallback";
+  sensor_available: boolean;
+  timestamp: number;
+  customer_id: string;
+}
+
+export interface SensorTestPanelProps {
+  deviceIP: string;
+  isVisible: boolean;
+  onClose?: () => void;
 }

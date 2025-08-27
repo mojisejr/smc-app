@@ -1,3 +1,0 @@
-timestamp,organization,customer_id,application_name,wifi_ssid,wifi_password,mac_address,ip_address,expiry_date,license_status,license_file,notes
-2025-08-23T14:50:00.574Z,TEST1,TEST1,TEST1,SMC_ESP32_TEST1,SMCTEST1369,f4:65:0b:58:66:a4,192.168.4.1,,pending,,No expiry (permanent license)
-2025-08-23T16:43:32.573Z,ATEST,ATEST,ATEST,SMC_ESP32_ATEST,SMCATEST385,f4:65:0b:58:66:a4,192.168.4.1,,pending,,No expiry (permanent license)

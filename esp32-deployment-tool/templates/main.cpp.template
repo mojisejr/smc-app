@@ -21,6 +21,10 @@ const char* APPLICATION_NAME = "{{APPLICATION_NAME}}";
 #define DHT_TYPE DHT22     // AM2302 = DHT22
 DHT dht(DHT_PIN, DHT_TYPE);
 
+// Sensor status tracking
+bool sensorAvailable = false;
+String sensorMode = "unknown";
+
 // WiFi Access Point Configuration
 const char* AP_SSID = "{{WIFI_SSID}}";
 const char* AP_PASSWORD = "{{WIFI_PASSWORD}}";
@@ -54,7 +58,25 @@ void setup() {
   Serial.println("Initializing AM2302 Temperature/Humidity Sensor...");
   dht.begin();
   Serial.printf("Sensor Pin: GPIO %d\n", DHT_PIN);
-  Serial.println("Sensor: Mock Mode (Development)");
+  
+  // Test sensor availability
+  Serial.println("Testing sensor connectivity...");
+  delay(2000); // Wait for sensor to stabilize
+  
+  float testTemp = dht.readTemperature();
+  float testHumidity = dht.readHumidity();
+  
+  if (!isnan(testTemp) && !isnan(testHumidity) && testTemp > -40 && testTemp < 80) {
+    sensorAvailable = true;
+    sensorMode = "live";
+    Serial.println("✅ DHT22 sensor detected and working");
+    Serial.printf("Initial reading: %.1f°C, %.1f%%RH\n", testTemp, testHumidity);
+  } else {
+    sensorAvailable = false;
+    sensorMode = "mock";
+    Serial.println("⚠️  DHT22 sensor not detected or malfunction");
+    Serial.println("Using mock data mode for demonstration");
+  }
 
   // Configure CORS
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
@@ -114,22 +136,42 @@ void setup() {
   server.on("/sensor", HTTP_GET, [](AsyncWebServerRequest *request) {
     JsonDocument doc;
     
-    // Mock data mode for development (will be replaced with real sensor readings)
-    float temperature = 22.5 + random(-25, 25) / 10.0; // 20-25°C range
-    float humidity = 65.0 + random(-15, 15) / 10.0;    // 50-80% RH range
+    float temperature, humidity;
+    String currentMode;
     
-    // Future: Real sensor readings
-    // float temperature = dht.readTemperature();
-    // float humidity = dht.readHumidity();
-    // if (isnan(temperature) || isnan(humidity)) {
-    //   temperature = -999; humidity = -999; // Error values
-    // }
+    if (sensorAvailable) {
+      // Try to read from real sensor
+      temperature = dht.readTemperature();
+      humidity = dht.readHumidity();
+      
+      // Validate sensor readings
+      if (!isnan(temperature) && !isnan(humidity) && 
+          temperature > -40 && temperature < 80 && 
+          humidity >= 0 && humidity <= 100) {
+        // Real sensor data is valid
+        currentMode = "live";
+        Serial.printf("Live sensor: %.1f°C, %.1f%%RH\n", temperature, humidity);
+      } else {
+        // Sensor failed this reading, use fallback
+        temperature = 22.5 + random(-25, 25) / 10.0;
+        humidity = 65.0 + random(-15, 15) / 10.0;
+        currentMode = "mock_fallback";
+        Serial.println("Sensor failed, using fallback data");
+      }
+    } else {
+      // No sensor available, use mock data
+      temperature = 22.5 + random(-25, 25) / 10.0;
+      humidity = 65.0 + random(-15, 15) / 10.0;
+      currentMode = "mock";
+    }
     
-    doc["temp"] = temperature;
-    doc["humid"] = humidity;
+    // Build JSON response with enhanced status information
+    doc["temp"] = round(temperature * 10) / 10.0; // Round to 1 decimal
+    doc["humid"] = round(humidity * 10) / 10.0;   // Round to 1 decimal
     doc["sensor"] = "AM2302";
     doc["gpio"] = DHT_PIN;
-    doc["mode"] = "mock"; // จะเป็น "live" เมื่อใช้ sensor จริง
+    doc["mode"] = currentMode;
+    doc["sensor_available"] = sensorAvailable;
     doc["timestamp"] = millis();
     doc["customer_id"] = CUSTOMER_ID;
     
