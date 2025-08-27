@@ -209,36 +209,64 @@ async function detectViaDirectUSBScan(): Promise<ESP32Device[]> {
   console.log('info: Scanning USB devices directly...');
   
   try {
-    // Get list of tty devices
-    const { stdout: ttyDevices } = await execAsync('ls -la /dev/tty* 2>/dev/null | grep -E "(USB|ACM|cu\\.|SLAB)" || echo ""');
+    const platform = process.platform;
+    let devices: ESP32Device[] = [];
     
-    // Get USB device info if available
-    let usbInfo = '';
-    try {
-      const { stdout: lsusbOutput } = await execAsync('lsusb 2>/dev/null || echo ""');
-      usbInfo = lsusbOutput;
-    } catch {
-      console.log('info: lsusb not available in container');
-    }
-    
-    const devices: ESP32Device[] = [];
-    
-    // Parse tty device list
-    if (ttyDevices.trim()) {
-      const deviceLines = ttyDevices.trim().split('\n');
+    if (platform === 'win32') {
+      // Windows: Use PowerShell to get COM ports
+      const { stdout: comPorts } = await execAsync('powershell "Get-WmiObject Win32_SerialPort | Select-Object DeviceID, Description, Manufacturer | ConvertTo-Json"');
       
-      for (const line of deviceLines) {
-        const portMatch = line.match(/\/dev\/(tty[^\\s]+|cu\\.[^\\s]+)/);
-        if (portMatch) {
-          const port = `/dev/${portMatch[1]}`;
+      if (comPorts.trim()) {
+        try {
+          const portData = JSON.parse(comPorts);
+          const portsArray = Array.isArray(portData) ? portData : [portData];
           
-          // Check if this looks like an ESP32 device
-          if (isESP32Device(port, line, usbInfo)) {
-            devices.push({
-              port,
-              description: extractDeviceDescription(port, line, usbInfo),
-              manufacturer: extractManufacturer(line, usbInfo)
-            });
+          for (const port of portsArray) {
+            if (port.DeviceID && isESP32DeviceWindows(port)) {
+              devices.push({
+                port: port.DeviceID,
+                description: port.Description || 'Unknown Serial Device',
+                manufacturer: port.Manufacturer || 'Unknown'
+              });
+            }
+          }
+        } catch (parseError) {
+          console.log('info: Failed to parse Windows COM port data, trying alternative method');
+          // Fallback: Use mode command
+          const { stdout: modeOutput } = await execAsync('mode');
+          devices = parseWindowsModeOutput(modeOutput);
+        }
+      }
+    } else {
+      // Linux/macOS: Use original Unix commands
+      const { stdout: ttyDevices } = await execAsync('ls -la /dev/tty* 2>/dev/null | grep -E "(USB|ACM|cu\\.|SLAB)" || echo ""');
+      
+      // Get USB device info if available
+      let usbInfo = '';
+      try {
+        const { stdout: lsusbOutput } = await execAsync('lsusb 2>/dev/null || echo ""');
+        usbInfo = lsusbOutput;
+      } catch {
+        console.log('info: lsusb not available in container');
+      }
+      
+      // Parse tty device list
+      if (ttyDevices.trim()) {
+        const deviceLines = ttyDevices.trim().split('\n');
+        
+        for (const line of deviceLines) {
+          const portMatch = line.match(/\/dev\/(tty[^\\s]+|cu\\.[^\\s]+)/);
+          if (portMatch) {
+            const port = `/dev/${portMatch[1]}`;
+            
+            // Check if this looks like an ESP32 device
+            if (isESP32Device(port, line, usbInfo)) {
+              devices.push({
+                port,
+                description: extractDeviceDescription(port, line, usbInfo),
+                manufacturer: extractManufacturer(line, usbInfo)
+              });
+            }
           }
         }
       }
@@ -329,27 +357,75 @@ async function detectLinuxDevices(): Promise<ESP32Device[]> {
 }
 
 async function detectWindowsDevices(): Promise<ESP32Device[]> {
+  console.log('info: Detecting Windows devices...');
+  
   try {
-    // Windows in WSL environment
-    const { stdout } = await execAsync('ls -la /dev/ttyS* 2>/dev/null || echo ""');
-    
     const devices: ESP32Device[] = [];
-    if (stdout.trim()) {
-      const deviceLines = stdout.trim().split('\n');
+    
+    // Method 1: Use PowerShell to get detailed COM port information
+    try {
+      const { stdout: comPorts } = await execAsync('powershell "Get-WmiObject Win32_PnpEntity | Where-Object {$_.Name -match \'COM\\d+\'} | Select-Object Name, DeviceID, Manufacturer | ConvertTo-Json"');
       
-      for (const line of deviceLines) {
-        const portMatch = line.match(/\/dev\/(ttyS[0-9]+)/);
-        if (portMatch) {
-          const port = `/dev/${portMatch[1]}`;
-          devices.push({
-            port,
-            description: `Windows Serial Device (${portMatch[1]})`,
-            manufacturer: 'Unknown'
-          });
+      if (comPorts.trim()) {
+        const portData = JSON.parse(comPorts);
+        const portsArray = Array.isArray(portData) ? portData : [portData];
+        
+        for (const port of portsArray) {
+          if (port.Name) {
+            const comMatch = port.Name.match(/COM(\d+)/);
+            if (comMatch) {
+              const portName = `COM${comMatch[1]}`;
+              
+              // Check if this looks like an ESP32 device based on device info
+              const isESP32 = isESP32DeviceWindows({
+                Description: port.Name,
+                Manufacturer: port.Manufacturer,
+                DeviceID: port.DeviceID
+              });
+              
+              if (isESP32) {
+                devices.push({
+                  port: portName,
+                  description: port.Name || 'Serial Communication Port',
+                  manufacturer: port.Manufacturer || 'Unknown'
+                });
+              }
+            }
+          }
         }
+      }
+    } catch (powershellError) {
+      console.log('info: PowerShell method failed, trying alternative approach');
+      
+      // Method 2: Fallback to basic COM port enumeration
+      try {
+        const { stdout: regQuery } = await execAsync('reg query "HKLM\\HARDWARE\\DEVICEMAP\\SERIALCOMM" /v * 2>nul || echo ""');
+        
+        if (regQuery.trim()) {
+          const lines = regQuery.split('\n');
+          for (const line of lines) {
+            const comMatch = line.match(/COM(\d+)/);
+            if (comMatch) {
+              const portName = `COM${comMatch[1]}`;
+              devices.push({
+                port: portName,
+                description: 'Serial Communication Port',
+                manufacturer: 'Unknown'
+              });
+            }
+          }
+        }
+      } catch (regError) {
+        console.log('info: Registry query failed, using mode command as final fallback');
+        
+        // Method 3: Final fallback using mode command
+        const { stdout: modeOutput } = await execAsync('mode');
+        const fallbackDevices = parseWindowsModeOutput(modeOutput);
+        devices.push(...fallbackDevices);
       }
     }
     
+    console.log(`info: Windows detection found ${devices.length} devices`);
     return devices;
   } catch (error) {
     throw new Error(`Windows device detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -415,6 +491,66 @@ function isESP32Device(port: string, deviceLine: string, usbInfo: string): boole
   return indicators.some(indicator => 
     searchText.includes(indicator.toLowerCase())
   ) || port.includes('cu.usbserial') || port.includes('cu.SLAB');
+}
+
+// Windows-specific helper function to check if a device is likely an ESP32
+function isESP32DeviceWindows(portInfo: any): boolean {
+  const esp32Keywords = [
+    'cp210', 'cp2102', 'cp2104', 'cp2105', 'cp2108',
+    'ch340', 'ch341',
+    'ftdi', 'ft232',
+    'esp32', 'esp8266',
+    'silicon labs', 'silabs',
+    'qinheng', 'wch',
+    'usb serial',
+    'uart', 'bridge',
+    'usb-serial'
+  ];
+  
+  // Windows Hardware ID patterns for common ESP32 USB-to-Serial chips
+  const esp32HardwareIds = [
+    'USB\\VID_1A86&PID_55D4', // CH340 (common on ESP32 dev boards)
+    'USB\\VID_1A86&PID_7523', // CH340G
+    'USB\\VID_10C4&PID_EA60', // CP2102 (Silicon Labs)
+    'USB\\VID_10C4&PID_EA70', // CP2105
+    'USB\\VID_0403&PID_6001', // FTDI FT232R
+    'USB\\VID_0403&PID_6015', // FTDI FT231X
+    'USB\\VID_067B&PID_2303'  // Prolific PL2303
+  ];
+  
+  const searchText = `${portInfo.Description || ''} ${portInfo.Manufacturer || ''} ${portInfo.DeviceID || ''}`.toLowerCase();
+  
+  // Check for ESP32-specific keywords
+  const hasKeyword = esp32Keywords.some(keyword => searchText.includes(keyword));
+  
+  // Check for known hardware IDs
+  const hasHardwareId = esp32HardwareIds.some(hwId => 
+    (portInfo.DeviceID || '').toUpperCase().includes(hwId)
+  );
+  
+  return hasKeyword || hasHardwareId;
+}
+
+// Parse Windows mode command output as fallback
+function parseWindowsModeOutput(modeOutput: string): ESP32Device[] {
+  const devices: ESP32Device[] = [];
+  const lines = modeOutput.split('\n');
+  
+  for (const line of lines) {
+    const comMatch = line.match(/COM(\d+)/);
+    if (comMatch) {
+      const port = `COM${comMatch[1]}`;
+      // For mode output, we can't easily determine if it's ESP32, so we include all COM ports
+      // This is a fallback method when PowerShell fails
+      devices.push({
+        port,
+        description: 'Serial Communication Port',
+        manufacturer: 'Unknown'
+      });
+    }
+  }
+  
+  return devices;
 }
 
 function extractDeviceDescription(port: string, deviceLine: string, usbInfo: string): string {

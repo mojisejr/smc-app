@@ -85,7 +85,7 @@ These commands streamline our communication. You can use them with or without a 
 - **`=impl > [ข้อความ]`**: Begin implementation immediately.
 - **`=rrr > [ข้อความ]`**: Update the retrospective file for the current day based on the provided message.
 - **`=plan > [ข้อความคำถาม/โจทย์]`**: คำสั่งสำหรับวางแผนงานโดยละเอียดแต่ยังไม่ลงมือเขียนโค้ด
-- **`=plan --retro --focus > [ข้อความคำถาม/โจทย์]`**: ใช้สำหรับวางแผนงานโดยอ้างอิงจากบริบทที่กำหนด
+- **`=plan --retro --focus > [ข้อความคำถาม/โจทย์]`**: ใช้สำหรับวางแผนงานโดยอ้างอิงจากบริบทที่กำหนด ** ห้าม implement ทันทีวางแผนเท่านั้น**
   - **--retro**: อ้างอิงจากข้อมูลใน `retrospective` ของวันก่อนหน้า
   - **--focus**: อ้างอิงจากข้อมูลใน `current-focus.md`
 
