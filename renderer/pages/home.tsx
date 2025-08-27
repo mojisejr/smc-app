@@ -71,7 +71,7 @@ function Home() {
   // Refresh slot data when activation status changes
   useEffect(() => {
     if (isActivated) {
-      console.log('info: Activation status changed, refreshing slot data');
+      // Info log removed for production
       refreshSlots();
     }
   }, [isActivated, refreshSlots]);
@@ -84,10 +84,7 @@ function Home() {
 
   useEffect(() => {
     if (dispensing.continue) {
-      console.log(
-        "DISPENSING DIALOG TRACE: CLEAR OR CON FLAG",
-        dispensing.continue
-      );
+      // Info log removed for production
       setCloseClearOrCon(true);
     }
   }, [dispensing]);

@@ -67,9 +67,7 @@ export function getDisplaySlotConfig(): SlotDisplayConfig {
   }
 
   // FALLBACK: Default to DS12 configuration if no cache
-  console.log(
-    "getDisplaySlotConfig: Using DS12 fallback, call loadDisplaySlotConfigAsync() to load from database"
-  );
+  // Debug log removed for production
 
   return {
     slotCount: 12,
@@ -136,18 +134,12 @@ export async function loadDisplaySlotConfigAsync(): Promise<SlotDisplayConfig> {
     // Cache the result for synchronous access
     cachedDeviceConfig = resultConfig;
 
-    console.log(
-      "loadDisplaySlotConfigAsync: Configuration loaded from database:",
-      deviceType
-    );
+    // Debug log removed for production
 
     return resultConfig;
   } catch (error) {
     // FALLBACK: Default to DS12 configuration if database fails
-    console.error(
-      "loadDisplaySlotConfigAsync: Error loading from database, using DS12 fallback:",
-      error
-    );
+    // Debug log removed for production
 
     const fallbackConfig = {
       slotCount: 12,
@@ -170,7 +162,7 @@ export async function loadDisplaySlotConfigAsync(): Promise<SlotDisplayConfig> {
  */
 export function clearDisplaySlotConfigCache(): void {
   cachedDeviceConfig = null;
-  console.log("Display slot configuration cache cleared");
+  // Debug log removed for production
 }
 
 /**
@@ -343,10 +335,7 @@ export function debugSlotConfiguration(): void {
     const styleConfig = getSlotStylingConfig();
 
     console.group("🔍 Slot Configuration Debug");
-    console.log("📱 Display Config:", displayConfig);
-    console.log("🎯 Grid Config:", gridConfig);
-    console.log("🎨 Style Config:", styleConfig);
-    console.log("✅ Validation:", validateSlotConfiguration());
+    // Debug logs removed for production
     console.groupEnd();
   } catch (error) {
     console.error("❌ Debug configuration error:", error);

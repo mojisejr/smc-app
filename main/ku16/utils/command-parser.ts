@@ -98,7 +98,7 @@ export const cmdCheckOpeningSlot = (
   availableSlots: number,
   currentSlot: number
 ) => {
-  console.log("binArr: ", binArr);
+  // Binary array debug log removed
   if (binArr.length <= 0) return -1;
 
   let openingSLot = -1;
@@ -106,13 +106,12 @@ export const cmdCheckOpeningSlot = (
   openingSLot = binArr[currentSlot - 1] == 0 ? currentSlot : -1;
   // for (let i = 0; i < availableSlots; i++) {
   //   if (reversed[i] == 0) {
-  //     console.log(`reversed[${i}] = ${reversed[i]}`);
-  //     console.log("openingSlot: ", i + 1);
+  // Slot debugging logs removed
   //     openingSLot = i + 1;
   //     break;
   //   }
   // }
-  // console.log("reversed: ", reversed);
+  // Reversed array debug log removed
   return openingSLot;
 };
 
@@ -121,7 +120,7 @@ export const cmdCheckClosedSlot = (
   availableSlots: number,
   currentSlot: number
 ) => {
-  console.log("binArr: ", binArr);
+  // Binary array debug log removed
   if (binArr.length <= 0) return -1;
 
   let closedSlot = -1;
@@ -129,13 +128,12 @@ export const cmdCheckClosedSlot = (
   closedSlot = binArr[currentSlot - 1] == 1 ? currentSlot : -1;
   // for (let i = 0; i < availableSlots; i++) {
   //   if (reversed[i] == 1) {
-  //     console.log(`reversed[${i}] = ${reversed[i]}`);
-  //     console.log("closedSlot: ", i + 1);
+  // Slot debugging logs removed
   //     closedSlot = i + 1;
   //     break;
   //   }
   // }
-  // console.log("reversed: ", reversed);
+  // Reversed array debug log removed
   return closedSlot;
 };
 

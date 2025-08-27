@@ -93,6 +93,7 @@ This document provides comprehensive system understanding for safe refactoring o
 ## System Purpose & Business Context
 
 ### Medical Device Workflow
+
 The Smart Medication Cart automates medication storage and dispensing for healthcare facilities:
 
 1. **Medication Loading**: Healthcare staff unlock empty slots, load medication, close slots
@@ -101,6 +102,7 @@ The Smart Medication Cart automates medication storage and dispensing for health
 4. **Environmental Monitoring**: Temperature and humidity tracking for medication safety
 
 ### Key Business Rules
+
 - **No Login Required**: Uses passkey verification per operation for quick access
 - **Manual State Confirmation**: User confirms slot closure to preserve system resources
 - **Comprehensive Logging**: All unlock/dispense operations tracked with user ID, HN, timestamps
@@ -110,6 +112,7 @@ The Smart Medication Cart automates medication storage and dispensing for health
 ## Hardware Evolution & Current Status
 
 ### Device Evolution Timeline
+
 ```
 Original → Manufacturer Change → Anti-Piracy Protection → Current Production
 KU16    →       CU16         →        DS16          →    DS16 (Ready)
@@ -117,16 +120,18 @@ KU12    →       CU12         →        DS12          →    DS12 (Production)
 ```
 
 ### Production Status (January 2025)
+
 - **DS12**: ✅ **PRODUCTION DEPLOYED** - BuildTimeController with complete DS12 protocol implementation
 - **Responsive Grid**: ✅ **PRODUCTION DEPLOYED** - Dynamic slot configuration with build-time hardware detection
 - **Design System**: ✅ **PRODUCTION DEPLOYED** - Centralized component library with React Hook Form integration
-- **DS16**: 🔧 **CONFIGURATION READY** - Architecture prepared, awaiting hardware availability  
+- **DS16**: 🔧 **CONFIGURATION READY** - Architecture prepared, awaiting hardware availability
 - **Legacy**: `/main/ku16/` folder preserved for reference and rollback capability
 - **Architecture**: Build-time device type selection with protocol abstraction and responsive UI (LIVE)
 
 ## Critical System Components
 
 ### 1. Hardware Communication Layer (Production Implementation)
+
 - **Current**: BuildTimeController deployed in production with DS12 protocol
 - **Architecture**: Build-time device configuration with abstract controller pattern
 - **Location**: `/main/ku-controllers/` with complete protocol abstraction
@@ -135,11 +140,12 @@ KU12    →       CU12         →        DS12          →    DS12 (Production)
 - **Legacy Preserved**: `/main/ku16/index.ts` maintained for rollback capability
 
 ### 2. Database Schema
+
 ```sql
 -- Slot state management
 Slot: { slotId, hn, timestamp, occupied, opening, isActive }
 
--- User authentication 
+-- User authentication
 User: { id, name, passkey, role }
 
 -- Audit logging
@@ -148,6 +154,7 @@ Logs: { id, user, message, timestamp }
 ```
 
 ### 3. Enhanced User Interface Components (Production Implementation)
+
 - **Responsive Home Page**: `/renderer/pages/home.tsx` - Dynamic slot grid with build-time configuration
 - **Design System Architecture**: `/renderer/components/Shared/DesignSystem/` - Centralized component library
   - `DialogBase.tsx` - Flexible container with responsive layout
@@ -163,7 +170,9 @@ Logs: { id, user, message, timestamp }
 - **Admin Dashboard**: 4-tab management interface with enhanced UX patterns
 
 ### 4. State Management Pattern (Production Architecture)
+
 Enhanced three-layer state synchronization with medical-grade consistency:
+
 - **Database**: Persistent slot states with comprehensive audit logging (SQLite + Sequelize)
 - **Main Process**: Runtime hardware state via BuildTimeController with protocol abstraction
 - **Renderer Process**: Enhanced UI state with React Hook Form + Context providers + Design System
@@ -171,12 +180,14 @@ Enhanced three-layer state synchronization with medical-grade consistency:
 ## Security & Compliance Features
 
 ### Authentication Model
+
 - **No System Login**: Direct access to medication cart
 - **Per-Operation Passkey**: Required for unlock/dispense operations
 - **Admin Dashboard**: Requires authentication for management functions
 - **Role-Based Access**: Admin vs operator permissions
 
 ### Enhanced Audit & Compliance (Production Features)
+
 - **Comprehensive Logging**: Every operation logged with full context in Thai language
 - **Medical-Grade Persistence**: SQLite with atomic transactions for regulatory compliance
 - **Enhanced Export**: Advanced log filtering and CSV/Excel export for compliance reporting
@@ -186,12 +197,14 @@ Enhanced three-layer state synchronization with medical-grade consistency:
 ## Risk Assessment for Refactoring
 
 ### High-Risk Areas
+
 1. **Protocol Parsing**: Binary data interpretation for DS12/DS16
 2. **Checksum Validation**: Critical for RS485 communication integrity
 3. **State Synchronization**: Database ↔ Hardware ↔ UI state management
 4. **Audit Logging**: Must preserve medical compliance requirements
 
 ### Safe Refactoring Zones
+
 1. **UI Components**: React components can be safely modernized
 2. **IPC Handlers**: Event handlers have clear interfaces
 3. **Database Queries**: Sequelize ORM provides abstraction
@@ -200,6 +213,7 @@ Enhanced three-layer state synchronization with medical-grade consistency:
 ## Current System Status & Next Steps
 
 ### Production Deployment Success (Phase 4.2+ Complete)
+
 ✅ **DS12 Implementation**: Complete BuildTimeController production deployment  
 ✅ **Responsive Grid System**: Dynamic slot configuration with hardware-aware layout  
 ✅ **Design System Integration**: Centralized component library with React Hook Form  
@@ -208,34 +222,37 @@ Enhanced three-layer state synchronization with medical-grade consistency:
 ✅ **Enhanced UX**: Improved dialog system with visual validation feedback  
 ✅ **Audit Trail Integrity**: Complete logging system with Thai language support  
 ✅ **SMC License CLI v1.1.0**: Production-ready ESP32 hardware binding and CSV batch processing  
-✅ **ESP32 Keygen System**: Complete license activation and hardware binding system  
+✅ **ESP32 Keygen System**: Complete license activation and hardware binding system
 
 ### Production Features (Latest Implementation)
+
 ✅ **Responsive Layout**: Automatic grid adjustment (DS12: 3x4, DS16: 3x5)  
 ✅ **Build-Time Configuration**: Hardware detection with dynamic UI adaptation  
 ✅ **Enhanced Components**: Medical-grade status indicators and form validation  
 ✅ **Thai Language Integration**: Complete localization with enhanced error messaging  
 ✅ **ESP32 License Integration**: Hardware-based license activation with WiFi management  
-✅ **CSV Batch Processing**: Automated license generation for multiple deployments  
+✅ **CSV Batch Processing**: Automated license generation for multiple deployments
 
 ### DS16 Readiness (Phase 5)
+
 🔧 **Configuration Ready**: Architecture prepared for DS16 hardware availability  
 🔧 **Protocol Support**: DS16 protocol patterns established, ready for activation  
-🔧 **UI Compatibility**: Responsive grid system supports 16-slot layout automatically  
+🔧 **UI Compatibility**: Responsive grid system supports 16-slot layout automatically
 
 ## Responsive Slot Configuration System (Production Feature)
 
 ### Dynamic Hardware Detection
+
 The system automatically detects hardware configuration and adjusts UI layout accordingly:
 
 ```typescript
 // Build-time configuration with responsive grid adaptation
 interface SlotDisplayConfig {
-  slotCount: number;        // DS12: 12, DS16: 15 (max displayable)
-  columns: number;          // DS12: 4, DS16: 5
-  rows: number;             // Both: 3 (medical device standard)
-  gridClass: string;        // Tailwind CSS classes
-  containerClass: string;   // Responsive container styling
+  slotCount: number; // DS12: 12, DS16: 15 (max displayable)
+  columns: number; // DS12: 4, DS16: 5
+  rows: number; // Both: 3 (medical device standard)
+  gridClass: string; // Tailwind CSS classes
+  containerClass: string; // Responsive container styling
 }
 
 // Hardware-aware grid generation
@@ -244,19 +261,22 @@ const slots = generateSlotArray(config.slotCount);
 ```
 
 ### Medical Device UI Adaptations
+
 - **DS12 Configuration**: 3x4 grid layout optimized for 12-slot hardware
 - **DS16 Configuration**: 3x5 grid layout with 15 active slots (16th slot reserved)
 - **Consistent UX**: Same medical workflow regardless of hardware type
 - **Thai Language**: Complete localization maintained across all configurations
 
 ### Completed System Enhancements (Phase 4.2+)
+
 1. **ESP32 Keygen System**: Complete license activation system with hardware binding validation
-2. **CSV Batch Processing**: Automated license generation workflow for multiple deployments  
+2. **CSV Batch Processing**: Automated license generation workflow for multiple deployments
 3. **No Expiry License Support**: Permanent license management for long-term deployments
 4. **WiFi Auto-Connection**: Automated ESP32 WiFi credential management and connection
 5. **Cross-Platform License Management**: Development mode support for macOS/Windows
 
 ### Future Enhancements
+
 1. **DS16 Activation**: Immediate deployment when hardware becomes available (UI ready)
 2. **Enhanced Monitoring**: Advanced hardware health monitoring features
 3. **Performance Optimization**: Medical device response time improvements
@@ -266,6 +286,7 @@ const slots = generateSlotArray(config.slotCount);
 ## ESP32 Configuration & Deployment System Integration
 
 ### System Architecture Enhancement
+
 The ESP32 Configuration System extends the SMC architecture with hardware provisioning and environmental monitoring capabilities:
 
 ```
@@ -273,6 +294,7 @@ SMC Desktop App → ESP32 REST API → License CLI → Hardware Binding
 ```
 
 ### ESP32 Integration Features
+
 - **MAC Address Binding**: Automatic retrieval for license generation
 - **Environmental Monitoring**: Temperature and humidity tracking via DHT22 sensor
 - **Configuration Management**: PlatformIO-based firmware deployment
@@ -280,19 +302,22 @@ SMC Desktop App → ESP32 REST API → License CLI → Hardware Binding
 - **Medical Compliance**: Environmental thresholds for medication storage standards
 
 ### ESP32 API Endpoints Integration
+
 ```
 GET /mac → MAC address for license binding
-GET /health → Hardware status and connection info  
+GET /health → Hardware status and connection info
 GET /temp → Environmental data for medical compliance
 ```
 
 ### Production Deployment Workflow
+
 1. **Hardware Setup**: Deploy ESP32 firmware via PlatformIO
 2. **License Generation**: CLI tool retrieves MAC address for binding
 3. **Application Integration**: Automatic ESP32 connection during license activation
 4. **Environmental Monitoring**: Real-time temperature/humidity tracking
 
 ### Development vs Production Modes
+
 - **Development**: Mock ESP32 responses for testing without hardware
 - **Production**: Real ESP32 hardware with license binding and environmental monitoring
 - **Cross-Platform**: Windows/macOS development with unified deployment
@@ -300,6 +325,7 @@ GET /temp → Environmental data for medical compliance
 ## SMC License CLI Tool Integration (Production Ready v1.1.0)
 
 ### Architecture Integration
+
 The SMC License CLI Tool extends the SMC system with secure hardware binding and license management:
 
 ```
@@ -307,6 +333,7 @@ SMC Desktop App → ESP32 Hardware → License CLI Tool → Encrypted License Fi
 ```
 
 ### Key Features
+
 - **Hardware Binding**: ESP32 MAC address binding for secure device authentication
 - **Medical-Grade Encryption**: AES-256-CBC with production-optimized key management
 - **Development Workflow**: Test mode for development without hardware dependencies
@@ -315,17 +342,19 @@ SMC Desktop App → ESP32 Hardware → License CLI Tool → Encrypted License Fi
 - **Comprehensive Testing**: 13/13 tests passing across all development phases
 
 ### Security & Compliance
+
 - **Encrypted License Storage**: AES-256-CBC with proper IV handling
 - **Hardware Authentication**: MAC address verification prevents license transfer
 - **Audit Trail Support**: Complete operation logging for compliance
 - **Medical Device Standards**: Designed for healthcare regulatory requirements
 
 ### Production Readiness Status
+
 ✅ **All Tests Passing**: Comprehensive 5-phase test suite (13/13 tests)  
 ✅ **Documentation Complete**: Full README.md with usage examples and troubleshooting  
 ✅ **Error Handling**: Context-aware error messages with troubleshooting guides  
 ✅ **Performance Validated**: Startup time, memory usage, and encryption performance optimized  
 ✅ **Security Audited**: Medical-grade encryption and hardware binding verified  
-✅ **Build System**: Production-optimized builds and cross-platform packaging ready  
+✅ **Build System**: Production-optimized builds and cross-platform packaging ready
 
 This overview documents the current production-ready system with comprehensive medical device functionality, responsive design capabilities, enhanced UI components, secure license management, and extensibility for future hardware support.

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { ipcRenderer } from 'electron';
 import {
   DialogBase,
   DialogHeader,
   StatusIndicator,
   DialogButton,
-} from '@/components/Shared/DesignSystem';
+} from '../Shared/DesignSystem';
 
 /**
  * Network Retry Dialog
@@ -203,7 +204,7 @@ export default function NetworkRetryDialog({
 
           <div className="flex justify-center pt-2">
             <DialogButton
-              variant="ghost"
+              variant="secondary"
               onClick={onClose}
               disabled={isRetrying}
               className="text-gray-500 hover:text-gray-700"
@@ -244,7 +245,7 @@ export function useNetworkRetry() {
 
     try {
       // ส่ง IPC request ไปยัง main process เพื่อลองเชื่อมต่อ ESP32 ใหม่
-      const result = await window.ipcRenderer.invoke('test-esp32-connection');
+      const result = await ipcRenderer.invoke('test-esp32-connection');
       
       if (result.success) {
         setNetworkStatus(prev => ({ ...prev, status: 'connected' }));
@@ -275,7 +276,7 @@ export function useNetworkRetry() {
     hideRetryDialog();
     
     // ส่ง IPC request ไปยัง main process เพื่อเปิด network settings
-    window.ipcRenderer.invoke('open-network-settings');
+    ipcRenderer.invoke('open-network-settings');
   };
 
   return {

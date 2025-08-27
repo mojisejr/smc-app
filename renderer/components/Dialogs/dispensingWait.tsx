@@ -26,30 +26,19 @@ const DispensingWait = ({
 
   useEffect(() => {
     const handleDeactivatedEvent = () => {
-      console.log("DISPENSING WAIT DEBUG: Received deactivated event");
+      // Debug log removed for production
       onClose();
     };
 
     const handleLockedBackSuccessEvent = (event: any, payload: any) => {
-      console.log(
-        "DISPENSING WAIT DEBUG: Received locked-back-success event:",
-        payload
-      );
+      // Debug log removed for production
 
       // Validate that this event is for our slot
       if (payload.slotId === slotNo && payload.hn === hn) {
-        console.log(
-          "DISPENSING WAIT DEBUG: Slot locked back successfully, dialog should transition"
-        );
+        // Debug log removed for production
         // The useDispense hook should handle the state transition
       } else {
-        console.warn(
-          "DISPENSING WAIT DEBUG: Received event for different slot/hn:",
-          {
-            received: { slotId: payload.slotId, hn: payload.hn },
-            expected: { slotNo, hn },
-          }
-        );
+        // Debug log removed for production
       }
     };
 

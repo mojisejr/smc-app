@@ -89,6 +89,7 @@ loginRequestHandler(mainWindow, auth);
 #### Production Implementation: BuildTimeController
 **Device Support**: DS12 (production), DS16 (configuration-ready)
 **Architecture**: Build-time protocol selection with abstract base
+**TypeScript Compatibility**: Buffer type casting for @types/node v18 compatibility
 **Critical Methods**:
 ```typescript
 class BuildTimeController {
@@ -98,6 +99,16 @@ class BuildTimeController {
   slotBinParser(binArr: number[], availableSlot: number) // Binary parsing core
   decToBinArrSlot(data1: number, data2: number) // Bit manipulation
 }
+```
+
+**TypeScript Buffer Handling (August 2025 Update)**:
+```typescript
+// DS12Controller.ts - Buffer type compatibility fix
+this.serialPort.on("data", async (dataBuffer: Buffer) => {
+  // Explicit type casting for @types/node v18 compatibility
+  this.rawDataBuffer = Buffer.concat([this.rawDataBuffer, dataBuffer as Buffer]);
+  // ... rest of data processing
+});
 ```
 
 **Risk Assessment**: 
@@ -1026,6 +1037,49 @@ await logDispensing({
 - Gradual migration of IPC handlers
 - Remove legacy implementation after validation
 
+## TypeScript Development Configuration (August 2025 Update)
+
+### TypeScript Compiler Configuration
+**Location**: `/tsconfig.json`  
+**Target**: ES2020 with CommonJS modules  
+**Node.js Types**: @types/node ^18.11.18
+
+**Key Configuration Settings**:
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2020"]
+  }
+}
+```
+
+### Buffer Type Compatibility Issues
+**Issue**: @types/node v18 introduces stricter Buffer type checking with TypeScript 5.1.6  
+**Symptoms**: `TS2345` errors when passing `Buffer` to `Buffer.concat()`  
+**Root Cause**: Type incompatibility between `Buffer` and `Uint8Array<ArrayBufferLike>`
+
+**Resolution Pattern**:
+```typescript
+// Before: Type error with @types/node v18
+this.rawDataBuffer = Buffer.concat([this.rawDataBuffer, dataBuffer]);
+
+// After: Explicit type casting for compatibility
+this.rawDataBuffer = Buffer.concat([this.rawDataBuffer, dataBuffer as Buffer]);
+```
+
+**Applied Fixes**:
+- **DS12Controller.ts**: Line 1249 - Serial port data buffer concatenation
+- **Future Controllers**: Apply same pattern for DS16Controller implementation
+
+### Development Environment Considerations
+**TypeScript Version**: 5.1.6  
+**Node.js Types**: Version 18 compatibility layer  
+**Compilation Strategy**: Explicit type casting for Buffer operations  
+**Testing**: `npx tsc --noEmit` for type checking without build
+
 ## Risk Assessment for Component Changes
 
 ### High-Risk Components
@@ -1033,11 +1087,13 @@ await logDispensing({
 2. **Database State Management**: Essential for medical audit compliance
 3. **IPC Event Handlers**: Core business logic execution
 4. **Authentication System**: Security and access control
+5. **TypeScript Buffer Operations**: Hardware communication data integrity
 
 ### Medium-Risk Components
 1. **React Components**: User interface - can be refactored with tests
 2. **Utility Functions**: Helper methods with clear interfaces
 3. **Configuration Management**: Settings with validation
+4. **TypeScript Configuration**: Compiler settings affecting type safety
 
 ### Low-Risk Components
 1. **Styling and Layout**: CSS and component presentation

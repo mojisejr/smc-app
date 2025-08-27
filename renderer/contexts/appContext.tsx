@@ -30,15 +30,15 @@ export function AppProvider({ children }: appProviderProps) {
     
     // Listen for activation state changes from main process
     const handleActivationStateChange = (event: any, changeEvent: any) => {
-      console.log('info: Received activation state change:', changeEvent);
+      // Info log removed for production
       setActivated(changeEvent.newState.isActivated);
       
       // Handle navigation based on new state
       if (!changeEvent.newState.isActivated && window.location.pathname !== "/activate-key") {
-        console.log('info: Activation lost, redirecting to activation page');
+        // Info log removed for production
         replace("/activate-key");
       } else if (changeEvent.newState.isActivated && window.location.pathname === "/activate-key") {
-        console.log('info: System activated, redirecting to home');
+        // Info log removed for production
         replace("/home");
       }
     };
@@ -56,7 +56,7 @@ export function AppProvider({ children }: appProviderProps) {
     try {
       // Get current activation state from unified state manager
       const activationState = await ipcRenderer.invoke("activation-state:get-current");
-      console.log('info: Retrieved activation state:', activationState);
+      // Info log removed for production
       
       // Set initial state based on unified state manager
       setActivated(activationState.isActivated);
@@ -72,7 +72,7 @@ export function AppProvider({ children }: appProviderProps) {
     try {
       // Use unified activation state manager for validation
       const activationState = await ipcRenderer.invoke("activation-state:validate");
-      console.log('info: Activation validation result:', activationState);
+      // Info log removed for production
       
       setActivated(activationState.isActivated);
       
@@ -83,7 +83,7 @@ export function AppProvider({ children }: appProviderProps) {
         
         // Don't redirect if already on activation page
         if (!isOnActivationPage) {
-          console.log('info: System not activated, redirecting to activation page');
+          // Info log removed for production
           replace("/activate-key");
         }
       }
@@ -96,7 +96,7 @@ export function AppProvider({ children }: appProviderProps) {
       const isOnActivationPage = currentPath.includes('/activate-key');
       
       if (!isOnActivationPage) {
-        console.log('Activation check failed, redirecting to activation page');
+        // Error log kept for debugging
         replace("/activate-key");
       }
     }
@@ -106,7 +106,7 @@ export function AppProvider({ children }: appProviderProps) {
     try {
       // Force a fresh validation through the unified state manager
       const activationState = await ipcRenderer.invoke("activation-state:validate");
-      console.log('info: Manual activation refresh result:', activationState);
+      // Info log removed for production
       
       setActivated(activationState.isActivated);
       

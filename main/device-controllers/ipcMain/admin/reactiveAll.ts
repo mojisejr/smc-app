@@ -32,9 +32,9 @@ export const reactiveAllHandler = () => {
         throw new Error("ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้");
       }
 
-      // Use controller.reactiveAllSlots() instead of ku16.reactiveAllSlots()
+      // Use BuildTimeController.reactiveAllSlots() instead of ku16.reactiveAllSlots()
       // DS12Controller implements reactiveAllSlots() with same signature
-      const result = await controller.reactiveAllSlots();
+      const result = await BuildTimeController.reactiveAllSlots(payload.passkey);
       
       // PRESERVE: Same timing pattern - 1 second sleep then check state
       // Create delay utility matching KU16.sleep() behavior

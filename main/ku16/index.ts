@@ -71,11 +71,11 @@ export class KU16 {
     let result = false;
     this.serialPort.open((error) => {
       if (error) {
-        console.log("port open: ", error.message);
+        // Port open error logged elsewhere
         result = false;
         return;
       }
-      console.log("opening");
+      // Opening status logged elsewhere
       return true;
     });
 
@@ -85,7 +85,7 @@ export class KU16 {
   close() {
     this.serialPort.close((error) => {
       if (error) {
-        console.log("closing port error: ", error.message);
+        // Port close error logged elsewhere
         return;
       }
     });
@@ -178,8 +178,7 @@ export class KU16 {
       this.availableSlot,
       this.openingSlot.slotId
     );
-    console.log("this.openingSlot: ", this.openingSlot);
-    console.log("openingSlotNumber ForRightNow: ", openingSlotNumber);
+    // Slot debugging logs removed
     if (openingSlotNumber == this.openingSlot.slotId) {
       systemLog("locked_back_received: still opening");
       await logger({
@@ -379,15 +378,15 @@ export class KU16 {
     this.parser.on("data", async (data: Buffer) => {
       const status = checkCommand(data[2]);
       const slotArr = this.decToBinArrSlot(data[3], data[4]);
-      console.log("STATUS: ", status);
+      // Status debug log removed
       if (status == "RETURN_SINGLE_DATA") {
         if (this.opening && !this.dispensing && !this.waitForLockedBack) {
           //opening but not dispensing and not wait for lock
-          console.log("open/!dispense/waitForLock");
+          // Status debug log removed
           await this.receivedUnlockState(slotArr);
         } else if (this.opening && this.waitForLockedBack) {
           //opening and wait for lacked back
-          console.log("open/waitForLock");
+          // Status debug log removed
           await this.receivedLockedBackState(slotArr);
           await this.receivedCheckState(slotArr);
         } else if (
@@ -395,22 +394,22 @@ export class KU16 {
           this.dispensing &&
           !this.waitForDispenseLockedBack
         ) {
-          console.log("open/dispense/!waitForLock");
+          // Status debug log removed
           await this.receivedDispenseState(slotArr);
         } else if (
           this.opening &&
           this.dispensing &&
           this.waitForDispenseLockedBack
         ) {
-          console.log("open/dispense/waitForLock");
+          // Status debug log removed
           await this.receivedDispenseLockedBackState(slotArr);
           this.receivedCheckState(slotArr);
         } else {
-          console.log("ELSE CASE");
+          // Default case debug log removed
           await this.receivedCheckState(slotArr);
         }
       } else {
-        console.log("ERROR CASE");
+        // Error case debug log removed
         return;
       }
     });

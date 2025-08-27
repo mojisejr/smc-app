@@ -20,7 +20,7 @@ export class IndicatorDevice {
 
   receive() {
     this.parser.on("data", async (data: Buffer) => {
-      console.log("input-indicator", data);
+      // Debug log removed for production
       if (!data) {
         this.win.webContents.send("retrive-indicator", {
           success: false,
@@ -29,7 +29,7 @@ export class IndicatorDevice {
         });
       }
       const indicators = JSON.parse(data.toString());
-      console.log(indicators);
+      // Debug log removed for production
       this.win.webContents.send("retrive-indicator", {
         success: true,
         message: null,

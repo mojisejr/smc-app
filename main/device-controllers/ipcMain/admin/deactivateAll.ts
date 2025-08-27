@@ -34,7 +34,7 @@ export const deactivateAllHandler = () => {
 
       // Use controller.deactiveAllSlots() instead of ku16.deactiveAllSlots()
       // DS12Controller implements deactiveAllSlots() with same signature
-      const result = await controller.deactiveAllSlots();
+      const result = await controller.deactiveAllSlots!(payload.passkey);
       
       // PRESERVE: Same timing pattern - 1 second sleep then check state
       // Create delay utility matching KU16.sleep() behavior

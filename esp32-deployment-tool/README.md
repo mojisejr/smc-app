@@ -199,6 +199,37 @@ The ESP32 Deployment Tool now includes comprehensive Windows compatibility impro
    reg query "HKLM\HARDWARE\DEVICEMAP\SERIALCOMM"
    ```
 
+### Windows Development Mode
+
+The ESP32 Deployment Tool now supports **Windows Development Mode** for MAC address extraction, similar to macOS development mode:
+
+#### Features
+- **No ESP32 WiFi Connection Required**: Extracts MAC address from deployment logs instead of HTTP requests
+- **Cross-Platform Consistency**: Same development experience on Windows and macOS
+- **Automatic Detection**: Automatically activates when `NODE_ENV=development` and `process.platform === 'win32'`
+- **Fallback MAC Generation**: Uses mock MAC address if deployment log parsing fails
+
+#### How It Works
+1. **Environment Detection**: Automatically detects Windows development environment
+2. **Log Parsing**: Extracts MAC address from PlatformIO deployment logs
+3. **Mock WiFi Credentials**: Generates development WiFi credentials automatically
+4. **Seamless Integration**: No code changes required - works transparently
+
+#### Development vs Production
+
+| Mode | Platform | MAC Source | WiFi Connection |
+|------|----------|------------|----------------|
+| **Development** | Windows/macOS | Deployment logs | Not required |
+| **Production** | Container/Linux | HTTP API (`/mac`) | Required |
+
+#### Usage
+```bash
+# Windows Development Mode (automatic)
+set NODE_ENV=development
+npm run dev
+# MAC extraction will use development mode automatically
+```
+
 3. **Final Fallback**: Mode command parsing
    ```cmd
    mode

@@ -147,7 +147,7 @@ export class DS12Controller extends KuControllerBase {
       ...context,
       timestamp: context.timestamp || Date.now(),
     };
-    console.log("DS12 DEBUG: Dispensing context set:", this.dispensingContext);
+    // Debug log removed for production
   }
 
   /**
@@ -155,7 +155,7 @@ export class DS12Controller extends KuControllerBase {
    */
   clearDispensingContext() {
     this.dispensingContext = {};
-    console.log("DS12 DEBUG: Dispensing context cleared");
+    // Debug log removed for production
   }
 
   /**
@@ -1246,7 +1246,7 @@ export class DS12Controller extends KuControllerBase {
       this.serialPort.on("data", async (dataBuffer: Buffer) => {
         try {
           // ACCUMULATE RAW DATA: Buffer all incoming serial data
-          this.rawDataBuffer = Buffer.concat([this.rawDataBuffer, dataBuffer]);
+          this.rawDataBuffer = Buffer.concat([this.rawDataBuffer, dataBuffer as Buffer]);
 
           // PROCESS COMPLETE PACKETS: Extract packets starting with STX (0x02)
           while (this.rawDataBuffer.length >= 8) {
@@ -1365,11 +1365,11 @@ export class DS12Controller extends KuControllerBase {
 
         if (this.opening && !this.dispensing && !this.waitForLockedBack) {
           // Phase: Opening but not dispensing and not waiting for lock
-          console.log("DS12: open/!dispense/!waitForLock");
+          // Status debug log removed
           await this.receivedUnlockState(completePacket);
         } else if (this.opening && this.waitForLockedBack) {
           // Phase: Opening and waiting for locked back
-          console.log("DS12: open/waitForLock");
+          // Status debug log removed
           await this.receivedLockedBackState(completePacket);
           await this.receivedCheckState(completePacket);
         } else if (
@@ -1378,7 +1378,7 @@ export class DS12Controller extends KuControllerBase {
           !this.waitForDispenseLockedBack
         ) {
           // Phase: Opening and dispensing but not waiting for dispense lock
-          console.log("DS12: open/dispense/!waitForLock");
+          // Status debug log removed
           await this.receivedDispenseState(completePacket);
         } else if (
           this.opening &&
@@ -1386,12 +1386,12 @@ export class DS12Controller extends KuControllerBase {
           this.waitForDispenseLockedBack
         ) {
           // Phase: Opening and dispensing and waiting for dispense lock
-          console.log("DS12: open/dispense/waitForLock");
+          // Status debug log removed
           await this.receivedDispenseLockedBackState(completePacket);
           await this.receivedCheckState(completePacket);
         } else {
           // Default: Normal status check
-          console.log("DS12: normal status check");
+          // Status debug log removed
           await this.receivedCheckState(completePacket);
         }
       } else if (command === CommandType.DS12_UNLOCK_SLOT) {
@@ -2408,6 +2408,54 @@ export class DS12Controller extends KuControllerBase {
       success: false,
       error: "Command execution completed without result",
     };
+  }
+
+  /**
+   * Deactivate all DS12 slots (admin operation)
+   * @param passkey - admin passkey for authentication
+   */
+  async deactiveAllSlots(passkey?: string): Promise<void> {
+    try {
+      // Deactivate all slots from 1 to maxSlot
+      for (let slotId = 1; slotId <= this.maxSlot; slotId++) {
+        await this.deactivate(slotId, passkey || '');
+      }
+      
+      await this.logOperation("deactivate-all", {
+        userId: "admin",
+        message: `All DS12 slots deactivated successfully`,
+      });
+    } catch (error) {
+      await this.logOperation("deactivate-all-error", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        message: `DS12 deactivate all slots exception: ${error}`,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Reactivate all DS12 slots (admin operation)
+   * @param passkey - admin passkey for authentication
+   */
+  async reactiveAllSlots(passkey?: string): Promise<void> {
+    try {
+      // Reactivate all slots from 1 to maxSlot
+      for (let slotId = 1; slotId <= this.maxSlot; slotId++) {
+        await this.reactivate(slotId, passkey || '');
+      }
+      
+      await this.logOperation("reactivate-all", {
+        userId: "admin",
+        message: `All DS12 slots reactivated successfully`,
+      });
+    } catch (error) {
+      await this.logOperation("reactivate-all-error", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        message: `DS12 reactivate all slots exception: ${error}`,
+      });
+      throw error;
+    }
   }
 
   /**

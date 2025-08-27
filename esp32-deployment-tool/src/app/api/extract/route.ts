@@ -6,16 +6,18 @@ export async function POST(request: NextRequest) {
   try {
     const { deviceIP = '192.168.4.1', customerInfo, deploymentLog } = await request.json();
     
-    // Environment detection
+    // Environment detection - Support both macOS and Windows development
     const isDevelopmentMacOS = process.platform === 'darwin' && process.env.NODE_ENV === 'development';
+    const isDevelopmentWindows = process.platform === 'win32' && process.env.NODE_ENV === 'development';
+    const isDevelopmentMode = isDevelopmentMacOS || isDevelopmentWindows;
     
     console.log('info: Extracting MAC address from ESP32...');
-    console.log('Environment:', isDevelopmentMacOS ? 'macOS Development' : 'Container Production');
+    console.log('Environment:', isDevelopmentMode ? `${process.platform} Development` : 'Container Production');
     console.log('Device IP:', deviceIP);
 
-    // macOS Development Mode: Use deployment log data
-    if (isDevelopmentMacOS) {
-      return await handleMacOSDevelopment(customerInfo, deploymentLog);
+    // Development Mode (macOS/Windows): Use deployment log data
+    if (isDevelopmentMode) {
+      return await handleDevelopmentMode(customerInfo, deploymentLog, process.platform);
     }
 
     // Retry mechanism for MAC extraction
@@ -91,10 +93,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// macOS Development Mode Handler
-async function handleMacOSDevelopment(customerInfo: CustomerInfo, deploymentLog?: string): Promise<NextResponse> {
+// Development Mode Handler (macOS/Windows)
+async function handleDevelopmentMode(customerInfo: CustomerInfo, deploymentLog?: string, platform?: string): Promise<NextResponse> {
   try {
-    console.log('info: Using macOS Development Mode for MAC extraction');
+    console.log(`info: Using ${platform} Development Mode for MAC extraction`);
     
     // Extract MAC address from deployment log
     let macAddress = 'f4:65:0b:58:66:a4'; // Default fallback
@@ -122,15 +124,15 @@ async function handleMacOSDevelopment(customerInfo: CustomerInfo, deploymentLog?
       },
       wifiCredentials: wifiCredentials,
       timestamp: Date.now(),
-      mode: 'development_macos'
+      mode: `development_${platform}`
     };
     
-    console.log('info: macOS Development MAC extraction completed:', response);
+    console.log(`info: ${platform} Development MAC extraction completed:`, response);
     
     return NextResponse.json(response);
     
   } catch (error) {
-    console.error('error: macOS Development MAC extraction failed:', error);
+    console.error(`error: ${platform} Development MAC extraction failed:`, error);
     
     return NextResponse.json({
       success: false,

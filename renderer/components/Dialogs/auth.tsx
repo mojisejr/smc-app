@@ -55,11 +55,11 @@ const AuthDialog = ({ onClose }: AuthDialogProps) => {
   }, []);
 
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
-    console.log("🔍 Auth Form Submit - Data:", data);
+    // Debug log removed for production
     setLoading(true);
 
     if (data.passkey == "" || data.passkey == null) {
-      console.log("❌ Auth - Empty passkey");
+      // Debug log removed for production
       setLoading(false);
       toast.error(`กรุณาใส่ข้อมูลให้ครบถ้วน`, { toastId: 99, type: "error" });
       return;
@@ -69,7 +69,7 @@ const AuthDialog = ({ onClose }: AuthDialogProps) => {
       passkey: data.passkey,
     };
 
-    console.log("✅ Auth calling IPC login-req");
+    // Debug log removed for production
     ipcRenderer.invoke("login-req", req);
   };
 

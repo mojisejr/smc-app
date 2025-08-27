@@ -1,9 +1,9 @@
 {
-  "buildDate": "2025-08-24T09:00:26.712Z",
+  "buildDate": "2025-08-27T16:16:38.556Z",
   "buildVersion": "1.0.0",
   "deviceType": "DS12",
-  "platform": "darwin",
-  "nodeVersion": "v20.19.3",
+  "platform": "win32",
+  "nodeVersion": "v20.15.0",
   "organizationSetup": true,
   "databaseInitialized": true
 }

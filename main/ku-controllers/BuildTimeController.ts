@@ -454,4 +454,94 @@ export class BuildTimeController {
   } {
     return BuildConstants.getTimingConfig();
   }
+
+  /**
+   * Reactivate a slot using the current controller instance
+   * Delegates to the underlying controller's reactivate method
+   * 
+   * @param slotId - Target slot number
+   * @param passkey - User authentication passkey
+   * @returns Promise<void>
+   */
+  static async reactivate(slotId: number, passkey: string): Promise<void> {
+    if (!this.instance) {
+      throw new Error("BuildTimeController: No controller instance available for reactivate operation");
+    }
+
+    if (!this.instance.isConnected()) {
+      throw new Error("BuildTimeController: Controller not connected for reactivate operation");
+    }
+
+    // Check if the controller has reactivate method
+    if ('reactivate' in this.instance && typeof (this.instance as any).reactivate === 'function') {
+      return await (this.instance as any).reactivate(slotId, passkey);
+    } else {
+      throw new Error(`BuildTimeController: Reactivate method not supported by ${this.deviceConfig?.deviceType} controller`);
+    }
+  }
+
+  /**
+   * Perform emergency state reset using the current controller instance
+   * Delegates to the underlying controller's emergencyStateReset method
+   */
+  static emergencyStateReset(): void {
+    if (!this.instance) {
+      console.warn("BuildTimeController: No controller instance available for emergency state reset");
+      return;
+    }
+
+    // Check if the controller has emergencyStateReset method
+    if ('emergencyStateReset' in this.instance && typeof (this.instance as any).emergencyStateReset === 'function') {
+      (this.instance as any).emergencyStateReset();
+    } else {
+      console.warn(`BuildTimeController: Emergency state reset not supported by ${this.deviceConfig?.deviceType} controller`);
+    }
+  }
+
+  /**
+   * Reactivate all slots using the current controller instance
+   * Delegates to the underlying controller's reactiveAllSlots method
+   * 
+   * @param passkey - User authentication passkey
+   * @returns Promise<void>
+   */
+  static async reactiveAllSlots(passkey: string): Promise<void> {
+    if (!this.instance) {
+      throw new Error("BuildTimeController: No controller instance available for reactive all slots operation");
+    }
+
+    if (!this.instance.isConnected()) {
+      throw new Error("BuildTimeController: Controller not connected for reactive all slots operation");
+    }
+
+    // Check if the controller has reactiveAllSlots method
+    if ('reactiveAllSlots' in this.instance && typeof (this.instance as any).reactiveAllSlots === 'function') {
+      return await (this.instance as any).reactiveAllSlots(passkey);
+    } else {
+      throw new Error(`BuildTimeController: Reactive all slots method not supported by ${this.deviceConfig?.deviceType} controller`);
+    }
+  }
+
+  /**
+   * Send check state command using the current controller instance
+   * Delegates to the underlying controller's sendCheckState method
+   * 
+   * @returns Promise<void>
+   */
+  static async sendCheckState(): Promise<void> {
+    if (!this.instance) {
+      throw new Error("BuildTimeController: No controller instance available for send check state operation");
+    }
+
+    if (!this.instance.isConnected()) {
+      throw new Error("BuildTimeController: Controller not connected for send check state operation");
+    }
+
+    // Check if the controller has sendCheckState method
+    if ('sendCheckState' in this.instance && typeof (this.instance as any).sendCheckState === 'function') {
+      return await (this.instance as any).sendCheckState();
+    } else {
+      throw new Error(`BuildTimeController: Send check state method not supported by ${this.deviceConfig?.deviceType} controller`);
+    }
+  }
 }

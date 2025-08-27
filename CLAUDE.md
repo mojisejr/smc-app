@@ -83,7 +83,7 @@ These commands streamline our communication. You can use them with or without a 
 - **`=fcs > [ข้อความ]`**: Update `current-focus.md`. If a message is provided, I will add it to the file. If no message is provided, I will simply open/focus on the file for you to edit.
 - **`=atc > [ข้อความ]`**: Update architecture documentation.
 - **`=impl > [ข้อความ]`**: Begin implementation immediately.
-- **`=rrr > [ข้อความ]`**: Update the retrospective file for the current day based on the provided message.
+- **`=rrr > [ข้อความ]`**: Update the retrospective file for the current day based on the provided message and ###Retrospective workflow
 - **`=plan > [ข้อความคำถาม/โจทย์]`**: คำสั่งสำหรับวางแผนงานโดยละเอียดแต่ยังไม่ลงมือเขียนโค้ด
 - **`=plan --retro --focus > [ข้อความคำถาม/โจทย์]`**: ใช้สำหรับวางแผนงานโดยอ้างอิงจากบริบทที่กำหนด ** ห้าม implement ทันทีวางแผนเท่านั้น**
   - **--retro**: อ้างอิงจากข้อมูลใน `retrospective` ของวันก่อนหน้า
@@ -93,6 +93,7 @@ These commands streamline our communication. You can use them with or without a 
 
 - **File Structure**: `docs/retrospective/<folder ชื่อเดือนปี>/<file ของแต่ละวัน>`
 - **Template**: Each file follows a template with sections for tasks, bugs, lessons learned, and notes. I will add the message from `=rrr` to the appropriate section.
+- ** Update Current Date file if it exists (You might need to check what is the current date with my timezone before update) and create new file if not exists**
 
   ```markdown
   # Retrospective วันที่ [วัน-เดือน-ปี]

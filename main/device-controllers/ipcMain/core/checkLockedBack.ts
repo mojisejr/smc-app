@@ -6,7 +6,7 @@ export const checkLockedBackHandler = () => {
   ipcMain.handle(
     "check-locked-back",
     async (event: IpcMainEvent, payload: CheckLockedBack) => {
-      console.log("DISPENSING DIALOG TRACE: CHECK LOCKED BACK ON IPCMAIN", payload);
+      // Dispensing dialog trace removed
       
       // Get BrowserWindow from IPC event instead of using KU16 reference
       const win = BrowserWindow.fromWebContents(event.sender);
@@ -34,7 +34,7 @@ export const checkLockedBackHandler = () => {
       }
 
       try {
-        console.log("CHECKLOCKEDBACK DEBUG: Sending check state command for slot", payload.slotId);
+        // Check locked back debug log removed
         
         // Store the payload data in controller for later use when hardware responds
         if (controller.setDispensingContext) {
@@ -45,7 +45,7 @@ export const checkLockedBackHandler = () => {
         // DS12Controller implements sendCheckState() method with same signature
         await controller.sendCheckState();
         
-        console.log("CHECKLOCKEDBACK DEBUG: Check state command sent successfully");
+        // Check state success debug log removed
         
         // Note: The actual locked-back-success event will be sent by DS12Controller
         // when it receives and processes the hardware response

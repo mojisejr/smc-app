@@ -32,26 +32,24 @@ export const reactivateAdminHandler = () => {
         throw new Error("ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้");
       }
 
-      // Use controller.reactivate() instead of ku16.reactive()
+      // Use BuildTimeController.reactivate() instead of ku16.reactive()
       // DS12Controller implements reactivate() with same signature and includes hardware state reset
-      const result = await controller.reactivate(payload.slotId, payload.name);
+      const result = await BuildTimeController.reactivate(payload.slotId, payload.passkey);
       
       // ADDITIONAL STATE VALIDATION: Ensure hardware controller is ready after reactivation
       // DS12Controller.reactivate() includes emergencyStateReset() but this provides extra assurance
-      if (controller.emergencyStateReset) {
-        controller.emergencyStateReset();
-        await logger({
-          user: "system",
-          message: `reactivate-admin: emergency state reset applied for slot #${payload.slotId}`,
-        });
-      }
+      BuildTimeController.emergencyStateReset();
+      await logger({
+        user: "system",
+        message: `reactivate-admin: emergency state reset applied for slot #${payload.slotId}`,
+      });
       
       // PRESERVE: Same timing pattern - 1 second sleep then check state
       // Create delay utility matching KU16.sleep() behavior
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Use controller.sendCheckState() instead of ku16.sendCheckState()
-      await controller.sendCheckState();
+      // Use BuildTimeController.sendCheckState() instead of ku16.sendCheckState()
+      await BuildTimeController.sendCheckState();
 
       // PRESERVE: Exact same logging patterns and messages
       await logger({

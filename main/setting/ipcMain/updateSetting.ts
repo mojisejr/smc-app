@@ -11,7 +11,7 @@ export const updateSettingHandler = (win: BrowserWindow) => {
     
     const testPort = new SerialPort({ path: payload.ku_port, baudRate: payload.ku_baudrate, autoOpen: false });
     testPort.open(async (error) => {
-      console.log("port test: ", error)
+      // Port test error logged elsewhere
       if (error && !error.message.trim().toLowerCase().includes("access denied")) {
         eventWin.webContents.send("set-setting-res", null);
         eventWin.webContents.send("connection", { title: "DS12", message: "ไม่สามารถบันทึกข้อมูลการเชื่อมต่อได้", suggestion: "ตรวจสอบข้อมูล port อีกครั้ง" }); 

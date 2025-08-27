@@ -114,7 +114,7 @@ export default function ActivatePage() {
         
         // Phase 4.2: Handle manual WiFi connection requirement
         if (update.data.requiresManualConnection && update.data.wifiCredentials) {
-          console.log('info: Manual WiFi connection required - showing instructions');
+          // Info log removed for production
           setWifiCredentials(update.data.wifiCredentials);
           setShowManualWiFi(true);
         }
@@ -134,7 +134,7 @@ export default function ActivatePage() {
       setProgress(0);
       setErrorMessage("");
 
-      console.log("info: Starting CLI license file activation");
+      // Info log removed for production
 
       // Subscribe to progress updates
       await ipcRenderer.invoke("subscribe-activation-progress");
@@ -148,7 +148,7 @@ export default function ActivatePage() {
         setCurrentStep("success");
         setProgress(100);
         setLicenseData(result.data || null);
-        console.log("info: License activation completed successfully");
+        // Info log removed for production
         
         // Refresh activation status immediately after successful activation
         await refreshActivationStatus();
@@ -377,7 +377,7 @@ export default function ActivatePage() {
                   variant="primary"
                   className="flex-1"
                   onClick={() => {
-                    console.log('info: Manual WiFi retry requested');
+                    // Info log removed for production
                     setShowManualWiFi(false);
                     startActivationProcess();
                   }}

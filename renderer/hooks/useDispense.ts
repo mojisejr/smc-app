@@ -21,14 +21,7 @@ export const useDispense = () => {
 
   // Debug: Log dispensing state changes
   useEffect(() => {
-    console.log("USEDISPENSE DEBUG: State changed:", {
-      dispensing: dispensing.dispensing,
-      reset: dispensing.reset,
-      continue: dispensing.continue,
-      slotId: dispensing.slotId,
-      hn: dispensing.hn,
-      timestamp: new Date().toISOString(),
-    });
+    // Debug log removed for production
   }, [dispensing]);
 
   const reset = (slot: number) => {
@@ -55,15 +48,12 @@ export const useDispense = () => {
 
   useEffect(() => {
     const handleDispensingEvent = (event: any, payload: any) => {
-      console.log("USEDISPENSE DEBUG: Received dispensing event:", payload);
+      // Debug log removed for production
       setDispensing(payload);
     };
 
     const handleDispensingResetEvent = (event: any, payload: any) => {
-      console.log(
-        "USEISPENSE DEBUG: Received dispensing-reset event:",
-        payload
-      );
+      // Debug log removed for production
       setDispensing({
         ...dispensing,
         slotId: payload.slotId,
@@ -74,10 +64,7 @@ export const useDispense = () => {
     };
 
     const handleLockedBackSuccessEvent = (event: any, payload: any) => {
-      console.log(
-        "USEDISPENSE DEBUG: Received locked-back-success event:",
-        payload
-      );
+      // Debug log removed for production
       // This should trigger clearOrContinue dialog
       setDispensing((prev) => ({
         ...prev,
@@ -89,7 +76,7 @@ export const useDispense = () => {
     };
 
     const handleDeactivatedEvent = () => {
-      console.log("USEDISPENSE DEBUG: Received deactivated event");
+      // Debug log removed for production
       setDispensing({ reset: false, dispensing: false });
     };
 

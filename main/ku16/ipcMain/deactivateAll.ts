@@ -27,7 +27,7 @@ export const deactiveAllHandler = (ku16: KU16) => {
 
       return result;
     } catch (error) {
-      console.log(error);
+      // Error logged elsewhere
       ku16.win.webContents.send("deactivate-all-error", {
         message: "ไม่สามารถยกเลิกการใช้งานระบบได้",
       });

@@ -13,6 +13,6 @@ export const getUserHandler = async (win: BrowserWindow) => {
       return users;
     });
   } catch (error) {
-    console.log(error);
+    // Error logged elsewhere
   }
 };
