@@ -611,7 +611,38 @@ Generated: ${new Date().toISOString()}
   fs.writeFileSync(buildInfoPath, JSON.stringify(buildInfo, null, 2));
   console.log("info: Created build info file");
 
+  // Inject environment variables for production build
+  await injectEnvironmentVariables(buildInfo);
+
   console.log("info: Resources directory preparation completed");
+}
+
+/**
+ * Inject environment variables for production build
+ */
+async function injectEnvironmentVariables(buildInfo: any): Promise<void> {
+  console.log("info: Injecting environment variables for production build...");
+
+  // Create environment variables file for production build
+  const envVarsPath = path.join(process.cwd(), "resources", "env-vars.json");
+
+  const envVars = {
+    SMC_LICENSE_BYPASS_MODE: buildInfo.isInternalBuild ? "true" : "false",
+    BUILD_TYPE: buildInfo.licenseType,
+    SMC_DEV_REAL_HARDWARE: process.env.SMC_DEV_REAL_HARDWARE || "false",
+    NODE_ENV: "production",
+    DEVICE_TYPE: buildInfo.deviceType,
+    ESP32_VALIDATION_BYPASS: buildInfo.esp32ValidationBypass ? "true" : "false",
+  };
+
+  fs.writeFileSync(envVarsPath, JSON.stringify(envVars, null, 2));
+  console.log("info: Environment variables injected successfully");
+
+  // Log the injected variables for verification
+  console.log("info: Injected environment variables:");
+  Object.entries(envVars).forEach(([key, value]) => {
+    console.log(`  ${key}=${value}`);
+  });
 }
 
 /**

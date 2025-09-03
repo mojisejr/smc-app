@@ -6,30 +6,153 @@
 
 ## Current Status
 
+## 🚨 Critical Issue Identified
+
+### Problem Description
+
+- **Installed Application**: ESP32 validation bypass ไม่ทำงาน - ยังคงตรวจสอบ ESP32 จริง
+- **Unpacked Application**: ESP32 validation bypass ทำงานปกติ
+- **License Detection**: Application ตรวจเจอ internal license ใน resources folder ได้
+- **Core Issue**: มีความแตกต่างในการทำงานระหว่าง development และ production build
+
+### Root Cause Analysis
+
+**สาเหตุที่เป็นไปได้:**
+
+1. **Environment Variables Missing in Production**
+
+   - `SMC_LICENSE_BYPASS_MODE=true` อาจไม่ถูกตั้งค่าใน installed version
+   - `SMC_DEV_REAL_HARDWARE=true` อาจไม่ถูก embed ใน production build
+
+2. **Build Configuration Issues**
+
+   - electron-builder อาจไม่ include environment variables ใน final package
+   - webpack/build process อาจ strip out development flags
+
+3. **License File Path Issues**
+
+   - Path resolution แตกต่างกันระหว่าง unpacked และ installed
+   - License file อาจไม่ถูก copy ไปยัง correct location ใน installed version
+
+4. **Code Bundling/Minification Issues**
+   - License validation logic อาจถูก optimize ออกใน production build
+   - Conditional statements สำหรับ bypass อาจไม่ทำงานใน minified code
+
+### Implementation Plan (Ready for Development)
+
+**Phase 1: ESP32Client License Type Bypass** (HIGH PRIORITY)
+
+- ✅ **Analysis Complete:** `esp32-client.ts` ไม่มี license type bypass logic
+- 🔄 **Next:** Modify `ESP32Client.getMacAddress()` เพื่อรองรับ license type bypass
+- 📋 **Implementation:** เพิ่ม license type detection ก่อนเรียก ESP32 hardware
+
+**Phase 2: Environment Variable Injection** (HIGH PRIORITY)
+
+- ✅ **Analysis Complete:** `electron-builder.yml` ไม่มี env configuration
+- 🔄 **Next:** Configure electron-builder เพื่อ inject environment variables
+- 📋 **Implementation:** เพิ่ม `SMC_LICENSE_BYPASS_MODE` และ `BUILD_TYPE` ใน production build
+
+**Phase 3: Build Preparation Enhancement** (HIGH PRIORITY)
+
+- ✅ **Analysis Complete:** `build-prep.ts` มี environment variable handling แต่ไม่ครบถ้วน
+- 🔄 **Next:** Update build-prep script เพื่อ inject bypass flags ใน `build-info.json`
+- 📋 **Implementation:** Ensure proper environment variable injection ใน production
+
+**Phase 4: IPC Handlers Consistency** (MEDIUM PRIORITY)
+
+- ✅ **Analysis Complete:** IPC handlers ใน `check-activation-key.ts` และ `activation-state-manager.ts`
+- 🔄 **Next:** Update validation logic เพื่อรองรับ license type bypass
+- 📋 **Implementation:** Ensure consistent license type handling across all validation paths
+
+**Phase 5: Testing & Validation** (MEDIUM PRIORITY)
+
+- 🔄 **Next:** ทดสอบ fix ใน installed version และ unpacked version
+- 📋 **Implementation:** Verify ESP32 validation bypass ทำงานถูกต้องใน internal/development licenses
+
+### Next Actions (Implementation Ready)
+
+**Immediate Actions:**
+
+1. 🎯 **Start with ESP32Client modification** - แก้ไข `esp32-client.ts` เพื่อเพิ่ม license type bypass logic
+2. 🔧 **Update electron-builder configuration** - เพิ่ม environment variable injection
+3. ⚙️ **Enhance build-prep script** - Update environment variable handling ใน production build
+4. 🧪 **Test comprehensive fix** - ทดสอบใน installed version
+
+**Key Files to Modify:**
+
+- `main/license/esp32-client.ts` - Primary fix location
+- `electron-builder.yml` - Environment variable injection
+- `scripts/build-prep.ts` - Build-time environment handling
+- `main/license/ipcMain/check-activation-key.ts` - IPC validation consistency
+
+**Success Criteria:**
+
+- ✅ Internal license ใช้งานได้โดยไม่ต้องต่อ ESP32 hardware ใน installed version
+- ✅ ESP32 validation bypass ทำงานสำหรับ internal/development licenses
+- ✅ Production licenses ยังคงใช้ ESP32 validation ตามปกติ
+- ✅ Audit logging และ security measures ยังคงทำงานครบถ้วน
+
+### Priority: HIGH
+
+ปัญหานี้ส่งผลกระทบต่อการใช้งาน internal license ใน production environment
+
 ⚠️ **ISSUE IDENTIFIED: ESP32 Validation Not Fully Bypassed in Internal Build**
 
 แม้ว่าจะได้ implement Internal License System เสร็จสิ้นแล้ว แต่พบปัญหาที่ ESP32 validation ยังไม่ได้ bypass อย่างสมบูรณ์ในโหมด internal build
 
 ### ปัญหาที่พบ
+
 - ✅ Internal License สร้างได้สำเร็จ
 - ✅ Internal Build ทำได้สำเร็จ
 - ❌ **แอปพลิเคชันยังคงตรวจสอบ ESP32 device จริงแม้ใน internal mode**
 - ❌ ไม่สามารถใช้งานแอปได้โดยไม่ต่อ ESP32 hardware
 
 ### การวิเคราะห์ปัญหา
+
 จากการทดสอบพบว่า:
+
 1. License type ถูกตรวจสอบและระบุเป็น "internal" ได้ถูกต้อง
 2. Build process ผ่านการ bypass ESP32 validation ในขั้นตอน build
 3. แต่ runtime validation ยังคงเรียกใช้ ESP32 validation
 
-### แผนการแก้ไข
-**ต้องตรวจสอบและแก้ไขใน:**
-1. `main/license/esp32-client.ts` - ตรวจสอบ bypass logic ใน runtime
-2. `main/license/validator.ts` - ตรวจสอบการอ่าน license_type และส่งผ่านไปยัง ESP32 client
-3. License activation flow - ตรวจสอบว่า internal license ถูกประมวลผลถูกต้อง
-4. Application startup sequence - ตรวจสอบลำดับการตรวจสอบ license
+### แผนการแก้ไข (Updated Plan)
+
+**จุดหลักที่ต้องแก้ไข:**
+
+#### 1. ESP32Client License Type Bypass Logic
+
+**ไฟล์:** `main/license/esp32-client.ts`
+
+- **ปัญหา:** `getMacAddress()` ไม่มี license type bypass logic
+- **แก้ไข:** เพิ่ม license type detection และ bypass สำหรับ internal/development licenses
+- **Implementation:** ตรวจสอบ license type ก่อนเรียก ESP32 hardware
+
+#### 2. Environment Variable Injection ใน Production Build
+
+**ไฟล์:** `electron-builder.yml`
+
+- **ปัญหา:** Environment variables ไม่ถูก inject ใน production build
+- **แก้ไข:** เพิ่ม env configuration สำหรับ `SMC_LICENSE_BYPASS_MODE` และ `BUILD_TYPE`
+- **Implementation:** Configure electron-builder เพื่อ bundle environment variables
+
+#### 3. Build Preparation Environment Handling
+
+**ไฟล์:** `scripts/build-prep.ts`
+
+- **ปัญหา:** Environment variables ไม่ถูก inject ใน `build-info.json` อย่างสมบูรณ์
+- **แก้ไข:** Ensure proper environment variable injection ใน production build
+- **Implementation:** Update build-prep script เพื่อ inject bypass flags
+
+#### 4. IPC Handlers License Type Support
+
+**ไฟล์:** `main/license/ipcMain/check-activation-key.ts`, `activation-state-manager.ts`
+
+- **ปัญหา:** IPC handlers อาจไม่รองรับ license type bypass อย่างสมบูรณ์
+- **แก้ไข:** Update validation logic ใน IPC handlers
+- **Implementation:** Ensure consistent license type handling across all validation paths
 
 ### เป้าหมาย
+
 - Internal license ควรสามารถใช้งานได้โดยไม่ต้องต่อ ESP32 hardware
 - ระบบควร bypass ESP32 validation ทั้งหมดสำหรับ internal และ development license
 - ยังคงรักษา audit logging และ security measures อื่นๆ
