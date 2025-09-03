@@ -1,295 +1,388 @@
-# Current Focus: Code Merge Strategy - Remote API Routes + Local Windows Compatibility
+# Current Focus: Internal License Bypass System Implementation
 
-**Status:** 🔄 CRITICAL MERGE - Integrating Remote ESP32 API Routes with Local Windows Enhancements  
-**Date Updated:** August 28, 2025  
-**System Version:** ESP32 Deployment Tool - Code Integration Phase
+**Status:** 🔄 ACTIVE DEVELOPMENT - License-based Bypass for Internal Deployment  
+**Date Updated:** January 15, 2025  
+**System Version:** SMC License System v2.2.0 - Internal Bypass Enhancement
 
-## 🎯 Current Task: Strategic Code Merge from Multiple Development Sources
+## Current Status
 
-**Objective:** Successfully merge remote branch containing 5 new API routes (/deploy, /export, /generate, /health, /sensor) with local Windows compatibility improvements for ESP32 device detection.
+⚠️ **ISSUE IDENTIFIED: ESP32 Validation Not Fully Bypassed in Internal Build**
 
-## 🖥️ NEW: Sensor Testing UI Component
+แม้ว่าจะได้ implement Internal License System เสร็จสิ้นแล้ว แต่พบปัญหาที่ ESP32 validation ยังไม่ได้ bypass อย่างสมบูรณ์ในโหมด internal build
 
-**User Request:** "Can I have any UI for testing this I need to let the user to be able to check if the temp sensor works correctly."
+### ปัญหาที่พบ
+- ✅ Internal License สร้างได้สำเร็จ
+- ✅ Internal Build ทำได้สำเร็จ
+- ❌ **แอปพลิเคชันยังคงตรวจสอบ ESP32 device จริงแม้ใน internal mode**
+- ❌ ไม่สามารถใช้งานแอปได้โดยไม่ต่อ ESP32 hardware
 
-**UI Objective:** Create a dedicated sensor testing interface that allows users to verify DHT22 sensor functionality in real-time, distinguishing between real sensor data and mock fallback data.
+### การวิเคราะห์ปัญหา
+จากการทดสอบพบว่า:
+1. License type ถูกตรวจสอบและระบุเป็น "internal" ได้ถูกต้อง
+2. Build process ผ่านการ bypass ESP32 validation ในขั้นตอน build
+3. แต่ runtime validation ยังคงเรียกใช้ ESP32 validation
 
-### 🎨 Simplified Sensor Testing UI Design
+### แผนการแก้ไข
+**ต้องตรวจสอบและแก้ไขใน:**
+1. `main/license/esp32-client.ts` - ตรวจสอบ bypass logic ใน runtime
+2. `main/license/validator.ts` - ตรวจสอบการอ่าน license_type และส่งผ่านไปยัง ESP32 client
+3. License activation flow - ตรวจสอบว่า internal license ถูกประมวลผลถูกต้อง
+4. Application startup sequence - ตรวจสอบลำดับการตรวจสอบ license
 
-**Component: `SensorTestPanel.tsx`**
+### เป้าหมาย
+- Internal license ควรสามารถใช้งานได้โดยไม่ต้องต่อ ESP32 hardware
+- ระบบควร bypass ESP32 validation ทั้งหมดสำหรับ internal และ development license
+- ยังคงรักษา audit logging และ security measures อื่นๆ
 
-- **Location:** `esp32-deployment-tool/src/components/SensorTestPanel.tsx`
-- **Integration:** Add to main page after successful ESP32 deployment
-- **Purpose:** Real-time sensor testing and validation interface
+## 🎯 Current Task: Internal License Bypass System Development
 
-**UI Features:**
+**Objective:** Implement License-based Bypass system that allows internal organizational deployment without ESP32 hardware validation while maintaining full production security architecture.
 
-1. **Real-Time Data Display**
+### 🎯 Project Goals
 
-   - Live temperature and humidity readings
-   - Auto-refresh every 2-3 seconds
-   - Current reading only (no history)
+1. **Maintain Production Flow**: Keep existing production build process with full ESP32 validation
+2. **Enable Internal Deployment**: Create special internal license type that bypasses ESP32 validation
+3. **Security Control**: Use license system to control internal bypass usage
+4. **Audit Trail**: Track internal license generation and usage
+5. **Flexibility**: Allow switching between production and internal modes
 
-2. **Sensor Status Indicators**
+## 🔐 License-based Bypass System Architecture
 
-   - 🟢 **Live**: Real sensor data active
-   - 🟡 **Mock Fallback**: Sensor detected but using fallback data
-   - 🔴 **No Signal**: No sensor detected or connection failed
+**Implementation Strategy:** Extend existing HKDF v2.1.0 license system to support internal license types that bypass ESP32 hardware validation while maintaining security controls.
 
-3. **Testing Controls**
+**Core Principle:** Use license metadata to control validation behavior rather than environment variables, ensuring proper audit trail and controlled access.
 
-   - **Test Connection** button for manual connectivity check
-   - Auto-refresh toggle (on/off)
-   - Manual refresh button
+### 🏗️ Implementation Plan: License-based Bypass System
 
-4. **Simple Status Display**
-   - Current sensor mode indicator
-   - Connection status to ESP32
-   - GPIO 4 status
+**Phase 1: License Format Enhancement**
+
+- **Location:** `cli/modules/license-generator.ts`
+- **Enhancement:** Add license type field to support internal licenses
+- **Purpose:** Control validation behavior through license metadata
+
+**License Type Support:**
+
+1. **Production License** (`type: "production"`)
+
+   - Full ESP32 validation required
+   - MAC address binding enforced
+   - Standard security protocols
+
+2. **Internal License** (`type: "internal"`)
+
+   - ESP32 validation bypassed
+   - Organization-based validation only
+   - Enhanced audit logging
+
+3. **Development License** (`type: "development"`)
+
+   - Existing development mode
+   - Time-limited validity
+   - Debug logging enabled
+
+**Enhanced License Structure:**
+
+- License type metadata in encrypted content
+- Organization validation for internal licenses
+- Audit trail for bypass usage
 
 ### 🔧 Technical Implementation Plan
 
-**Phase 1: Simplified UI Component Development**
+**Phase 1: CLI License Generator Enhancement**
 
-1. **Create SensorTestPanel Component**
+1. **Enhanced License Structure**
 
    ```typescript
-   interface SensorTestPanelProps {
-     deviceIP: string;
-     isVisible: boolean;
-     onClose?: () => void;
-   }
-
-   interface SensorReading {
-     temperature: number;
-     humidity: number;
-     mode: "live" | "mock_fallback" | "no_signal";
-     sensor_available: boolean;
-     timestamp: string;
-     gpio: number;
+   interface InternalLicenseContent {
+     organization: string;
+     customer_id: string;
+     license_type: "production" | "internal" | "development";
+     expiry_date: string;
+     created_at: string;
+     internal_config?: {
+       bypass_esp32: boolean;
+       organization_validation: boolean;
+       audit_required: boolean;
+     };
    }
    ```
 
-2. **Real-Time Data Fetching**
+2. **CLI Command Enhancement**
 
-   - Use existing `/api/sensor` endpoint
-   - Implement polling mechanism (every 2-3 seconds)
-   - Handle connection errors gracefully
-   - Store only current reading (no history)
+   - Add `--type internal` flag to generate command
+   - Implement organization-only validation for internal licenses
+   - Enhanced audit logging for internal license generation
+   - Registry tracking for internal license usage
 
-3. **Visual Design (Following Existing Patterns)**
-   - White background with rounded corners (`bg-white rounded-lg shadow`)
-   - Thai language labels (consistent with existing UI)
-   - Color-coded status indicators (Live/Mock Fallback/No Signal)
-   - Responsive design with Tailwind CSS
-   - Simple connection test button
+3. **License Generation Logic**
+   - Extend existing HKDF v2.1.0 system
+   - Maintain backward compatibility with production licenses
+   - Add internal license validation rules
+   - Enhanced security controls for internal usage
 
-**Phase 2: Integration with Main Workflow**
+**Phase 2: SMC App Validation Logic Enhancement**
 
-1. **Add to Main Page**
+1. **License Parser Enhancement**
 
-   - Show sensor testing panel after successful deployment
-   - Add "Test Sensor" button in deployment success section
-   - Modal or expandable panel design
+   - Extend existing license parser to read license type
+   - Add internal license validation logic
+   - Maintain compatibility with existing production licenses
 
-2. **State Management**
+2. **ESP32Client Modification**
 
-   - Add sensor testing state to main deployment state
-   - Track current sensor status and reading
-   - Simple connection test functionality
+   - Add license type checking in validation methods
+   - Implement bypass logic for internal licenses
+   - Enhanced logging for internal license usage
 
-3. **User Experience Flow**
+3. **Validation Flow Enhancement**
    ```
-   Customer Form → Device Selection → Deploy Firmware →
-   ✅ Deployment Success → 🆕 Test Sensor Button →
-   🆕 Sensor Testing Panel → Export Results
-   ```
-
-### 🎯 UI Component Structure
-
-```typescript
-// SensorTestPanel.tsx structure
-export default function SensorTestPanel({
-  deviceIP,
-  isVisible,
-  onClose,
-}: SensorTestPanelProps) {
-  const [readings, setReadings] = useState<SensorReading[]>([]);
-  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<
-    "connected" | "disconnected" | "testing"
-  >("testing");
-  const [lastReading, setLastReading] = useState<SensorReading | null>(null);
-
-  // Auto-refresh logic
-  useEffect(() => {
-    if (isAutoRefresh && isVisible) {
-      const interval = setInterval(fetchSensorData, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [isAutoRefresh, isVisible]);
-
-  // Fetch sensor data function
-  const fetchSensorData = async () => {
-    // Call /api/sensor endpoint
-    // Update readings array
-    // Update connection status
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      {/* Header with status indicators */}
-      {/* Real-time data display */}
-      {/* Control buttons */}
-      {/* Reading history */}
-      {/* Troubleshooting section */}
-    </div>
-  );
-}
-```
-
-### 📱 UI Layout Design
-
-**Main Panel Layout:**
-
-```
-┌─────────────────────────────────────────────────────────┐
-│ 🌡️ DHT22 Sensor Testing                    [🔴 Mock Mode] │
-├─────────────────────────────────────────────────────────┤
-│ Current Reading:                                        │
-│ 🌡️ Temperature: 23.5°C    💧 Humidity: 67.2%          │
-│ 📡 Status: Connected      ⏰ Last Update: 14:30:25     │
-├─────────────────────────────────────────────────────────┤
-│ [🔄 Refresh] [⏸️ Auto-Refresh: ON] [🧪 Test Connection] │
-├─────────────────────────────────────────────────────────┤
-├─────────────────────────────────────────────────────────┤
-│ 🔧 Troubleshooting:                                    │
-│ • Sensor Status: ✅ DHT22 detected on GPIO 4           │
-│ • WiFi Connection: ✅ Connected to 192.168.4.1         │
-│ • Common Issues: [Show Solutions]                      │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 🎨 Status Indicator Design
-
-**Sensor Mode Indicators:**
-
-- 🟢 **Live Mode**: "🟢 เซ็นเซอร์ทำงานปกติ" (Real sensor working)
-- 🟡 **Fallback Mode**: "🟡 ใช้ข้อมูลสำรอง" (Using backup data)
-- 🔴 **Mock Mode**: "🔴 ใช้ข้อมูลจำลอง" (Using simulated data)
-
-**Connection Status:**
-
-- 📡 **Connected**: "เชื่อมต่อแล้ว"
-- ⚠️ **Disconnected**: "ขาดการเชื่อมต่อ"
-- 🔄 **Testing**: "กำลังทดสอบ"
-
-### 📋 Implementation Plan
-
-**Phase 1: Template Enhancement (Priority: High)**
-
-1. **Sensor Detection Logic**
-
-   - Implement DHT22 sensor initialization check in setup()
-   - Add sensor availability validation (read test during startup)
-   - Create global sensor status flag for runtime decisions
-
-2. **Smart Data Source Selection**
-
-   - Modify `/sensor` endpoint to attempt real sensor reading first
-   - Implement automatic fallback to mock data if sensor fails
-   - Add sensor status indicators in JSON response
-
-3. **Error Handling & Logging**
-   - Add comprehensive sensor error logging via Serial
-   - Implement retry logic for temporary sensor failures
-   - Provide clear status reporting for debugging
-
-**Phase 2: Template System Integration (Priority: Medium)**
-
-1. **Template Processing**
-
-   - Update `main.cpp.template` with new sensor logic
-   - Ensure backward compatibility with existing deployments
-   - Maintain existing mock data format for consistency
-
-2. **Configuration Options**
-   - Consider adding sensor mode configuration option
-   - Maintain GPIO 4 as fixed pin for all devices
-   - Keep AM2302/DHT22 as standard sensor type
-
-### 🔧 Technical Implementation Details
-
-**Current Template Analysis:**
-
-- ✅ DHT library already included and initialized
-- ✅ GPIO 4 pin configuration already set (fixed for all devices)
-- ✅ Mock data generation already implemented
-- 🔄 Need to uncomment and enhance real sensor reading code
-- 🔄 Need to add sensor detection and fallback logic
-
-**Key Changes Required:**
-
-1. **Sensor Initialization Check:**
-
-   ```cpp
-   bool sensorAvailable = false;
-   // Test sensor during setup()
-   float testTemp = dht.readTemperature();
-   float testHumid = dht.readHumidity();
-   sensorAvailable = !isnan(testTemp) && !isnan(testHumid);
+   License Loading → Type Detection →
+   Production: Full ESP32 Validation |
+   Internal: Organization-only Validation →
+   System Activation
    ```
 
-2. **Smart Data Reading:**
+**Phase 3: Build Process Integration**
 
-   ```cpp
-   // Try real sensor first, fallback to mock
-   float temperature, humidity;
-   if (sensorAvailable) {
-     temperature = dht.readTemperature();
-     humidity = dht.readHumidity();
-     if (isnan(temperature) || isnan(humidity)) {
-       // Fallback to mock data
-       temperature = 22.5 + random(-25, 25) / 10.0;
-       humidity = 65.0 + random(-15, 15) / 10.0;
-       mode = "mock_fallback";
-     } else {
-       mode = "live";
+1. **Build Script Enhancement**
+
+   - Modify `scripts/build-prep.ts` to support internal licenses
+   - Add internal build validation logic
+   - Create separate build commands for internal deployment
+
+2. **Package.json Scripts**
+
+   - Add `build:internal` commands for different device types
+   - Maintain existing production build process
+   - Add validation for internal license usage
+
+3. **Build Safety Checks**
+   - Ensure internal licenses cannot be used in production builds
+   - Add warnings for internal license usage
+   - Maintain security controls for build process
+
+**Phase 4: Testing & Validation**
+
+1. **CLI Testing**
+
+   - Test internal license generation with `--type internal`
+   - Validate license parsing and validation
+   - Test registry tracking for internal licenses
+
+2. **SMC App Integration Testing**
+
+   - Test internal license loading and validation
+   - Verify ESP32 bypass functionality
+   - Test organization-based validation
+
+3. **Build Process Testing**
+   - Test internal build commands
+   - Verify build safety checks
+   - Test deployment workflow with internal licenses
+
+### 🎯 System Benefits & Use Cases
+
+**Production Deployment (Unchanged):**
+
+```
+Production License → Full ESP32 Validation →
+MAC Address Binding → Hardware Security →
+Customer Deployment
+```
+
+**Internal Deployment (New):**
+
+```
+Internal License → Organization Validation →
+ESP32 Bypass → Internal Testing →
+Organizational Use
+```
+
+### ✅ Expected Benefits
+
+**For Development Team:**
+
+- ✅ **No Hardware Dependency**: Test and deploy without ESP32 devices
+- ✅ **Faster Development**: Skip hardware setup for internal testing
+- ✅ **Controlled Access**: License-based authorization for internal use
+- ✅ **Audit Trail**: Track internal license generation and usage
+
+**For Production Security:**
+
+- ✅ **Unchanged Security**: Production builds maintain full validation
+- ✅ **Separate Workflows**: Clear separation between internal and production
+- ✅ **License Control**: Cannot use internal licenses in production builds
+- ✅ **Organization Binding**: Internal licenses tied to specific organizations
+
+### 📋 Implementation Roadmap
+
+**Phase 1: CLI Enhancement (Priority: High)**
+
+1. **License Type Support**
+
+   - Add `--type internal` flag to CLI generate command
+   - Implement internal license structure with bypass configuration
+   - Add organization validation for internal licenses
+
+2. **Registry Enhancement**
+
+   - Track internal license generation in registry
+   - Add audit logging for internal license usage
+   - Implement internal license reporting
+
+3. **CLI Command Examples**
+
+   ```bash
+   # Generate internal license
+   smc-license generate --type internal --org "INTERNAL_ORG" --customer "DEV_TEAM"
+
+   # Validate internal license
+   smc-license validate --file internal-license.lic
+
+   # Registry tracking
+   smc-license registry stats --type internal
+   ```
+
+**Phase 2: SMC App Integration (Priority: High)**
+
+1. **License Parser Enhancement**
+
+   - Extend parser to read license type from encrypted content
+   - Add internal license validation logic
+   - Maintain backward compatibility with existing licenses
+
+2. **Validation Logic Modification**
+   - Modify ESP32Client to check license type before validation
+   - Implement organization-based validation for internal licenses
+   - Add enhanced logging for internal license usage
+
+**Phase 3: Build Process Integration (Priority: Medium)**
+
+1. **Build Script Enhancement**
+
+   - Modify `scripts/build-prep.ts` to support internal licenses
+   - Add `build:internal` commands to package.json
+   - Implement build safety checks for license types
+
+2. **Build Commands**
+
+   ```bash
+   # Internal build commands
+   npm run build:internal:ds12
+   npm run build:internal:ds16
+
+   # Production builds (unchanged)
+   npm run build:production:ds12
+   npm run build:production:ds16
+   ```
+
+**Phase 4: Testing & Documentation (Priority: Medium)**
+
+1. **Comprehensive Testing**
+
+   - Test internal license generation and validation
+   - Verify ESP32 bypass functionality
+   - Test build process with internal licenses
+
+2. **Documentation Updates**
+   - Update CLI documentation with internal license usage
+   - Create internal deployment guide
+   - Update production build documentation
+
+### 🔧 Key Implementation Files
+
+**CLI Enhancement Files:**
+
+- `cli/modules/license-generator.ts` - Add internal license type support
+- `cli/modules/license-registry.ts` - Track internal license usage
+- `cli/index.ts` - Add `--type internal` command flag
+
+**SMC App Integration Files:**
+
+- `main/license/validator.ts` - Add internal license validation logic
+- `main/license/esp32-client.ts` - Implement ESP32 bypass for internal licenses
+- `main/license/activation-state-manager.ts` - Handle internal license activation
+
+**Build Process Files:**
+
+- `scripts/build-prep.ts` - Add internal license build support
+- `package.json` - Add internal build commands
+- `scripts/validate-build-config.ts` - Add internal license validation
+
+**Key Code Changes Required:**
+
+1. **Internal License Structure:**
+
+   ```typescript
+   interface InternalLicenseContent {
+     organization: string;
+     customer_id: string;
+     license_type: "internal"; // New field
+     expiry_date: string;
+     created_at: string;
+     internal_config: {
+       bypass_esp32: true;
+       organization_validation: true;
+       audit_required: true;
+     };
+   }
+   ```
+
+2. **ESP32 Bypass Logic:**
+
+   ```typescript
+   // In ESP32Client.ts
+   async validateLicense(license: ParsedLicense): Promise<boolean> {
+     if (license.license_type === 'internal') {
+       // Skip ESP32 validation for internal licenses
+       return this.validateOrganization(license.organization);
      }
-   } else {
-     // Use mock data
-     temperature = 22.5 + random(-25, 25) / 10.0;
-     humidity = 65.0 + random(-15, 15) / 10.0;
-     mode = "mock";
+     // Standard ESP32 validation for production licenses
+     return this.validateWithESP32(license);
    }
    ```
 
-3. **Enhanced JSON Response:**
-   ```json
-   {
-     "temp": 23.2,
-     "humid": 67.5,
-     "sensor": "AM2302",
-     "gpio": 4,
-     "mode": "live|mock|mock_fallback",
-     "sensor_available": true,
-     "timestamp": 12345,
-     "customer_id": "CUST001"
-   }
+3. **CLI Command Enhancement:**
+   ```bash
+   # Generate internal license
+   smc-license generate --type internal --org "INTERNAL_ORG" --customer "DEV_TEAM" --expiry "2025-12-31"
    ```
 
-### 🎯 Success Criteria
+### 🎯 Implementation Summary
 
-1. **Real Sensor Integration:** Template successfully reads from DHT22 when available
-2. **Automatic Fallback:** Seamless switch to mock data when sensor fails
-3. **Status Reporting:** Clear indication of data source in API responses
-4. **Backward Compatibility:** Existing deployments continue working
-5. **Error Resilience:** System remains stable even with sensor hardware issues
+**License-based Bypass System Overview:**
 
-### 📁 Files to Modify
+This implementation extends the existing HKDF v2.1.0 license system to support internal organizational deployment while maintaining full production security. The system introduces a new "internal" license type that bypasses ESP32 hardware validation while preserving all other security features.
 
-- `esp32-deployment-tool/templates/main.cpp.template` (Primary changes)
-- `esp32-deployment-tool/src/lib/template.ts` (If configuration options needed)
+**Key Benefits:**
+
+- ✅ **Production Unchanged:** Existing production workflow remains intact
+- ✅ **Internal Flexibility:** Bypass ESP32 validation for internal use
+- ✅ **Security Maintained:** Full audit trail and organization validation
+- ✅ **Build Separation:** Distinct build processes for internal vs production
+- ✅ **Backward Compatible:** No impact on existing license system
+
+**Implementation Phases:**
+
+1. **Phase 1:** CLI Enhancement (High Priority)
+2. **Phase 2:** SMC App Integration (High Priority)
+3. **Phase 3:** Build Process Integration (Medium Priority)
+4. **Phase 4:** Testing & Documentation (Medium Priority)
+
+**Expected Outcomes:**
+
+- Internal teams can deploy SMC App without ESP32 hardware
+- Production security architecture remains unchanged
+- Clear separation between internal and production licenses
+- Enhanced audit capabilities for internal license usage
+- Streamlined internal development and testing processes
+
+---
+
+**Current Status:** 🔄 **READY FOR IMPLEMENTATION**  
+**Priority Level:** 🔥 **HIGH - ORGANIZATIONAL NEED**  
+**Impact Level:** ✅ **ZERO IMPACT ON PRODUCTION**  
+**Implementation Approach:** 🎯 **LICENSE-BASED BYPASS SYSTEM**
 
 ---
 

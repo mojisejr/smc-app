@@ -42,6 +42,8 @@ interface BuildConfig {
   deviceType: string;
   licenseFile?: string;
   useLicenseData: boolean;
+  licenseType?: "production" | "internal" | "development";
+  isInternalBuild: boolean;
 }
 
 /**
@@ -66,10 +68,14 @@ async function main(): Promise<void> {
         config.useLicenseData ? "License-based" : "Environment-based"
       }`
     );
+    console.log(`info: License Type: ${config.licenseType || "production"}`);
+    console.log(
+      `info: Internal Build: ${config.isInternalBuild ? "YES" : "NO"}`
+    );
     console.log("");
 
     // Execute build preparation steps
-    await validateBuildSafety();
+    await validateBuildSafety(config);
     await validateBuildEnvironment(config);
     await cleanDatabase();
     await setupOrganizationData(config);
@@ -84,7 +90,23 @@ async function main(): Promise<void> {
     );
     console.log("");
     console.log("info: Next steps:");
-    if (config.useLicenseData) {
+
+    if (config.isInternalBuild) {
+      console.log("  🏢 INTERNAL BUILD INSTRUCTIONS:");
+      console.log(
+        "  1. Run: npm run build:internal:ds12 (or build:internal:ds16)"
+      );
+      console.log("  2. Application will bypass ESP32 hardware validation");
+      console.log(
+        "  3. Deploy internally without customer license restrictions"
+      );
+      console.log("  4. Monitor audit logs for internal license usage");
+      console.log("");
+      console.log(
+        `info: Internal build (${config.licenseType}) - ESP32 validation bypassed`
+      );
+    } else if (config.useLicenseData) {
+      console.log("  📦 PRODUCTION BUILD WITH LICENSE:");
       console.log("  1. Run: npm run build:ds12 (or build:ds16)");
       console.log(
         "  2. Package application (database already contains license data)"
@@ -96,6 +118,7 @@ async function main(): Promise<void> {
         "info: License-based build: Database synchronized with license data"
       );
     } else {
+      console.log("  🏭 STANDARD PRODUCTION BUILD:");
       console.log("  1. Run: npm run build:ds12 (or build:ds16)");
       console.log("  2. Copy license.lic to resources/ directory");
       console.log("  3. Test license activation with SMC app");
@@ -138,6 +161,8 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
   let organizationName = process.env.ORGANIZATION_NAME || "SMC Medical Center";
   let customerName = "CUSTOMER_ID_PLACEHOLDER";
   let useLicenseData = false;
+  let licenseType: "production" | "internal" | "development" | undefined;
+  let isInternalBuild = false;
 
   // ถ้ามี --license parameter ให้อ่านข้อมูลจาก license
   if (licenseFile) {
@@ -164,11 +189,21 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
       // ใช้ข้อมูลจาก license แทน environment variables
       organizationName = licenseData.organization;
       customerName = licenseData.customer;
+      licenseType = (licenseData as any).license_type || "production";
+      isInternalBuild =
+        licenseType === "internal" || licenseType === "development";
       useLicenseData = true;
 
       console.log("info: Using organization data from license file");
       console.log(`info: License organization: ${organizationName}`);
       console.log(`info: License customer: ${customerName}`);
+      console.log(`info: License type: ${licenseType}`);
+
+      if (isInternalBuild) {
+        console.log(
+          `info: Internal/Development license detected - ESP32 validation will be bypassed`
+        );
+      }
     } catch (error: any) {
       if (error instanceof LicenseParserError) {
         console.error(`❌ License parsing failed: ${error.message}`);
@@ -182,6 +217,15 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
     }
   } else {
     console.log("info: No license file specified, using environment variables");
+    // Check for internal build flag from environment
+    const buildType = process.env.BUILD_TYPE;
+    if (buildType === "internal" || buildType === "development") {
+      licenseType = buildType as "internal" | "development";
+      isInternalBuild = true;
+      console.log(
+        `info: Internal build mode detected from BUILD_TYPE=${buildType}`
+      );
+    }
   }
 
   // Get shared secret key from .env
@@ -213,6 +257,8 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
     deviceType,
     licenseFile: licenseFile || undefined,
     useLicenseData,
+    licenseType,
+    isInternalBuild,
   };
 
   console.log("info: Build configuration parsed successfully");
@@ -542,6 +588,12 @@ Generated: ${new Date().toISOString()}
 
   // Create build info file
   const buildInfoPath = path.join(resourcesDir, "build-info.json");
+
+  // Get build configuration from environment or passed config
+  const buildType = process.env.BUILD_TYPE;
+  const isInternalBuild =
+    buildType === "internal" || buildType === "development";
+
   const buildInfo = {
     buildDate: new Date().toISOString(),
     buildVersion: JSON.parse(fs.readFileSync("package.json", "utf8")).version,
@@ -550,6 +602,10 @@ Generated: ${new Date().toISOString()}
     nodeVersion: process.version,
     organizationSetup: true,
     databaseInitialized: true,
+    licenseType: buildType || "production",
+    isInternalBuild: isInternalBuild,
+    buildMode: isInternalBuild ? "internal" : "production",
+    esp32ValidationBypass: isInternalBuild,
   };
 
   fs.writeFileSync(buildInfoPath, JSON.stringify(buildInfo, null, 2));
@@ -644,8 +700,36 @@ async function validateBuildReadiness(): Promise<void> {
 /**
  * Validate build safety - ตรวจสอบ environment flags ก่อน production build
  */
-async function validateBuildSafety(): Promise<void> {
+async function validateBuildSafety(config?: BuildConfig): Promise<void> {
   console.log("info: Validating build safety...");
+
+  const isInternalBuild = config?.isInternalBuild || false;
+  const licenseType = config?.licenseType || "production";
+
+  // For internal/development builds, allow more flexibility
+  if (isInternalBuild) {
+    console.log(`info: Internal/Development build detected (${licenseType})`);
+    console.log("info: Relaxed safety checks for internal deployment");
+
+    if (process.env.SMC_LICENSE_BYPASS_MODE === "true") {
+      console.warn("⚠️  Internal build with SMC_LICENSE_BYPASS_MODE=true");
+      console.warn("   This is acceptable for internal/development builds");
+    }
+
+    if (process.env.SMC_DEV_REAL_HARDWARE === "true") {
+      console.log(
+        "info: SMC_DEV_REAL_HARDWARE=true is acceptable for internal builds"
+      );
+    }
+
+    console.log("info: Internal build safety validation passed");
+    return;
+  }
+
+  // Strict safety checks for production builds
+  console.log(
+    "info: Production build detected - applying strict safety checks"
+  );
 
   // ตรวจสอบ bypass flags ที่อาจทำให้ production build ไม่ปลอดภัย
   if (process.env.SMC_LICENSE_BYPASS_MODE === "true") {
@@ -656,6 +740,9 @@ async function validateBuildSafety(): Promise<void> {
       "   This would create a production build that bypasses license validation"
     );
     console.error("   Please set SMC_LICENSE_BYPASS_MODE=false in .env file");
+    console.error(
+      "   For internal builds, use BUILD_TYPE=internal or --license with internal license"
+    );
     throw new Error("Production build blocked - bypass mode detected");
   }
 
@@ -673,7 +760,7 @@ async function validateBuildSafety(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
-  console.log("info: Build safety validation passed");
+  console.log("info: Production build safety validation passed");
 }
 
 /**

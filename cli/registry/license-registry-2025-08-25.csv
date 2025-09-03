@@ -1,2 +1,0 @@
-timestamp,customer_id,organization,application_name,expiry_date,license_status,license_file,mac_address,wifi_ssid,created_at,updated_at,notes
-2025-08-25T15:22:50.308Z,ATEST,ATEST,SMC_APP,ENCRYPTED,generated,ATEST-license_test.lic,ENCRYPTED,ENCRYPTED,2025-08-25T15:20:08.166Z,2025-08-25T15:22:50.308Z,

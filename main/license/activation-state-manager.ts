@@ -1,9 +1,9 @@
 /**
  * Unified Activation State Manager
- * 
+ *
  * Centralizes activation status management across the entire application
  * to prevent conflicts between main process and renderer context.
- * 
+ *
  * This manager ensures:
  * - Single source of truth for activation status
  * - Proper synchronization between main and renderer processes
@@ -21,11 +21,13 @@ import { getSetting } from "../setting/getSetting";
 
 export interface ActivationState {
   isActivated: boolean;
-  validationMode: 'bypass' | 'real-hardware' | 'production';
+  validationMode: "bypass" | "real-hardware" | "production";
   lastChecked: number;
-  source: 'startup' | 'manual-check' | 'activation-process';
+  source: "startup" | "manual-check" | "activation-process";
   esp32Available: boolean;
   ds12Available: boolean;
+  licenseType?: "production" | "internal" | "development";
+  organization?: string;
 }
 
 export interface ActivationStateChangeEvent {
@@ -45,11 +47,11 @@ class ActivationStateManager extends EventEmitter {
     super();
     this.currentState = {
       isActivated: false,
-      validationMode: 'production',
+      validationMode: "production",
       lastChecked: 0,
-      source: 'startup',
+      source: "startup",
       esp32Available: false,
-      ds12Available: false
+      ds12Available: false,
     };
   }
 
@@ -72,24 +74,54 @@ class ActivationStateManager extends EventEmitter {
     }
 
     this.mainWindow = mainWindow;
-    
+
     try {
-      console.log('info: Initializing Activation State Manager...');
-      
+      console.log("info: Initializing Activation State Manager...");
+
       // Determine validation mode
       const validationMode = getValidationMode();
-      
+
       let isActivated = false;
-      let source: 'startup' | 'manual-check' | 'activation-process' = 'startup';
-      
-      if (validationMode === 'bypass') {
-        console.log('info: Bypass mode - system considered activated');
+      let source: "startup" | "manual-check" | "activation-process" = "startup";
+
+      if (validationMode === "bypass") {
+        console.log("info: Bypass mode - system considered activated");
         isActivated = true;
       } else {
-        console.log('info: Checking database activation status...');
+        console.log("info: Checking database activation status...");
         isActivated = await isSystemActivated();
       }
-      
+
+      // Extract license type and organization if activated
+      let licenseType: "production" | "internal" | "development" | undefined;
+      let organization: string | undefined;
+
+      if (isActivated && validationMode !== "bypass") {
+        try {
+          const { LicenseFileManager } = await import("./file-manager");
+          const licenseFile = await LicenseFileManager.findLicenseFile();
+
+          if (licenseFile) {
+            const licenseData = await LicenseFileManager.parseLicenseFile(
+              licenseFile
+            );
+            if (licenseData) {
+              licenseType = licenseData.license_type || "production";
+              organization = licenseData.organization;
+              console.log(
+                `info: Startup license type detected: ${licenseType}, Organization: ${organization}`
+              );
+            }
+          }
+        } catch (parseError) {
+          console.warn(
+            "warn: Could not extract license type during startup:",
+            parseError
+          );
+          licenseType = "production"; // Default to production if parsing fails
+        }
+      }
+
       // Update state
       const newState: ActivationState = {
         isActivated,
@@ -97,40 +129,46 @@ class ActivationStateManager extends EventEmitter {
         lastChecked: Date.now(),
         source,
         esp32Available: false, // Will be updated by ESP32 system
-        ds12Available: false   // Will be updated by DS12 system
+        ds12Available: false, // Will be updated by DS12 system
+        licenseType,
+        organization,
       };
-      
-      await this.updateState(newState, 'Initial system startup');
-      
+
+      await this.updateState(newState, "Initial system startup");
+
       // Initialize DS12Controller based on activation status
       await this.initializeDS12Controller();
-      
+
       // Register IPC handlers
       this.registerIpcHandlers();
-      
+
       this.isInitialized = true;
-      
-      console.log('✅ Activation State Manager initialized successfully');
-      console.log('info: Initial activation state:', this.currentState);
-      
+
+      console.log("✅ Activation State Manager initialized successfully");
+      console.log("info: Initial activation state:", this.currentState);
+
       return this.currentState;
-      
     } catch (error) {
-      console.error('error: Failed to initialize Activation State Manager:', error);
-      
+      console.error(
+        "error: Failed to initialize Activation State Manager:",
+        error
+      );
+
       // Set safe fallback state
       const fallbackState: ActivationState = {
         isActivated: false,
-        validationMode: 'production',
+        validationMode: "production",
         lastChecked: Date.now(),
-        source: 'startup',
+        source: "startup",
         esp32Available: false,
-        ds12Available: false
+        ds12Available: false,
+        licenseType: undefined,
+        organization: undefined,
       };
-      
-      await this.updateState(fallbackState, 'Initialization error fallback');
+
+      await this.updateState(fallbackState, "Initialization error fallback");
       this.isInitialized = true;
-      
+
       return this.currentState;
     }
   }
@@ -140,17 +178,23 @@ class ActivationStateManager extends EventEmitter {
    */
   private async initializeDS12Controller(): Promise<void> {
     if (!this.mainWindow) {
-      console.warn('warn: Cannot initialize DS12Controller - no main window available');
+      console.warn(
+        "warn: Cannot initialize DS12Controller - no main window available"
+      );
       return;
     }
 
     try {
-      console.log('info: Initializing DS12Controller based on activation status...');
-      
+      console.log(
+        "info: Initializing DS12Controller based on activation status..."
+      );
+
       // Get application settings for DS12 connection
       const settings = await getSetting();
       if (!settings) {
-        console.warn('warn: Cannot initialize DS12Controller - settings not available');
+        console.warn(
+          "warn: Cannot initialize DS12Controller - settings not available"
+        );
         return;
       }
 
@@ -163,108 +207,163 @@ class ActivationStateManager extends EventEmitter {
       );
 
       if (ds12Initialized) {
-        console.log('✅ DS12Controller initialized successfully');
-        
+        console.log("✅ DS12Controller initialized successfully");
+
         // Start receiving data from DS12Controller
         const controller = BuildTimeController.getCurrentController();
         if (controller) {
           controller.receive();
         }
-        
+
         // Update DS12 availability status
-        await this.updateDS12Status(true, 'DS12Controller initialization successful');
+        await this.updateDS12Status(
+          true,
+          "DS12Controller initialization successful"
+        );
       } else {
-        console.warn('⚠️ DS12Controller initialization failed - running in offline mode');
-        console.warn('⚠️ Hardware operations will be disabled until connection restored');
-        
+        console.warn(
+          "⚠️ DS12Controller initialization failed - running in offline mode"
+        );
+        console.warn(
+          "⚠️ Hardware operations will be disabled until connection restored"
+        );
+
         // Update DS12 availability status
-        await this.updateDS12Status(false, 'DS12Controller initialization failed');
+        await this.updateDS12Status(
+          false,
+          "DS12Controller initialization failed"
+        );
       }
-      
     } catch (error) {
-      console.error('error: Failed to initialize DS12Controller:', error);
-      await this.updateDS12Status(false, `DS12Controller initialization error: ${error}`);
+      console.error("error: Failed to initialize DS12Controller:", error);
+      await this.updateDS12Status(
+        false,
+        `DS12Controller initialization error: ${error}`
+      );
     }
   }
 
   /**
    * Update activation state and notify all listeners
    */
-  private async updateState(newState: ActivationState, reason: string): Promise<void> {
+  private async updateState(
+    newState: ActivationState,
+    reason: string
+  ): Promise<void> {
     const previousState = { ...this.currentState };
     this.currentState = { ...newState };
-    
+
     const changeEvent: ActivationStateChangeEvent = {
       previousState,
       newState: this.currentState,
       timestamp: Date.now(),
-      reason
+      reason,
     };
-    
-    // Log state change
+
+    // Log state change with license type information
+    const licenseInfo = newState.licenseType
+      ? ` [${newState.licenseType.toUpperCase()}]`
+      : "";
+    const orgInfo = newState.organization ? ` - ${newState.organization}` : "";
+
     await logger({
-      user: 'system',
-      message: `Activation state changed: ${previousState.isActivated} -> ${newState.isActivated} (${reason})`
+      user: "system",
+      message: `Activation state changed: ${previousState.isActivated} -> ${newState.isActivated} (${reason})${licenseInfo}${orgInfo}`,
     });
-    
-    console.log('info: Activation state updated:', {
+
+    console.log("info: Activation state updated:", {
       from: previousState.isActivated,
       to: newState.isActivated,
       reason,
-      validationMode: newState.validationMode
+      validationMode: newState.validationMode,
     });
-    
+
     // Emit change event for internal listeners
-    this.emit('state-changed', changeEvent);
-    
+    this.emit("state-changed", changeEvent);
+
     // Notify renderer process
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send('activation-state-changed', changeEvent);
+      this.mainWindow.webContents.send("activation-state-changed", changeEvent);
     }
   }
 
   /**
    * Perform full activation validation
    */
-  async performFullValidation(source: 'manual-check' | 'activation-process' = 'manual-check'): Promise<ActivationState> {
+  async performFullValidation(
+    source: "manual-check" | "activation-process" = "manual-check"
+  ): Promise<ActivationState> {
     try {
-      console.log('info: Performing full activation validation...');
-      
+      console.log("info: Performing full activation validation...");
+
       const validationMode = getValidationMode();
       let isActivated = false;
-      
-      if (validationMode === 'bypass') {
+      let licenseType: "production" | "internal" | "development" | undefined;
+      let organization: string | undefined;
+
+      if (validationMode === "bypass") {
         isActivated = true;
-        console.log('info: Bypass mode - validation skipped');
+        console.log("info: Bypass mode - validation skipped");
       } else {
         // Perform full license validation including ESP32 if available
         isActivated = await validateLicense();
         console.log(`info: Full validation result: ${isActivated}`);
+
+        // Extract license type and organization if activated
+        if (isActivated) {
+          try {
+            const { LicenseFileManager } = await import("./file-manager");
+            const licenseFile = await LicenseFileManager.findLicenseFile();
+
+            if (licenseFile) {
+              // Parse license to get type and organization
+              const licenseData = await LicenseFileManager.parseLicenseFile(
+                licenseFile
+              );
+              if (licenseData) {
+                licenseType = licenseData.license_type || "production";
+                organization = licenseData.organization;
+                console.log(
+                  `info: License type detected: ${licenseType}, Organization: ${organization}`
+                );
+              }
+            }
+          } catch (parseError) {
+            console.warn(
+              "warn: Could not extract license type information:",
+              parseError
+            );
+            licenseType = "production"; // Default to production if parsing fails
+          }
+        }
       }
-      
+
       const newState: ActivationState = {
         ...this.currentState,
         isActivated,
         lastChecked: Date.now(),
-        source
+        source,
+        licenseType,
+        organization,
       };
-      
-      await this.updateState(newState, 'Full validation check');
-      
+
+      await this.updateState(newState, "Full validation check");
+
       return this.currentState;
-      
     } catch (error) {
-      console.error('error: Full validation failed:', error);
-      
+      console.error("error: Full validation failed:", error);
+
       const newState: ActivationState = {
         ...this.currentState,
         isActivated: false,
         lastChecked: Date.now(),
-        source
+        source,
+        licenseType: undefined,
+        organization: undefined,
       };
-      
+
       await this.updateState(newState, `Validation error: ${error.message}`);
-      
+
       return this.currentState;
     }
   }
@@ -272,13 +371,16 @@ class ActivationStateManager extends EventEmitter {
   /**
    * Update ESP32 availability status
    */
-  async updateESP32Status(available: boolean, reason: string = 'ESP32 status update'): Promise<void> {
+  async updateESP32Status(
+    available: boolean,
+    reason: string = "ESP32 status update"
+  ): Promise<void> {
     if (this.currentState.esp32Available !== available) {
       const newState: ActivationState = {
         ...this.currentState,
-        esp32Available: available
+        esp32Available: available,
       };
-      
+
       await this.updateState(newState, reason);
     }
   }
@@ -286,13 +388,16 @@ class ActivationStateManager extends EventEmitter {
   /**
    * Update DS12Controller availability status
    */
-  async updateDS12Status(available: boolean, reason: string = 'DS12 status update'): Promise<void> {
+  async updateDS12Status(
+    available: boolean,
+    reason: string = "DS12 status update"
+  ): Promise<void> {
     if (this.currentState.ds12Available !== available) {
       const newState: ActivationState = {
         ...this.currentState,
-        ds12Available: available
+        ds12Available: available,
       };
-      
+
       await this.updateState(newState, reason);
     }
   }
@@ -305,11 +410,37 @@ class ActivationStateManager extends EventEmitter {
   }
 
   /**
+   * Get license type information
+   */
+  getLicenseInfo(): {
+    licenseType?: string;
+    organization?: string;
+    isInternal: boolean;
+  } {
+    return {
+      licenseType: this.currentState.licenseType,
+      organization: this.currentState.organization,
+      isInternal:
+        this.currentState.licenseType === "internal" ||
+        this.currentState.licenseType === "development",
+    };
+  }
+
+  /**
    * Check if system is ready for operations
    */
   isSystemReady(): boolean {
-    return this.currentState.isActivated && 
-           (this.currentState.validationMode === 'bypass' || this.currentState.esp32Available);
+    // System is ready if activated and either:
+    // 1. In bypass mode
+    // 2. Has ESP32 available (for production licenses)
+    // 3. Is an internal/development license (ESP32 not required)
+    return (
+      this.currentState.isActivated &&
+      (this.currentState.validationMode === "bypass" ||
+        this.currentState.esp32Available ||
+        this.currentState.licenseType === "internal" ||
+        this.currentState.licenseType === "development")
+    );
   }
 
   /**
@@ -317,39 +448,40 @@ class ActivationStateManager extends EventEmitter {
    */
   private registerIpcHandlers(): void {
     // Get current activation state
-    ipcMain.handle('activation-state:get-current', () => {
+    ipcMain.handle("activation-state:get-current", () => {
       return this.getCurrentState();
     });
 
     // Perform manual validation check
-    ipcMain.handle('activation-state:validate', async () => {
-      return await this.performFullValidation('manual-check');
+    ipcMain.handle("activation-state:validate", async () => {
+      return await this.performFullValidation("manual-check");
     });
 
     // Check if system is ready
-    ipcMain.handle('activation-state:is-ready', () => {
+    ipcMain.handle("activation-state:is-ready", () => {
       return this.isSystemReady();
     });
 
-    console.log('info: Activation State Manager IPC handlers registered');
+    console.log("info: Activation State Manager IPC handlers registered");
   }
 
   /**
    * Cleanup resources
    */
   async cleanup(): Promise<void> {
-    console.log('info: Cleaning up Activation State Manager...');
-    
+    console.log("info: Cleaning up Activation State Manager...");
+
     this.removeAllListeners();
     this.mainWindow = null;
     this.isInitialized = false;
-    
+
     // Remove IPC handlers
-    ipcMain.removeHandler('activation-state:get-current');
-    ipcMain.removeHandler('activation-state:validate');
-    ipcMain.removeHandler('activation-state:is-ready');
-    
-    console.log('info: Activation State Manager cleanup completed');
+    ipcMain.removeHandler("activation-state:get-current");
+    ipcMain.removeHandler("activation-state:validate");
+    ipcMain.removeHandler("activation-state:is-ready");
+    ipcMain.removeHandler("activation-state:get-license-info");
+
+    console.log("info: Activation State Manager cleanup completed");
   }
 }
 

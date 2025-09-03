@@ -89,8 +89,8 @@ export const checkActivationKeyHandler = async () => {
         };
       }
 
-      // HKDF v2.0 validation (เสมอใช้ ESP32 hardware binding)
-      const isValid = await validateLicenseWithESP32();
+      // HKDF v2.0 validation (with license type detection and ESP32 bypass support)
+      const isValid = await validateLicense();
       
       if (isValid) {
         await logger({
