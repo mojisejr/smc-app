@@ -5,7 +5,6 @@ interface IPayload {
   slotId: number;
   hn?: string;
   timestamp?: number;
-  opening: boolean;
   occupied: boolean;
 }
 
@@ -19,14 +18,13 @@ export const useKuStates = () => {
   };
 
   const handleGetKuStates = (
-    event: Electron.IpcRendererEvent,
+    _event: Electron.IpcRendererEvent,
     payload: IPayload[]
   ) => {
     if (payload != undefined) {
       setSlots(payload);
       isDispensible(payload);
-    } 
- 
+    }
   };
 
   const isDispensible = (payload: IPayload[]) => {
@@ -36,7 +34,7 @@ export const useKuStates = () => {
 
   useEffect(() => {
     get();
-    ipcRenderer.on("ku_states", (event, payload) => {
+    ipcRenderer.on("init-res", (event, payload) => {
       handleGetKuStates(event, payload);
     });
   }, []);

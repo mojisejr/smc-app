@@ -1,0 +1,790 @@
+CU12 Protocol and Introduction
+
+KERONG Industry (HK) Co., Ltd.
+Electronic Research and Development Department
+Friday, July 22, 2022
+
+1
+
+CONTENTS
+Documentation Version ....................................................................................................................................................... 3
+Overview ............................................................................................................................................................................. 4
+1.Introduction to CU12 Communication Protocol .............................................................................................................. 5
+1.1 Hardware Protocol ............................................................................................................................................... 5
+1.1.1 RS485 Protocol ........................................................................................................................................5
+1.2 Software Protocol .................................................................................................................................................5
+1.2.1 Communication Protocol Packet from Software to CU12 ...................................................................... 5
+1.3 CU12 Protocol Commands Sheet(from software to CU12) .................................................................................6
+1.4 CU12 Protocol Response Sheet ........................................................................................................................... 6
+1.5 Description of Commands ................................................................................................................................... 7
+1.5.1 Get Status .................................................................................................................................................7
+1.5.2 Unlock ......................................................................................................................................................7
+1.5.3 Query and Set Unlocking Time ............................................................................................................... 8
+1.5.4 Query and Set Baud Rate .........................................................................................................................9
+1.5.5 Query and Set the Delayed Unlocking Time ......................................................................................... 10
+1.5.6 Query and Set Waiting Time of Push Door Unlocking ..........................................................................11
+1.5.7 Initialization ........................................................................................................................................... 12
+1.5.8 Query the Version Information .............................................................................................................. 13
+2.Introduction to CU12 Hardware .....................................................................................................................................14
+2.1 Parameters ..........................................................................................................................................................14
+2.2 Description of Hardware .................................................................................................................................... 15
+2.2.1 Connecting Port Description ..................................................................................................................16
+2.2.2 Address Description ...............................................................................................................................16
+2.2.3 Button Description .................................................................................................................................16
+2.2.4 LED Description .................................................................................................................................... 16
+2.2.5 RS485 Connecting Description ............................................................................................................. 16
+3.CU12 Connection ........................................................................................................................................................... 17
+3.1 RS485 Connection ............................................................................................................................................. 17
+3.2 TCP/IP Connection ............................................................................................................................................ 20
+4.Installation Instruction ....................................................................................................................................................31
+
+2
+
+Documentation Version
+Date
+
+Version
+
+Author
+
+Revised content
+
+Wednesday, 06 July, 2022
+
+V1.0
+
+Wang Yonglin
+
+Create the documentation
+
+Friday, 22 July, 2022
+
+V1.1
+
+Chen Shiwei
+
+Add Hardware Description, PCB board diagram
+
+3
+
+Overview
+This instruction introduces the CU12 Board communication protocol in detail.
+Section 1: CU12 communication protocol instructions;
+Section 2: CU12 hardware description.
+Section 3: CU12 connection
+
+4
+
+1.Introduction to CU12 Communication Protocol
+1.1 Hardware Protocol
+1.1.1 RS485 Protocol
+Items
+
+Description
+
+Baud rate
+
+19200 (Factory default, can be modified)
+
+Data bites
+
+8 Bytes
+
+Check bites
+
+None
+
+Stop bites
+
+1 Byte
+
+1.2 Software Protocol
+1.2.1 Communication Protocol Packet from Software to CU12
+The maximum length of a protocol packet is 48 bytes
+The minimum length of a protocol packet is 8 bytes
+Protocol package format: Big-endian
+General format is as follows:
+NO.
+
+Items
+
+1
+
+STX(1byte)
+
+Description
+Start code(fixed value): 0x02
+ADDR of CU12 hardware: 0x00~0x10
+
+2
+
+ADDR(1byte)
+
+Eg.: ADDR=0x00, means to control CU12 which ADDR is 0x00
+Notice: ADDR=0x10, means send commands to all slaves of the bus
+Lock number of CU12: 0x00~0x0C.
+
+3
+
+LOCKNUM(1byte)
+
+Eg.: LOCKNUM=0x00, means unlock No.0x01 lock
+Notice: LOCKNUM=0x0C, means unlock all 12pcs locks of CU12
+
+4
+
+CMD(1byte)
+
+Command, refers to CU12 protocol commands sheet
+
+5
+
+ASK(1byte)
+
+Response value, refers to the CU12 protocol response sheet
+
+6
+
+DATALEN(1byte)
+
+7
+
+ETX(1byte)
+
+Length of data DATA
+End code(fixed value): 0x03
+The low byte of the whole command packet’s checksum.
+
+8
+
+SUM(1byte)
+
+Eg: SUM=STX+ADDR+LOCKNUM+CMD+ASK+DATALEN+ETX+DATA=0x125D ,
+so SUM=0x5D
+
+...
+8+DATEL
+EN
+
+DATA
+(DATALEN bytes)
+
+Data, when DATALEN is zero, there is no this data.
+Different command data formats are different. Refer to the detailed
+instructions.
+
+5
+
+1.3 CU12 Protocol Commands Sheet(from software to CU12)
+NO.
+
+Command
+
+Code
+
+Description
+
+Communication command (Software <——> CU12)
+1
+
+Get status
+
+0x80
+
+Get the status of the lock
+
+2
+
+Unlock
+
+0x81
+
+Unlock command
+
+3
+
+Query and set the unlocking time
+
+0x82
+
+Query and set the unlocking time
+
+4
+
+Query and set baud rate
+
+0x83
+
+Query and set baud rate of CU12
+
+Query and set the delayed time of
+
+5
+
+unlocking
+Query and set waiting time of push
+
+6
+
+door unlocking
+
+Query and set CU12 delayed time of unlocking
+
+0x84
+
+Query and set CU12 waiting time of push door
+
+0x85
+
+unlocking
+
+7
+
+Initialization
+
+0x8E
+
+Initialize CU12
+
+8
+
+Querying version information
+
+0x8F
+
+Query the CU12 version information
+
+Note
+
+1.4 CU12 Protocol Response Sheet
+ASK value
+
+Description
+When data is returned, the meaning of response value
+
+0x10
+
+Correct operation
+
+0x11
+
+Failed Operation
+
+0x12
+
+Wait timeout
+
+0x13
+
+Unknown command
+
+0x14
+
+Data verification failure
+When a command is actively sent, the meaning of this value
+
+0x00
+
+Default value for ASK when sending a command
+
+6
+
+1.5 Description of Commands
+Detailed description of commands for customers’ understanding.
+
+1.5.1 Get Status
+(1) Protocol
+Command: 0x80
+(2) Command function
+Get the CU12's lock hook status
+(3) Format of data Data
+u8 HookStateDatas[2];
+(4) Examples
+a) Get status of specific CU12
+(the following is to get status of CU12 which ADDR is 0x00):
+Command (software——>CU12) : 02 00 00 80 00 00 03 85
+Response (CU12—>software) : 02 00 00 80 10 02 03 99 02 00
+b) Get status of all slaves of the bus
+(the following is to get status of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus):
+Command (software——>CU12) : 02 10 00 80 00 00 03 95
+Response (CU12——>software) : 02 00 00 80 10 02 03 99 02 00
+02 01 00 80 10 02 03 9C 04 00
+(5) Explanation of examples
+Example a: to get hook status of CU12 which ADDR is 0x00, 02 00 means response data of hook status. From the
+data, the lock No. 0x02 of CU12 which ADDR is 0x00 is locked, and the other 11 locks are unlocked.
+Example b: to get the hook status of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus, 02 00 means
+response hook status data of CU12 which ADDR is 0x00 , 04 00 means response data of hook status of CU12 which
+ADDR is 0x01. From the data we can know, the lock No.0x02 of CU12 which ADDR is 0x00 is locked, and the other
+11 locks are not locked. The lock No.0x03 of CU12 which ADDR is 0x01 is locked, and the others are unlocked.
+
+1.5.2 Unlock
+(1) Protocol
+Command: 0x81
+(2) Command Function
+Unlock the specific lock of CU12 according to the specific command;
+(3) Format of data DATA:
+None
+(4) Examples
+a) Unlock the specific lock on specific CU12
+(the following is to unlock the lock No.3 on CU12 which ADDR is 0x00) :
+Command (software——>CU12) : 02 00 02 81 00 00 03 88
+Response (CU12——>software) : 02 00 02 81 10 00 03 98
+b) Unlock all 12 locks on specific CU12
+(the following is to unlock all locks on CU12 which ADDR is 0x00) :
+Command (software——>CU12) : 02 00 0C 81 00 00 03 92
+7
+
+Response (CU12——>software) : 02 00 0C 81 10 00 03 A2
+c) Unlock all CU12 locks on the RS485 bus
+(the following is to unlock all 12 locks of the all CU12 on the RS485 bus)
+Command (software——>CU48) : 02 10 0C 81 00 00 03 A2
+Response (CU48——>software) : 02 00 0C 81 10 00 03 A2
+02 01 0C 81 10 00 03 A3
+(4) Explanation of examples
+Example a: ADDR=0x00 and LOCKNUM=0x02 indicate that unlock the third lock on CU12 No. 0x00
+Example b: ADDR=0x00, LOCKNUM=0x0C indicate that unlock all 12 locks on CU12 NO.0x00
+Example c: ADDR=0x10, LOCKNUM=0x0C indicate that unlock all slaves of the bus.
+
+1.5.3 Query and Set Unlocking Time
+(1) Protocol
+Command: 0x82
+(2) Command Function
+Query and set the lock unlocking time of CU12. The value of lock unlocking time ranges from 0 to 6000
+(decimal), indicating 0 ms-60000ms. The default value is 55 (in decimal notation), which indicates 550ms.
+(3) Format of data DATA:
+u16 OpenLockTime;
+(4) Examples:
+a) Query the unlocking time of specific CU12
+(the following is to query the unlocking time of CU12 which ADDR is 0x00)
+Command (software——>CU12) : 02 00 00 82 00 00 03 87
+Response (CU12——>software) : 02 00 00 82 10 02 03 D0 00 37
+b) Query the lock opening time of all CU12 on the RS485 bus
+(the following is to query the lock opening time of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus) :
+Command (software——>CU12) : 02 10 00 82 00 00 03 97
+Response (CU12——>software) : 02 00 00 82 10 02 03 D0 00 37
+02 01 00 82 10 02 03 D1 00 37
+c) Set the unlocking time of specific CU12
+(the following is to set the unlocking time of CU12 which ADDR is 0x00) :
+Command (software——>CU12) :02 00 00 82 00 02 03 ED 00 64
+Response (CU12——>software) :02 00 00 82 10 00 03 97
+d) Set the unlocking time of all CU12 on the RS485 bus
+(the following is to set the unlocking time of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus) :
+Command (software——>CU12) :02 10 00 82 00 02 03 FD 00 64
+Response (CU12——>software) : 02 00 00 82 10 00 03 97
+02 01 00 82 10 00 03 98
+(5) Explanation of Examples
+Example a: to query the unlocking time of CU12 which ADDR is 0x00, where 00 37 indicates the unlocking time
+data. According to the data, the unlocking time of CU12 which ADDR is 0x00 =0x0037x10ms=550ms;
+
+8
+
+Example b: to query the unlocking time of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus, where 00 37
+indicates that the unlocking time data of CU12 which ADDR is 0x00 and 0x01 are obtained. According to the data we
+can know, the unlocking time of CU12 which ADDR is 0x00 and 0x01=0x0037x10ms=550ms;
+Example c: to set the unlocking time of CU12 which ADDR is 0x00, where 00 64 indicates the unlocking time
+data to be set. According to the data: the unlocking time of CU12 which ADDR is 0x00 =0x0064x10ms=1000ms;
+Example d: to set the unlocking time of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus, where 00 64
+indicates setting the unlocking time data of CU12 which ADDR is 0x00 and 0x01. According to the data we can know,
+unlocking time of CU12 Which ADDR is 0x00 and 0x01 =0x0064x10ms=1000ms;
+Notice: The default unlocking time after initialization is 0x0037x10ms=550ms. After sending the command to set
+the unlocking time, CU12 will enter the data saving task.
+
+1.5.4 Query and Set Baud Rate
+(1) Protocol
+Command: 0x83
+(2) Command Function
+Query and set the baud rate of CU12, the value range of the baud rate parameters is 0-3 (decimal), where 0 =
+9600, 1 = 19200 (factory default value) , 2 = 57600, 3 = 115200;
+(3) Format of data DATA:
+u8 BaudRateFlag;
+(4) Examples
+a) Query baud rate of specific CU12
+(the following is to query baud rate of CU12 which ADDR is 0x00 ):
+Command (software——>CU12) : 02 00 00 83 00 00 03 88
+Response (CU12——>software) : 02 00 00 83 10 01 03 9A 01
+b) Query the baud rate of all CU12 on the RS485 bus
+(the following is to query the baud rate of CU12 which ADDR is 0x00 and address 0x01 on the RS485 bus) :
+Command (software——>CU12) : 02 10 00 83 00 00 03 98
+Response (CU12——>software) : 02 00 00 83 10 01 03 9A 01
+02 01 00 83 10 01 03 9B 01
+c) Set the baud rate for specific CU12
+(the following is to set the baud rate for CU12 which ADDR is 0x00) :
+Command (software——>CU12) : 02 00 00 83 00 01 03 89 00
+Response (CU12——>software) : 02 00 00 83 10 00 03 98
+d) Set the baud rate of all CU12 on the RS485 bus
+(the following is to set the baud rate of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus) :
+Command (software——>CU12) : 02 10 00 83 00 01 03 99 00
+Response (CU12——>software) : 02 00 00 83 10 00 03 98
+02 01 00 83 10 00 03 99
+(5) Explanation of Examples
+Example a: to query the baud rate of CU12 which ADDR is 0x00, and 01 indicates the baud rate. According to
+the data, the baud rate of CU12 which ADDR is 0x00=19200;
+
+9
+
+Example b: to query the baud rate of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus, 01 indicates that
+the baud rate of CU12 which ADDR is 0x00 and 0x01 is obtained. According to the data, the baud rate of CU12 which
+ADDR is 0x00 and 0x01=19200.
+Example c: to set the baud rate of CU12 which ADDR is 0x00, where 00 indicates the baud rate to be set.
+According to the data, the baud rate of CU12 which ADDR is 0x00 =9600;
+Example d: to set the baud rate of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus. 00 indicates setting
+the baud rate of CU12 which ADDR is 0x00 and 0x01. According to the data, the baud rate of CU12 which ADDR is
+0x00 and 0x01=9600;
+Notice: After initialization, the default baud rate is 19200. After sending the command to set the baud rate, CU12
+will enter the data saving task.
+
+1.5.5 Query and Set the Delayed Unlocking Time
+(1) Protocol
+Command: 0x84
+(2) Command Function
+Query and set the CU12 delayed unlocking time. The value ranges from 0 to 200 (in decimal notation), the unit
+of time is second. The default value is 0, indicating that the CU12 is unlocked without delay.
+(3) Format of data DATA:
+u8 DelayOpenLockTIme;
+(4) Examples:
+a) Query the delayed unlocking time of specific CU12
+(the following is to query the delayed unlocking time of CU12 which ADDR is 0x00) :
+Command(software——>CU12) : 02 00 00 84 00 00 03 89
+Response(CU12——>software) : 02 00 00 84 10 01 03 9A 00
+b) Query the delayed unlocking time of all CU12 on the RS485 bus:
+(the following is to query the delayed unlocking time of CU12 which ADDR is 0x00 and 0x01)
+Command (software——>CU12) : 02 10 00 84 00 00 03 99
+Response (CU12——>software) : 02 00 00 84 10 01 03 9A 00
+02 01 00 84 10 01 03 9B 00
+c) Set the delayed unlocking time of specific CU12
+(the following is to set the delayed unlocking time of CU12 which ADDR is 0x00) :
+Command (software——>CU12) : 02 00 00 84 00 01 03 8A 00
+Response (CU12——>software) : 02 00 00 84 10 00 03 99
+d) Set the delayed unlocking time of all CU12 on the RS485 bus
+(the following is to set the delayed unlocking time of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus) :
+Command (software——>CU12) : 02 10 00 84 00 01 03 9A 00
+Response (CU12——>software) : 02 00 00 84 10 00 03 99
+02 01 00 84 10 00 03 9A
+(5) Explanation of examples
+Example a: to the query the delayed unlocking time of CU12 which ADDR is 0x00, where 00 indicates the
+delayed unlocking time. According to the data we can know, the delayed unlocking time of CU12 which ADDR is 0x00
+is 0, indicating that the lock is directly unlocked without delay;
+
+10
+
+Example b: to query the delayed unlocking time of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus,
+where 00 means the delayed unlocking time of CU12 which ADDR is 0x00 and 0x01 is obtained. According to the data
+we can know, the delayed unlocking time of CU12 which ADDR is 0x00 and 0x01 is 0, indicating that the CU12 is
+unlocked without delay;
+Example c: to set delayed unlocking time of CU12 which ADDR is 0x00, where 00 indicates the delayed
+unlocking time to be set. According to the data we can know, the delayed unlocking time of CU12 which ADDR is is
+0x00 is 0, indicating the direct unlocking without delay;
+Example d: to set the delayed unlocking time of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus, where
+00 indicates setting the delayed unlocking time of CU12 which ADDR is 0x00 and 0x01. According to the data we can
+know: The delayed unlocking time of CU12 which ADDR is 0x00 and 0x01 is 0, indicating that the CU12 is unlocked
+without delay;
+Notice: The default value of delay unlocking time after initialization is 0. In particular, after sending the
+command of setting delay unlocking time, CU12 will enter the data saving task.
+
+1.5.6 Query and Set Waiting Time of Push Door Unlocking
+(1) Protocol
+Command: 0x85
+(2) Command function
+Query and set CU12 waiting time of Push door unlocking. The value ranges from 0 to 200 (decimal), the unit of
+time is second. The default value is 0, indicating that the door is directly unlocked without pushing door.
+(3) Format of data DATA:
+u8 WaitPushDoorOpenLockTIme;
+(4) Examples:
+a) Query the waiting time of push door unlocking on specific CU12
+(the following is to query the waiting time of push door unlocking of CU12 which ADDR is 0x00) :
+Command (software——>CU12) : 02 00 00 85 00 00 03 8A
+Response (CU12——>Software) : 02 00 00 85 10 01 03 9B 00
+b) Query the waiting time of push door unlocking of all CU12 on the RS485 bus
+(the following is to query waiting time of push door unlocking of CU12 which ADDR is 0x00 and 0x01) :
+Command (software——>CU12) : 02 10 00 85 00 00 03 9A
+Response (CU12——>Software) : 02 00 00 85 10 01 03 9B 00
+02 01 00 85 10 01 03 9C 00
+c) Set the waiting time of push door unlocking on specific CU12
+(the following is to set the waiting time of push door unlocking on CU12 which ADDR is 0x00) :
+Command (software——>CU12) : 02 00 00 85 00 01 03 8B 00
+Response (CU12——>Software) : 02 00 00 85 10 00 03 9A
+d) Set the waiting time of Push door unlocking of all CU12 on the RS485 bus
+(the following is to set waiting time of push door unlocking of CU12 which ADDR is 0x00 and 0x01) :
+Command (software——>CU12) : 02 10 00 85 00 01 03 9B 00
+Response (CU12——>Software) : 02 00 00 85 10 00 03 9A
+02 01 00 85 10 00 03 9B
+
+11
+
+(5) Explanation of examples
+Example a: to query the waiting time of Push door unlocking of CU12 which ADDR is 0x00, where 00 indicates
+the waiting time of push door unlocking. According to the data: the waiting time of push door unlocking of CU12
+which ADDR is 0x00 is 0, indicating that the door is directly unlocked without pushing the door.
+Example b: to query the waiting time of push door unlocking of CU12 which ADDR is 0x00 and 0x01 on the
+RS485 bus, where 00 indicates to obtain the waiting time of Push door unlocking of CU12 which ADDR is 0x00 and
+0x01. According to the data, the waiting time of push door unlocking of CU12 which ADDR is 0x00 and 0x01 is 0,
+indicating that the door is directly unlocked without pushing the door;
+Example c: to set the waiting time of push door unlocking of CU12 which ADDR is 0x00, where 00 indicates the
+waiting time of push door unlocking of CU12 which ADDR is 0x00. According to the data, the waiting time of push
+door unlocking of CU12 which ADDR is 0x00 is 0, indicating that the door is directly unlocked without pushing the
+door;
+Example d: to set the waiting time of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus, where 00 indicates
+to set the waiting time of push door unlocking of CU12 which ADDR is 0x00 and 0x01. It can be learned from the data
+that: The waiting time of push door unlocking of CU12 which ADDR is 0x00 and 0x01 is 0, indicating that the lock is
+directly unlocked without pushing the door;
+Notice: After initialization, the default waiting time for the door to be pushed and unlocked is 0. In particular,
+after sending the command of setting the time of waiting for the door to be pushed and unlocked, CU12 will enter the
+data saving task. It is recommended to wait for 500ms or more at this time, and then send the next command;
+Before setting the waiting time for push door unlocking to 1-200, it is necessary to confirm that the logistics
+cabinet lock in use has the function of push door unlocking detection, otherwise it cannot be used normally. Once the
+function of waiting for door opening is enabled, the function of delayed door opening will be prohibited.
+
+1.5.7 Initialization
+(1) Protocol
+Command: 0x8E
+(2) Command Function
+Initialize the parameters of CU12
+(3) Format of data DATA:
+None
+(4) Examples:
+a) Initialize the status of specific CU12
+(the following is to initialize CU12 which ADDR is 0x00) :
+Command (Software——>CU12) : 02 00 00 8E 00 00 03 93
+Response (CU12——>Software) : 02 00 00 8E 10 00 03 A3
+b) Initialize all CU12 on the RS485 bus
+(the following is to initialize CU12 which ADDR is 0x00 and 0x01 on the RS485 bus) :
+Command (Software——>CU12) : 02 10 00 8E 00 00 03 A3
+Response (CU12——>Software) : 02 00 00 8E 10 00 03 A3
+02 01 00 8E 10 00 03 A4
+(5) Explanation of Examples
+Example a: to initialize CU12 which ADDR is 0x00;
+Example b: to initialize CU12 which ADDR is 0x00 and 0x01 on the RS485 bus;
+12
+
+Notice: After sending the initialization command, CU12 will start the data saving task; It is recommended to wait
+more than 500ms before sending next command.
+
+1.5.8 Query the Version Information
+(1) Protocol
+Command: 0x8F
+(2) Command Function
+query the software and hardware versions of CU12.
+(3) Format of data DATA:
+struct
+{
+u8 softversion;
+u8 hardversion;
+}version;
+(4) Examples:
+a) Query the version information of specific CU12
+(the following is to query the version information of CU12 which ADDR is 0x00) :
+Command (Software——>CU12) : 02 00 00 8F 00 00 03 94
+Response (CU12——>Software) : 02 00 00 8F 10 02 03 C8 10 12
+b) Query the version information of all CU12 on the RS485 bus
+(the following is to query the version information of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus)
+Command (Software——>CU12) : 02 10 00 8F 00 00 03 A4
+Response (CU12——>Software) : 02 00 00 8F 10 02 03 C8 10 12
+02 01 00 8F 10 02 03 C9 10 12
+(5) Explanation of Examples
+Example a: to query the version information of CU12 which ADDR is 0x00, where 10 12 indicates the version
+information. According to the information, 10 12 is the version information of CU12 which ADDR is 0x00. And 10 12
+indicates the software version is V1.0 and hardware version is V1.2;
+Example b: to initialize the version information of CU12 which ADDR is 0x00 and 0x01 on the RS485 bus,
+where 10 12 indicates the version information. According to the data, the software version is V1.0 and hardware
+version is V1.2.
+
+六六
+
+13
+
+2.Introduction to CU12 Hardware
+2.1 Parameters
+CU12 Parameters
+Working
+
+Stand-by power
+
+voltage
+
+consumption
+
+Drive Capability
+
+Unlocking time
+0~60000ms, the default is
+
+DC 8~24V
+
+20mA@12V
+
+50W for each port
+
+500ms (time can be designed
+according to different locks)
+
+Board Diagram
+
+14
+
+Series connection
+Number
+Connect at most
+16pcs CU12s
+
+2.2 Description of Hardware
+
+USB-Programming Port: Program upgrade or replacement can be carried out through this port;
+Notice: This port cannot be used for power supply;
+
+15
+
+2.2.1 Connecting Port Description
+【1】2.54 pitch 2pin power interface
+【2】Crimping socket-power interface
+【3】 【4】 Connecting locks, supply power to locks and detect lock’s condition (open/close); 4Pin connector, 2Pin
+for power, 2Pin for lock hook detective switch
+【5】Communication for RS485, connector type is RJ45, also can for power supply, and connect another CU12.
+【6】【7】Connecting port for RS485(5Pin), connector type is XH2.54.
+
+2.2.2 Address Description
+【8】Address for KR-CU12
+
+Notice: when connect more than 1pcs CU12, their address cannot be the same
+
+2.2.3 Button Description
+Button【9】TEST, press it can operate unlocking test
+Button【10】RESET
+
+2.2.4 LED Description
+LED【11】LED for hook detective. Detective switch is on, red LED off; detective switch is off, red LED on.
+LED【12】To show whether power input (12V-24V), power output (5V) is normal.
+
+2.2.5 RS485 Connecting Description
+Board port ——> RS485 adaptor:
+A ——> T/R+
+B ——> T/RY ——> RXD+
+Z ——> RXDGND ——> GND
+
+16
+
+3.CU12 Connection
+3.1 RS485 Connection
+
+Stage 1: Connection
+Correctly connect RS485, CU12 and PC. The wiring diagram is as follows:
+
+17
+
+Stage 2: Check the port number of the PC used for RS485.
+Right-click This PC and choose Manage to open the Computer Management interface, then select Device Manager.
+Select Ports (COM& LPT) in the right box to check the port number used by the RS485 port.
+
+Stage 3 Test
+(1) Method one
+Open the RS485 test software
+
+， check the correct serial port(such as COM4)；
+
+baud rate: 19200；check bit: None；data bit: 8；stop bit: 1. The details are as follows:
+
+18
+
+(2) Method Two:
+
+Open the test software
+Notice: Set the baud rate to 19200 and send data in hexadecimal format (HEX), as shown in the following figure:
+
+Use the CU12 protocol for the test. And select HEX,
+
+.
+
+19
+
+3.2 TCP/IP Connection
+
+Stage 1 Connection
+Correctly Connect BU、CU12、PC and Router.
+Notice: BU should connect with router, not switcher.
+
+Stage 2 BU setting
+Set IP address of BU.
+Notice: The BU IP address cannot be the same as PC address, the last bit should be different.
+Eg.: IP address of PC is 192.168.0.100, then IP address of BU can be set as 192.168.0.158, so last bit is different.
+
+20
+
+Specific operations are as follows:
+
+Open the BU setting software
+
+, and the operation is as shown below
+
+(1) Click Search;
+
+(2) Double-click the IP address of the BU module;
+
+21
+
+(3) Click OK to allow the temporary IP to be added;
+
+(4) Click OK to allow the BU to add a temporary IP address and restart;
+
+22
+
+(5) Click OK to log in;
+
+(6) Switch language to English;
+
+23
+
+(7) Modify the IP address and Gateway of the BU module on this page;
+
+.
+
+Click Save when the change is complete;
+
+24
+
+Then click Restart Module to allow the changes to take effect;
+
+Click Yes;
+
+25
+
+(8) Modify the Baud Rate: double-click the IP address of the BU module;
+
+Modify the Baud Rate of the BU and CU control board, and the Local Port Number of the BU;
+
+26
+
+(9) Click Save;
+
+(10) Click Restart Module, and click Yes;
+
+27
+
+(11) Double-click the IP address of the BU module that has been changed, open the two pages, and check whether the
+change takes effect.
+
+28
+
+Stage 3 Test
+After setting BU, open test software “TCP&UDPDebug” ,
+(1) click “Create Connn”,
+(2) Type: TCP;
+(3) DestIP: The configured BU address (for example, 192.168.0.7) ;
+(4) Port: BU work port, which is same as “local port number” (for example, 5000);
+(5) Then Click Create; as follow picture;
+
+(6) Click Connect;
+
+29
+
+(7) Use the CU12 protocol for testing.
+
+Notice: Select Send HEX and Show HEX.
+
+30
+
+4.Installation Instruction
+
+Laputa
+
+31
+
+

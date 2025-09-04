@@ -1,52 +1,73 @@
-import { useForm, SubmitHandler } from "react-hook-form";
 import { ipcRenderer } from "electron";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Loading from "../Shared/Loading";
-import DeActivate from "./Deactivate";
-import Modal from "../Modals";
-
-// import { IO } from "../../enums/ipc-enums";
+import {
+  DialogBase,
+  DialogHeader,
+  StatusIndicator,
+  DialogButton,
+} from "../Shared/DesignSystem";
 
 interface LockWaitProps {
   slotNo: number;
   hn: string;
+  onClose: () => void;
+  onOpenDeactive: () => void;
 }
 
-const LockWait = ({ slotNo, hn }: LockWaitProps) => {
-  const [openDeactivate, setOpenDeactivate] = useState<boolean>(false);
+const LockWait = ({ slotNo, hn, onClose, onOpenDeactive }: LockWaitProps) => {
+  useEffect(() => {
+    ipcRenderer.on("deactivated", () => {
+      onClose();
+    });
+  }, []);
 
-
-  const handleDeactivate = () => {
-      if (openDeactivate) {
-        setOpenDeactivate(false);
-      } else {
-        setOpenDeactivate(true);
-      }
+  const handleCheckLockedBack = () => {
+    ipcRenderer.invoke("check-locked-back", { slotId: slotNo });
   };
 
   return (
-    <>
-      <div className="flex flex-col rounded-md overflow-hidden gap-2 max-w-[300px]">
-        <div className="flex justify-between items-center shadow-xl px-3 py-2 font-bold text-xl">
-          HN: {hn}
-          <button onClick={handleDeactivate}  className="btn btn-circle btn-sm btn-ghost font-bold text-xl">!</button>
-        </div>
-        <div className="flex flex-col p-3 flex-wrap jusitfy-center items-center">
-          <div className="font-bold text-[#ff0000]">
-            Slot No [{slotNo}] is Opening
-          </div>
-          <p className="font-bold p-3">
-            Put the drugs into the opening slot and close the drawer back with
-            in 30 seconds
-          </p>
-          <Loading />
-        </div>
-      <Modal isOpen={openDeactivate} onClose={setOpenDeactivate}>
-        <DeActivate slotNo={slotNo} onClose={setOpenDeactivate} />
-      </Modal>
+    <DialogBase maxWidth="max-w-[350px]">
+      <DialogHeader
+        title="การรอใส่ยา"
+        hn={hn}
+        onEmergencyAction={onOpenDeactive}
+        emergencyLabel="!"
+      />
 
+      <div className="flex flex-col p-4 gap-4">
+        <StatusIndicator
+          status="error"
+          message="เปิดอยู่"
+          slotNo={slotNo}
+          animated={true}
+        />
+
+        <div className="text-center space-y-3 flex flex-col justify-center">
+          <p className="font-medium text-gray-700 leading-relaxed">
+            📋 <strong>คำแนะนำ:</strong>
+            <br />
+            1. นำยาเข้าช่อง #{slotNo}
+            <br />
+            2. ปิดช่องให้แน่น
+            <br />
+            3. กดปุ่ม "ตกลง" เพื่อดำเนินการต่อ
+          </p>
+
+          <div className="py-2">
+            <Loading />
+          </div>
+
+          <DialogButton
+            variant="primary"
+            onClick={handleCheckLockedBack}
+            icon="✓"
+          >
+            ตกลง
+          </DialogButton>
+        </div>
       </div>
-    </>
+    </DialogBase>
   );
 };
 

@@ -3,16 +3,14 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 interface Unlocking {
-  slot?: number;
+  slotId?: number;
   hn?: string;
   timestamp?: number;
-  dispensing: boolean;
   unlocking: boolean;
 }
 
 export const useUnlock = () => {
   const [unlocking, setUnlocking] = useState<Unlocking>({
-    dispensing: false,
     unlocking: false,
   });
 
@@ -20,16 +18,28 @@ export const useUnlock = () => {
     ipcRenderer.on("unlocking", (event, payload) => {
       setUnlocking(payload);
       if (!payload.dispensing && !payload.unlocking && payload.hn != "") {
-        toast(`Unlock Successful`, { toastId: 1, type: "success" });
+        toast(`ปลดล็อกช่อง #${payload.slotId} เรียบร้อยแล้ว`, {
+          toastId: 1,
+          type: "success",
+        });
       }
     });
+
+    ipcRenderer.on("deactivated", (event, payload) => {
+      setUnlocking({ unlocking: false });
+    });
+
+    // return () => {
+    //   ipcRenderer.removeAllListeners("unlocking");
+    // }
   }, []);
 
-  const unlock = (slot: number, hn: string) => {
+  const unlock = (slot: number, hn: string, passkey: string) => {
     ipcRenderer.invoke("unlock", {
-      slot,
+      slotId: slot,
       hn,
       timestamp: new Date().getTime(),
+      passkey,
     });
   };
 

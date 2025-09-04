@@ -1,0 +1,273 @@
+import { ipcMain } from "electron";
+import { logger } from "../../logger";
+import { LicenseFileManager } from "../file-manager";
+import { ESP32Client } from "../esp32-client";
+import { saveLicenseActivation, validateOrganizationData } from "../validator";
+import { isDevelopmentBypass, logEnvironmentInfo } from "../../utils/environment";
+
+/**
+ * License File Activation Handler
+ * 
+ * แทนที่ระบบ text key activation เดิม
+ * ด้วย CLI License File + ESP32 validation
+ */
+
+export interface ActivationResult {
+  success: boolean;
+  error?: string;
+  step?: string;
+  data?: {
+    organization?: string;
+    customerId?: string;
+    expiryDate?: string;
+    macAddress?: string;
+  };
+}
+
+export const activateKeyHandler = async () => {
+  ipcMain.handle("activate-license-file", async (event, payload?: { filePath?: string }): Promise<ActivationResult> => {
+    try {
+      console.log("info: Starting CLI license file activation process");
+      
+      // แสดง environment information
+      if (isDevelopmentBypass()) {
+        console.log('⚠️  DEVELOPMENT MODE ACTIVE ⚠️');
+        logEnvironmentInfo();
+      }
+      
+      // Step 1: Find และ parse license file
+      event.sender.send('activation-progress', { step: 'file-loading', progress: 10 });
+      
+      const filePath = payload?.filePath || await LicenseFileManager.findLicenseFile();
+      if (!filePath) {
+        return {
+          success: false,
+          error: 'ไม่พบไฟล์ license.lic ในโฟลเดอร์ติดตั้ง',
+          step: 'file-loading'
+        };
+      }
+
+      // Step: ดึง WiFi credentials จาก license file (ต้องได้ก่อนการ parse เต็ม)
+      event.sender.send('activation-progress', { step: 'file-parsing', progress: 15 });
+      
+      // อ่าน license file structure เพื่อ extract WiFi SSID (จำเป็นสำหรับ HKDF parsing)
+      const licenseFileContent = await require('fs/promises').readFile(filePath, 'utf8');
+      const licenseFileStructure = JSON.parse(licenseFileContent);
+      
+      // ตรวจสอบ HKDF v2.0+ format (รองรับทั้ง v2.0.x และ v2.1.x)
+      if ((!licenseFileStructure.version.startsWith('2.0') && !licenseFileStructure.version.startsWith('2.1')) || !licenseFileStructure.kdf_context) {
+        return {
+          success: false,
+          error: 'ไฟล์ license format ไม่รองรับ - ต้องการ HKDF v2.0+ (version 2.0.x หรือ 2.1.x) เท่านั้น',
+          step: 'file-parsing'
+        };
+      }
+      
+      // ตรวจสอบ version เพื่อกำหนด activation flow
+      const isWiFiFree = licenseFileStructure.version.startsWith('2.1');
+      console.log(`info: License version ${licenseFileStructure.version} detected (WiFi-free: ${isWiFiFree})`);
+      
+      // Validate KDF context structure (dynamic based on version)
+      const kdfInfo = licenseFileStructure.kdf_context.info;
+      const infoParts = kdfInfo.split('|');
+      const expectedParts = isWiFiFree ? 5 : 6; // v2.1.x = 5 parts, v2.0.x = 6 parts
+      
+      if (infoParts.length < expectedParts) {
+        return {
+          success: false,
+          error: `ไฟล์ license structure ไม่ถูกต้อง (expected ${expectedParts} parts, got ${infoParts.length})`,
+          step: 'file-parsing'
+        };
+      }
+      
+      // Step 2: ตรวจสอบ license type ก่อนเรียก ESP32 hardware
+      event.sender.send('activation-progress', { step: 'license-type-check', progress: 25 });
+      
+      // ตรวจสอบ license type จาก KDF context info (ไม่ต้อง decrypt)
+      const licenseType = infoParts.length >= 5 ? infoParts[4] : 'production'; // Default to production
+      
+      console.log(`info: License type detected: ${licenseType}`);
+      
+      let esp32Mac: string;
+      let isInternalLicense = false;
+      
+      // Step 3: ดึง MAC address (complete bypass สำหรับ internal/development licenses)
+      event.sender.send('activation-progress', { step: 'mac-retrieval', progress: 30 });
+      
+      if (licenseType === 'internal' || licenseType === 'development') {
+        isInternalLicense = true;
+        console.log(`info: ${licenseType.toUpperCase()} license detected - complete ESP32 bypass activated`);
+        esp32Mac = 'AA:BB:CC:DD:EE:FF'; // Mock MAC for internal/development licenses
+        
+        await logger({
+          user: 'system',
+          message: `${licenseType.toUpperCase()} license activation - complete ESP32 hardware bypass activated`
+        });
+        
+        // ข้าม ESP32 hardware validation ทั้งหมด
+        event.sender.send('activation-progress', { step: 'esp32-bypass-active', progress: 35 });
+      } else {
+        // Production license - ต้องใช้ ESP32 hardware จริง
+        esp32Mac = await ESP32Client.getMacAddress();
+        if (!esp32Mac) {
+          return {
+            success: false,
+            error: 'ไม่สามารถดึง MAC address จาก ESP32 ได้ กรุณาตรวจสอบการเชื่อมต่อ',
+            step: 'mac-retrieval'
+          };
+        }
+        console.log(`info: ESP32 MAC address retrieved: ${esp32Mac}`);
+      }
+
+      // Step 4: Parse license file ด้วย MAC address (HKDF v2.0 - WiFi SSID จาก context)
+      event.sender.send('activation-progress', { step: 'file-parsing', progress: 45 });
+      
+      const licenseData = await LicenseFileManager.parseLicenseFile(filePath, esp32Mac);
+      if (!licenseData) {
+        return {
+          success: false,
+          error: 'ไม่สามารถอ่านไฟล์ license ได้ด้วย ESP32 hardware binding',
+          step: 'file-parsing'
+        };
+      }
+
+      // Step 4: WiFi connection (v2.0.x only - v2.1.x is WiFi-free)
+      if (!isWiFiFree) {
+        // v2.0.x: ดึง WiFi credentials จาก license data และเชื่อมต่อ ESP32
+        event.sender.send('activation-progress', { step: 'wifi-connecting', progress: 55 });
+        
+        const wifiCredentials = await LicenseFileManager.extractWiFiCredentials(licenseData);
+        if (!wifiCredentials) {
+          return {
+            success: false,
+            error: 'ไม่พบข้อมูล WiFi ใน license file',
+            step: 'wifi-credentials'
+          };
+        }
+
+        console.log(`info: Connecting to ESP32 WiFi: ${wifiCredentials.ssid}`);
+        const wifiConnected = await ESP32Client.connectToWiFi(wifiCredentials.ssid, wifiCredentials.password);
+        
+        if (!wifiConnected) {
+          return {
+            success: false,
+            error: `ไม่สามารถเชื่อมต่อ WiFi ESP32 ได้ (${wifiCredentials.ssid})`,
+            step: 'wifi-connecting'
+          };
+        }
+      } else {
+        // v2.1.x: WiFi-free activation - skip WiFi connection
+        console.log('info: WiFi-free license detected - skipping WiFi connection step');
+        event.sender.send('activation-progress', { step: 'wifi-free-mode', progress: 55 });
+      }
+
+      console.log(`info: HKDF license file parsed successfully - Organization: ${licenseData.organization}`);
+
+      // Step 5: ตรวจสอบวันหมดอายุ
+      event.sender.send('activation-progress', { step: 'expiry-check', progress: 70 });
+      
+      const expiryDate = new Date(licenseData.expiryDate);
+      const today = new Date();
+      
+      if (expiryDate < today) {
+        await logger({
+          user: "system",
+          message: `License activation failed: License expired on ${licenseData.expiryDate}`
+        });
+        return {
+          success: false,
+          error: `License หมดอายุแล้ว (หมดอายุ: ${licenseData.expiryDate})`,
+          step: 'expiry-check'
+        };
+      }
+
+      // Step 6: ตรวจสอบ organization data
+      event.sender.send('activation-progress', { step: 'organization-validation', progress: 80 });
+      
+      const orgValid = await validateOrganizationData(licenseData);
+      if (!orgValid) {
+        return {
+          success: false,
+          error: 'ข้อมูลองค์กรใน license ไม่ตรงกับการตั้งค่าระบบ',
+          step: 'organization-validation'
+        };
+      }
+
+      // Step 7: MAC address validation (skip สำหรับ internal license)
+      event.sender.send('activation-progress', { step: 'mac-validation', progress: 85 });
+      
+      if (isInternalLicense) {
+        console.log(`info: Internal license detected - skipping MAC address validation`);
+        await logger({
+          user: "system",
+          message: `${licenseType.toUpperCase()} license - MAC address validation bypassed`
+        });
+      } else {
+        // Production license - ตรวจสอบ MAC address matching
+        if (licenseData.macAddress.toUpperCase() !== esp32Mac.toUpperCase()) {
+          console.log(`debug: MAC address mismatch in license data validation`);
+          console.log(`debug: License MAC: ${licenseData.macAddress}`);
+          console.log(`debug: ESP32 MAC: ${esp32Mac}`);
+          
+          await logger({
+            user: "system",
+            message: "License activation failed: MAC address mismatch with ESP32"
+          });
+          
+          return {
+            success: false,
+            error: 'MAC address ไม่ตรงกับอุปกรณ์ ESP32 ที่เชื่อมต่อ',
+            step: 'mac-validation'
+          };
+        }
+      }
+
+      // Step 7: บันทึก activation ลงฐานข้อมูล
+      event.sender.send('activation-progress', { step: 'saving', progress: 90 });
+      
+      const saved = await saveLicenseActivation();
+      if (!saved) {
+        return {
+          success: false,
+          error: 'ไม่สามารถบันทึกการ activation ลงฐานข้อมูลได้',
+          step: 'saving'
+        };
+      }
+
+      // Step 8: เสร็จสิ้น
+      event.sender.send('activation-progress', { step: 'success', progress: 100 });
+      
+      await logger({
+        user: "system",
+        message: `License activation successful - Organization: ${licenseData.organization}, Customer: ${licenseData.customerId}, Expires: ${licenseData.expiryDate}`
+      });
+
+      console.log("info: CLI license file activation completed successfully");
+      
+      return {
+        success: true,
+        step: 'success',
+        data: {
+          organization: licenseData.organization,
+          customerId: licenseData.customerId,
+          expiryDate: licenseData.expiryDate,
+          macAddress: esp32Mac // ไม่เก็บในฐานข้อมูล แต่ส่งกลับไป UI ได้
+        }
+      };
+
+    } catch (error: any) {
+      console.error("error: License activation failed:", error);
+      
+      await logger({
+        user: "system",
+        message: `License activation error: ${error.message}`
+      });
+
+      return {
+        success: false,
+        error: error.message || 'เกิดข้อผิดพลาดในการ activate license',
+        step: 'error'
+      };
+    }
+  });
+};

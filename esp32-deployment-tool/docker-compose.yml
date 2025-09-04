@@ -1,0 +1,34 @@
+services:
+  esp32-tool:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # Source code for development hot reload
+      - .:/app
+      - /app/node_modules
+      # Export files to host Desktop
+      - ~/Desktop:/app/exports
+      # Temp files (tmpfs for performance)
+      - type: tmpfs
+        target: /app/temp
+        tmpfs:
+          size: 1G
+      # PlatformIO cache
+      - platformio_cache:/app/.platformio
+    environment:
+      - NODE_ENV=development
+      - DOCKER_CONTAINER=true
+      - CHOKIDAR_USEPOLLING=true
+      - PLATFORMIO_CORE_DIR=/app/.platformio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  platformio_cache:
+    driver: local

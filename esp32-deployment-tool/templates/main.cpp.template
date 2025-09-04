@@ -1,0 +1,213 @@
+/*
+ * ESP32 Customer Configuration
+ * Organization: {{ORGANIZATION}}
+ * Customer ID: {{CUSTOMER_ID}}
+ * Application: {{APPLICATION_NAME}}
+ * Generated: {{GENERATED_DATE}}
+ */
+
+#include <WiFi.h>
+#include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h>
+#include <DHT.h>
+
+// Customer Configuration
+const char* CUSTOMER_ORG = "{{ORGANIZATION}}";
+const char* CUSTOMER_ID = "{{CUSTOMER_ID}}";  
+const char* APPLICATION_NAME = "{{APPLICATION_NAME}}";
+
+// AM2302 Sensor Configuration (Fixed GPIO for all devices)
+#define DHT_PIN 4          // GPIO 4 - FIXED สำหรับทุกชิ้น
+#define DHT_TYPE DHT22     // AM2302 = DHT22
+DHT dht(DHT_PIN, DHT_TYPE);
+
+// Sensor status tracking
+bool sensorAvailable = false;
+String sensorMode = "unknown";
+
+// WiFi Access Point Configuration
+const char* AP_SSID = "{{WIFI_SSID}}";
+const char* AP_PASSWORD = "{{WIFI_PASSWORD}}";
+IPAddress local_ip(192, 168, 4, 1);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
+
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println();
+  Serial.println("========================================");
+  Serial.println("SMC ESP32 Customer Configuration");
+  Serial.printf("Customer: %s (%s)\n", CUSTOMER_ORG, CUSTOMER_ID);
+  Serial.printf("Application: %s\n", APPLICATION_NAME);
+  Serial.println("========================================");
+  
+  // Initialize Wi-Fi
+  Serial.println("Starting WiFi Access Point...");
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(local_ip, gateway, subnet);
+  WiFi.softAP(AP_SSID, AP_PASSWORD);
+  
+  Serial.printf("AP SSID: %s\n", AP_SSID);
+  Serial.printf("AP IP Address: %s\n", WiFi.softAPIP().toString().c_str());
+  Serial.printf("MAC Address: %s\n", WiFi.macAddress().c_str());
+  
+  // Initialize AM2302 Sensor
+  Serial.println("Initializing AM2302 Temperature/Humidity Sensor...");
+  dht.begin();
+  Serial.printf("Sensor Pin: GPIO %d\n", DHT_PIN);
+  
+  // Test sensor availability
+  Serial.println("Testing sensor connectivity...");
+  delay(2000); // Wait for sensor to stabilize
+  
+  float testTemp = dht.readTemperature();
+  float testHumidity = dht.readHumidity();
+  
+  if (!isnan(testTemp) && !isnan(testHumidity) && testTemp > -40 && testTemp < 80) {
+    sensorAvailable = true;
+    sensorMode = "live";
+    Serial.println("✅ DHT22 sensor detected and working");
+    Serial.printf("Initial reading: %.1f°C, %.1f%%RH\n", testTemp, testHumidity);
+  } else {
+    sensorAvailable = false;
+    sensorMode = "mock";
+    Serial.println("⚠️  DHT22 sensor not detected or malfunction");
+    Serial.println("Using mock data mode for demonstration");
+  }
+
+  // Configure CORS
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
+
+  // Root endpoint
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    String html = "<!DOCTYPE html><html><head><title>SMC ESP32 - " + String(CUSTOMER_ORG) + "</title></head>";
+    html += "<body style='font-family: Arial; padding: 20px;'>";
+    html += "<h1>SMC Medical Device Configuration</h1>";
+    html += "<div style='background: #f0f0f0; padding: 15px; border-radius: 5px;'>";
+    html += "<h3>Customer Information</h3>";
+    html += "<p><strong>Organization:</strong> " + String(CUSTOMER_ORG) + "</p>";
+    html += "<p><strong>Customer ID:</strong> " + String(CUSTOMER_ID) + "</p>";
+    html += "<p><strong>Application:</strong> " + String(APPLICATION_NAME) + "</p>";
+    html += "<p><strong>MAC Address:</strong> " + WiFi.macAddress() + "</p>";
+    html += "</div></body></html>";
+    
+    request->send(200, "text/html", html);
+  });
+
+  // MAC endpoint
+  server.on("/mac", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    doc["mac_address"] = WiFi.macAddress();
+    doc["customer_id"] = CUSTOMER_ID;
+    doc["organization"] = CUSTOMER_ORG;
+    doc["status"] = "success";
+    doc["timestamp"] = millis();
+    
+    String jsonString;
+    serializeJson(doc, jsonString);
+    request->send(200, "application/json", jsonString);
+  });
+
+  // Info endpoint  
+  server.on("/info", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    JsonObject deviceObj = doc["device"].to<JsonObject>();
+    deviceObj["type"] = "ESP32";
+    deviceObj["mac_address"] = WiFi.macAddress();
+    deviceObj["ap_ip"] = WiFi.softAPIP().toString();
+    deviceObj["ap_ssid"] = AP_SSID;
+    
+    JsonObject customerObj = doc["customer"].to<JsonObject>();
+    customerObj["organization"] = CUSTOMER_ORG;
+    customerObj["customer_id"] = CUSTOMER_ID;
+    customerObj["application"] = APPLICATION_NAME;
+    
+    String jsonString;
+    serializeJson(doc, jsonString);
+    request->send(200, "application/json", jsonString);
+  });
+
+  // Sensor endpoint - AM2302 Temperature/Humidity
+  server.on("/sensor", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    
+    float temperature, humidity;
+    String currentMode;
+    
+    if (sensorAvailable) {
+      // Try to read from real sensor
+      temperature = dht.readTemperature();
+      humidity = dht.readHumidity();
+      
+      // Validate sensor readings
+      if (!isnan(temperature) && !isnan(humidity) && 
+          temperature > -40 && temperature < 80 && 
+          humidity >= 0 && humidity <= 100) {
+        // Real sensor data is valid
+        currentMode = "live";
+        Serial.printf("Live sensor: %.1f°C, %.1f%%RH\n", temperature, humidity);
+      } else {
+        // Sensor failed this reading, use fallback
+        temperature = 22.5 + random(-25, 25) / 10.0;
+        humidity = 65.0 + random(-15, 15) / 10.0;
+        currentMode = "mock_fallback";
+        Serial.println("Sensor failed, using fallback data");
+      }
+    } else {
+      // No sensor available, use mock data
+      temperature = 22.5 + random(-25, 25) / 10.0;
+      humidity = 65.0 + random(-15, 15) / 10.0;
+      currentMode = "mock";
+    }
+    
+    // Build JSON response with enhanced status information
+    doc["temp"] = round(temperature * 10) / 10.0; // Round to 1 decimal
+    doc["humid"] = round(humidity * 10) / 10.0;   // Round to 1 decimal
+    doc["sensor"] = "AM2302";
+    doc["gpio"] = DHT_PIN;
+    doc["mode"] = currentMode;
+    doc["sensor_available"] = sensorAvailable;
+    doc["timestamp"] = millis();
+    doc["customer_id"] = CUSTOMER_ID;
+    
+    String jsonString;
+    serializeJson(doc, jsonString);
+    request->send(200, "application/json", jsonString);
+  });
+
+  // Health endpoint
+  server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    JsonObject serverObj = doc["server"].to<JsonObject>();
+    serverObj["status"] = "healthy";
+    serverObj["uptime_ms"] = millis();
+    serverObj["connected_clients"] = WiFi.softAPgetStationNum();
+    
+    String jsonString;
+    serializeJson(doc, jsonString);
+    request->send(200, "application/json", jsonString);
+  });
+
+  // Start server
+  Serial.println("Starting HTTP server...");
+  server.begin();
+  Serial.println("Server started successfully!");
+  Serial.println("Ready for client connections.");
+}
+
+void loop() {
+  // Status reporting
+  static unsigned long lastStatus = 0;
+  if (millis() - lastStatus > 30000) {
+    Serial.printf("[%s] Status: %d clients, %d bytes free\n", 
+                  CUSTOMER_ID, WiFi.softAPgetStationNum(), ESP.getFreeHeap());
+    lastStatus = millis();
+  }
+  
+  delay(1000);
+}

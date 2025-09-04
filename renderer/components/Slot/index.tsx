@@ -3,7 +3,6 @@ import LockedSlot from "./locked";
 import EmptySlot from "./empty";
 import Modal from "../Modals";
 import InputSlot from "../Dialogs/inputSlot";
-import ResetSlotOrNot from "../Dialogs/ResetSlotOrNot";
 
 interface SlotProps {
   slotData: {
@@ -14,11 +13,21 @@ interface SlotProps {
     opening: boolean;
     isActive: boolean;
   };
+  indicator: {
+    message: string;
+    success: boolean;
+    data: {
+      Temp1: number;
+      Temp2: number;
+      Huminity1: number;
+      Huminity2: number;
+      Battery: number;
+    };
+  };
 }
 
-const Slot = ({ slotData }: SlotProps) => {
+const Slot = ({ slotData, indicator }: SlotProps) => {
   const [openModal, setOpenModal] = useState<boolean>(false);
-
 
   function handleSlot() {
     if (!slotData.opening && !slotData.occupied && slotData.isActive)
@@ -30,23 +39,28 @@ const Slot = ({ slotData }: SlotProps) => {
   }
 
   return (
-     <button onClick={handleSlot} disabled={!slotData.isActive}>
+    <button onClick={handleSlot} disabled={!slotData.isActive}>
       {slotData.occupied ? (
         <LockedSlot
           slotNo={slotData.slotId}
           hn={slotData.hn}
           date={new Date(slotData.timestamp).toLocaleDateString()}
           time={new Date(slotData.timestamp).toLocaleTimeString()}
+          temp={!indicator ? 0 : indicator.data.Temp1}
+          humid={!indicator ? 0 : indicator.data.Huminity1}
         />
       ) : (
-        <EmptySlot slotNo={slotData.slotId} isActive={slotData.isActive} />
+        <EmptySlot
+          slotNo={slotData.slotId}
+          isActive={slotData.isActive}
+          temp={!indicator ? 0 : indicator.data.Temp1}
+          humid={!indicator ? 0 : indicator.data.Huminity1}
+        />
       )}
       <Modal isOpen={openModal} onClose={handleSlot}>
         <InputSlot slotNo={slotData.slotId} onClose={handleSlot} />
       </Modal>
-    
     </button>
-   
   );
 };
 

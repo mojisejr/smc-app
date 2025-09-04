@@ -1,14 +1,19 @@
 import { useForm, SubmitHandler } from "react-hook-form";
-import { MdQrCodeScanner } from "react-icons/md";
-import { ipcRenderer } from "electron";
 import { useDispense } from "../../hooks/useDispense";
 import { useKuStates } from "../../hooks/useKuStates";
 import { useEffect } from "react";
 import { toast } from "react-toastify";
-// import { IO } from "../../enums/ipc-enums";
+import { useDispensingContext } from "../../contexts/dispensingContext";
+import {
+  DialogBase,
+  DialogHeader,
+  DialogInput,
+  DialogButton,
+} from "../Shared/DesignSystem";
 
 type Inputs = {
   hn: string;
+  passkey: string;
 };
 
 interface ClearSlotProps {
@@ -18,6 +23,7 @@ interface ClearSlotProps {
 const DispenseSlot = ({ onClose }: ClearSlotProps) => {
   const { dispense } = useDispense();
   const { slots, get } = useKuStates();
+  const { setPasskey } = useDispensingContext();
 
   useEffect(() => {
     get();
@@ -26,9 +32,8 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
-  } = useForm();
+  } = useForm<Inputs>();
 
   const whichSlot = (hn: string) => {
     const found = slots.filter((slot) => slot.hn == hn);
@@ -36,12 +41,24 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
   };
 
   const onSubmit: SubmitHandler<Inputs> = (data) => {
+    // console.log("🔍 DispenseSlot Form Submit - Data:", data);
+
     const slot = whichSlot(data.hn);
+    // console.log("🔍 DispenseSlot Found Slot:", slot);
+
     if (slot) {
-      dispense({ slot: slot.slotId, hn: slot.hn, timestamp: slot.timestamp });
+      // console.log("✅ DispenseSlot calling dispense function");
+      dispense({
+        slotId: slot.slotId,
+        hn: slot.hn,
+        timestamp: slot.timestamp,
+        passkey: data.passkey,
+      });
+      setPasskey(data.passkey);
       onClose();
     } else {
-      toast(`This HN #${data.hn} is occupied nothing, try again!`, {
+      // console.log("❌ DispenseSlot - No slot found for HN:", data.hn);
+      toast(`ไม่พบคนไข้ HN #${data.hn}`, {
         toastId: 3,
         type: "error",
       });
@@ -49,25 +66,35 @@ const DispenseSlot = ({ onClose }: ClearSlotProps) => {
   };
 
   return (
-    <>
-      <div className="font-bold p-3 rounded-md shadow-md">Dispensing</div>
-      <form
-        className="flex gap-2 flex-col p-3 "
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <input
-          className="p-2 bg-gray-100 rounded-md text-[#000]"
-          placeholder="patient Id"
-          {...register("hn", { required: true })}
-        ></input>
-        <button
-          className="font-bold p-2 bg-[#eee] hover:bg-[#F9324A] hover:text-white rounded-md"
-          type="submit"
-        >
-          Despensing
-        </button>
-      </form>
-    </>
+    <DialogBase maxWidth="max-w-[400px]">
+      <DialogHeader
+        title="จ่ายยา"
+        onClose={onClose}
+        bgColor="bg-red-50"
+        textColor="text-red-700"
+      />
+
+      <div className="flex flex-col p-4 gap-4">
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
+          <DialogInput
+            placeholder="รหัสผู้ป่วย"
+            error={errors.hn ? "กรุณากรอกรหัสผู้ป่วย" : undefined}
+            {...register("hn", { required: true })}
+          />
+
+          <DialogInput
+            type="password"
+            placeholder="รหัสผู้ใช้"
+            error={errors.passkey ? "กรุณากรอกรหัสผู้ใช้" : undefined}
+            {...register("passkey", { required: true })}
+          />
+
+          <DialogButton type="submit" variant="danger" icon="💊">
+            จ่ายยา
+          </DialogButton>
+        </form>
+      </div>
+    </DialogBase>
   );
 };
 

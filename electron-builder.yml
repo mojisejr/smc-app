@@ -9,4 +9,10 @@ files:
     filter:
       - package.json
       - app
+# Environment variable injection for license bypass support
+env:
+  SMC_LICENSE_BYPASS_MODE: ${SMC_LICENSE_BYPASS_MODE}
+  BUILD_TYPE: ${BUILD_TYPE}
+  SMC_DEV_REAL_HARDWARE: ${SMC_DEV_REAL_HARDWARE}
+  NODE_ENV: ${NODE_ENV}
 publish: null

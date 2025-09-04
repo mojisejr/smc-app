@@ -1,8 +1,0 @@
-{
-  "path": "/dev/tty.usbserial-B000VL8O",
-  "baudRate": 19200,
-  "dataBits": 8,
-  "stopBits": 1,
-  "parity": "none",
-  "autoOpen": true
-}

@@ -1,60 +1,110 @@
 import { useForm, SubmitHandler } from "react-hook-form";
-import { MdQrCodeScanner } from "react-icons/md";
 import { ipcRenderer } from "electron";
 import { toast } from "react-toastify";
 import { useApp } from "../../contexts/appContext";
+import { useEffect } from "react";
+import { useState } from "react";
+import { AuthRequest, AuthResponse } from "../../interfaces/auth";
+import { useRouter } from "next/router";
+import { DialogBase, DialogHeader, DialogInput, DialogButton } from "../Shared/DesignSystem";
 
 type Inputs = {
-  stuffId: string;
+  passkey: string;
 };
 
-const Auth = () => {
-  const { setUser } = useApp();
+interface AuthDialogProps {
+  onClose: () => void;
+}
+
+const AuthDialog = ({ onClose }: AuthDialogProps) => {
+  const { replace } = useRouter();
+  const { setAdmin } = useApp();
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
-  } = useForm();
+  } = useForm<Inputs>();
+
+  useEffect(() => {
+    ipcRenderer.on("login-res", (_, user: AuthResponse) => {
+      if (user == null) {
+        toast.error(`ผู้ใช้งานไม่ถูกต้อง`, { toastId: 99, type: "error" });
+        setAdmin(null);
+        setLoading(false);
+        onClose();
+      } else if (user && user.role !== "ADMIN") {
+        toast.error(`ผู้ใช้งานไม่ถูกต้อง`, { toastId: 99, type: "error" });
+        setAdmin(null);
+        setLoading(false);
+        onClose();
+      } else {
+        toast.success(`เข้าสู่ระบบแล้ว ${user.name}`, {
+          toastId: 99,
+          type: "success",
+        });
+        setAdmin(user.name);
+        void replace("/management");
+        setLoading(false);
+      }
+    });
+    return () => {
+      ipcRenderer.removeAllListeners("login-res");
+    };
+  }, []);
 
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
-    // const user = await ipcRenderer.invoke(AUTHENTICATION.Login, data.stuffId);
-    const mockStuffId = "1234";
-    const user = null;
-    // if (user != null || user != undefined) {
-    if (data.stuffId == mockStuffId) {
-      toast(`loggedin! ${data.stuffId}`, { toastId: 99, type: "success" });
-      setUser({stuffId: "1234", role: "ADMIN"});
-    } else {
-      toast(`Invalid user`, { toastId: 99, type: "error" });
+    // Debug log removed for production
+    setLoading(true);
+
+    if (data.passkey == "" || data.passkey == null) {
+      // Debug log removed for production
+      setLoading(false);
+      toast.error(`กรุณาใส่ข้อมูลให้ครบถ้วน`, { toastId: 99, type: "error" });
+      return;
     }
+
+    const req: AuthRequest = {
+      passkey: data.passkey,
+    };
+
+    // Debug log removed for production
+    ipcRenderer.invoke("login-req", req);
   };
 
   return (
-    <>
-      <div className="flex flex-col gap-3">
-        <div className="text-xl font-bold shadow-md p-3 rounded-md">Login</div>
+    <DialogBase maxWidth="max-w-[400px]">
+      <DialogHeader
+        title="เข้าสู่ระบบ"
+        onClose={onClose}
+      />
+      
+      <div className="flex flex-col p-4 gap-4">
         <form
-          className="flex flex-col p-3 gap-2"
+          className="flex flex-col gap-4"
           onSubmit={handleSubmit(onSubmit)}
         >
-          <input
-            className="p-2 bg-gray-100 rounded-md text-[#000]"
-            placeholder="STAFF ID"
-            {...register("stuffId", { required: true })}
-          ></input>
-          <button
-            className="font-bold p-2 bg-[#eee] hover:bg-[#5495F6] hover:text-white rounded-md"
+          <DialogInput
+            type="password"
+            placeholder="รหัสผ่านผู้ดูแลระบบ"
+            error={errors.passkey ? "กรุณากรอกรหัสผ่าน" : undefined}
+            {...register("passkey", { required: true })}
+          />
+          
+          <DialogButton
             type="submit"
+            variant="primary"
+            loading={loading}
+            disabled={loading}
+            icon="🔐"
           >
-            Login
-            {/* <MdQrCodeScanner size={30} /> */}
-          </button>
+            เข้าสู่ระบบ
+          </DialogButton>
         </form>
       </div>
-    </>
+    </DialogBase>
   );
 };
 
-export default Auth;
+export default AuthDialog;

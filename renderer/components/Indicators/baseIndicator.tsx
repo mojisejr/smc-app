@@ -1,18 +1,25 @@
-
+import { TbTemperatureCelsius } from "react-icons/tb";
+import { WiHumidity } from "react-icons/wi";
 interface IndicatoProps {
-    title: string;
-    value: number;
-    unit: string;
+  title: string;
+  value: number;
+  unit: string;
+  threshold: number;
 }
 
-const Indicator = ({title,value,unit}: IndicatoProps) => {
-    return <>
-    <div className="w-full flex flex-col items-center px-2">
-    <div className="text-sm">{title}</div>
-    <progress className="progress progress-primary" value={value} max="100"></progress>
-    <div className="text-sm">{`${value}${unit}`}</div>
-    </div>
+const Indicator = ({ title, value, unit, threshold }: IndicatoProps) => {
+  return (
+    <>
+      <div className="w-full flex items-center px-2">
+        {unit === "*C" ? (
+          <TbTemperatureCelsius size={20} />
+        ) : (
+          <WiHumidity size={20} />
+        )}
+        <div className="p-1 bg-gray-200 text-xs font-semibold">{`${value}`}</div>
+      </div>
     </>
-}
+  );
+};
 
 export default Indicator;
