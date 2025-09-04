@@ -50,7 +50,7 @@ export const LoggingHandler = () => {
   ipcMain.handle("get_logs", async (event: IpcMainEvent) => {
     const data = await getLogs();
     const logs = data.map((log) => log.dataValues);
-    
+
     // Use BrowserWindow from IPC event for Phase 4.2 pattern
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) {
@@ -60,15 +60,18 @@ export const LoggingHandler = () => {
 };
 
 export const exportLogsHandler = () => {
-  ipcMain.handle("export_logs", async (event: IpcMainEvent, format: string = "csv") => {
-    if (format === "xlsx") {
-      const result = await exportXlsxLogs();
-      return result.filePath;
-    } else {
-      const result = await exportLogs();
-      return result.csvPath;
+  ipcMain.handle(
+    "export_logs",
+    async (event: IpcMainEvent, format: string = "csv") => {
+      if (format === "xlsx") {
+        const result = await exportXlsxLogs();
+        return result.filePath;
+      } else {
+        const result = await exportLogs();
+        return result.csvPath;
+      }
     }
-  });
+  );
 };
 
 export const logDispensingHanlder = () => {
@@ -185,11 +188,11 @@ export const exportXlsxLogs = async () => {
 
       // สร้าง workbook และ worksheet
       const workbook = XLSX.utils.book_new();
-      
+
       // สร้าง headers เป็นภาษาไทย
       const headers = [
         "เวลา",
-        "ผู้ใช้งาน", 
+        "ผู้ใช้งาน",
         "เลข HN",
         "หมายเลขช่อง",
         "กระบวนการ",
@@ -211,13 +214,16 @@ export const exportXlsxLogs = async () => {
 
       // สร้าง worksheet จาก array
       const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-      
+
       // เพิ่ม worksheet เข้า workbook
       XLSX.utils.book_append_sheet(workbook, worksheet, "SMC Logs");
 
       // กำหนดชื่อไฟล์และ path
-      const xlsxPath = path.join(saveDir, `smc-log-${new Date().getTime()}.xlsx`);
-      
+      const xlsxPath = path.join(
+        saveDir,
+        `smc-log-${new Date().getTime()}.xlsx`
+      );
+
       // เขียนไฟล์ Excel
       XLSX.writeFile(workbook, xlsxPath);
 

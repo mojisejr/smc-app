@@ -4,6 +4,7 @@ import {
   getValidationMode,
   logPhase42Configuration,
 } from "../utils/environment";
+import { runtimeLogger, logLicenseOperation, PerformanceTimer } from "../logger/runtime-logger";
 
 /**
  * CLI License Validator - Phase 9: WiFi-Free Version
@@ -21,7 +22,14 @@ const ACTIVATION_FLAG = "CLI_LICENSE_ACTIVATED";
  * อ่านจาก database flag เท่านั้น (quick check)
  */
 export async function isSystemActivated(): Promise<boolean> {
+  const timer = new PerformanceTimer();
+  
   try {
+    await logLicenseOperation("Checking system activation status", {
+      operation: "activation_check",
+      flag: ACTIVATION_FLAG
+    });
+    
     const setting = await Setting.findOne({ where: { id: 1 } });
     const activatedKey = setting?.dataValues.activated_key;
 
@@ -34,6 +42,15 @@ export async function isSystemActivated(): Promise<boolean> {
         isActivated ? "activated" : "not activated"
       }`,
     });
+    
+    await logLicenseOperation(
+      `System activation status: ${isActivated ? "ACTIVATED" : "NOT ACTIVATED"}`,
+      {
+        operation: "activation_check_result",
+        activated: isActivated,
+        duration_ms: timer.stop()
+      }
+    );
 
     return isActivated;
   } catch (error) {
@@ -42,6 +59,19 @@ export async function isSystemActivated(): Promise<boolean> {
       user: "system",
       message: `License activation check failed: ${error.message}`,
     });
+    
+    await runtimeLogger({
+      logType: "license",
+      component: "validator",
+      level: "error",
+      message: `Failed to check activation status: ${error.message}`,
+      metadata: {
+        operation: "activation_check",
+        error: error.message,
+        duration_ms: timer.stop()
+      }
+    });
+    
     return false;
   }
 }
@@ -51,7 +81,14 @@ export async function isSystemActivated(): Promise<boolean> {
  * เก็บ flag เท่านั้น ไม่เก็บข้อมูลละเอียด
  */
 export async function saveLicenseActivation(): Promise<boolean> {
+  const timer = new PerformanceTimer();
+  
   try {
+    await logLicenseOperation("Saving license activation to database", {
+      operation: "save_activation",
+      flag: ACTIVATION_FLAG
+    });
+    
     const result = await Setting.update(
       { activated_key: ACTIVATION_FLAG },
       { where: { id: 1 } }
@@ -62,6 +99,13 @@ export async function saveLicenseActivation(): Promise<boolean> {
         user: "system",
         message: "License activation saved to database successfully",
       });
+      
+      await logLicenseOperation("License activation saved successfully", {
+        operation: "save_activation_success",
+        rows_updated: result[0],
+        duration_ms: timer.stop()
+      });
+      
       return true;
     } else {
       throw new Error("No rows updated in Setting table");
@@ -72,6 +116,19 @@ export async function saveLicenseActivation(): Promise<boolean> {
       user: "system",
       message: `Failed to save license activation: ${error.message}`,
     });
+    
+    await runtimeLogger({
+      logType: "license",
+      component: "validator",
+      level: "error",
+      message: `Failed to save license activation: ${error.message}`,
+      metadata: {
+        operation: "save_activation",
+        error: error.message,
+        duration_ms: timer.stop()
+      }
+    });
+    
     return false;
   }
 }
@@ -102,10 +159,21 @@ export async function clearLicenseActivation(): Promise<void> {
  * ไม่เชื่อมต่อ ESP32 เพื่อความเร็ว
  */
 export async function validateLicenseQuick(): Promise<boolean> {
+  const timer = new PerformanceTimer();
+  
   try {
+    await logLicenseOperation("Starting quick license validation", {
+      operation: "validate_quick_start"
+    });
+    
     // 1. ตรวจสอบ database flag
     const isActivated = await isSystemActivated();
     if (!isActivated) {
+      await logLicenseOperation("Quick validation failed: System not activated", {
+        operation: "validate_quick_failed",
+        reason: "not_activated",
+        duration_ms: timer.stop()
+      });
       return false;
     }
 
@@ -116,12 +184,37 @@ export async function validateLicenseQuick(): Promise<boolean> {
     if (!licenseFile) {
       console.log("debug: license.lic file not found, clearing activation");
       await clearLicenseActivation();
+      
+      await logLicenseOperation("Quick validation failed: License file not found", {
+        operation: "validate_quick_failed",
+        reason: "license_file_not_found",
+        duration_ms: timer.stop()
+      });
+      
       return false;
     }
 
+    await logLicenseOperation("Quick license validation successful", {
+      operation: "validate_quick_success",
+      duration_ms: timer.stop()
+    });
+    
     return true;
   } catch (error) {
     console.error("error: Quick license validation failed:", error);
+    
+    await runtimeLogger({
+      logType: "license",
+      component: "validator",
+      level: "error",
+      message: `Quick license validation failed: ${error.message}`,
+      metadata: {
+        operation: "validate_quick_error",
+        error: error.message,
+        duration_ms: timer.stop()
+      }
+    });
+    
     return false;
   }
 }
@@ -131,10 +224,21 @@ export async function validateLicenseQuick(): Promise<boolean> {
  * ใช้เมื่อต้องการความแม่นยำสูงสุด
  */
 export async function validateLicenseWithESP32(): Promise<boolean> {
+  const timer = new PerformanceTimer();
+  
   try {
+    await logLicenseOperation("Starting full license validation with ESP32", {
+      operation: "validate_full_start"
+    });
+    
     // 1. Quick validation ก่อน
     const quickValid = await validateLicenseQuick();
     if (!quickValid) {
+      await logLicenseOperation("Full validation failed: Quick validation failed", {
+        operation: "validate_full_failed",
+        reason: "quick_validation_failed",
+        duration_ms: timer.stop()
+      });
       return false;
     }
 
@@ -144,12 +248,23 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
 
     if (!licenseData) {
       console.log("debug: Failed to parse license file");
+      await logLicenseOperation("Full validation failed: Cannot parse license file", {
+        operation: "validate_full_failed",
+        reason: "license_parse_failed",
+        duration_ms: timer.stop()
+      });
       return false;
     }
 
     // 2.1. Extract license type for validation logic
     const licenseType = licenseData.license_type || "production";
     console.log(`debug: License type detected: ${licenseType}`);
+    
+    await logLicenseOperation(`License type detected: ${licenseType}`, {
+      operation: "license_type_detected",
+      license_type: licenseType,
+      organization: licenseData.organization
+    });
 
     // 3. ตรวจสอบวันหมดอายุ
     const expiryDate = new Date(licenseData.expiryDate);
@@ -161,6 +276,14 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
         user: "system",
         message: `License validation failed: License expired on ${licenseData.expiryDate}`,
       });
+      
+      await logLicenseOperation("Full validation failed: License expired", {
+        operation: "validate_full_failed",
+        reason: "license_expired",
+        expiry_date: licenseData.expiryDate,
+        duration_ms: timer.stop()
+      });
+      
       return false;
     }
 
@@ -176,8 +299,21 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
           licenseData.organization
         }`,
       });
+      
+      await logLicenseOperation(`ESP32 validation bypassed for ${licenseType} license`, {
+        operation: "esp32_validation_bypassed",
+        license_type: licenseType,
+        organization: licenseData.organization,
+        reason: "internal_development_license"
+      });
     } else {
       // Standard ESP32 validation for production licenses
+      await logLicenseOperation("Starting ESP32 MAC address validation", {
+        operation: "esp32_validation_start",
+        license_type: licenseType,
+        expected_mac: licenseData.macAddress
+      });
+      
       const { ESP32Client } = await import("./esp32-client");
       const esp32Mac = await ESP32Client.getMacAddress();
 
@@ -187,6 +323,13 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
           user: "system",
           message: "License validation failed: Cannot connect to ESP32",
         });
+        
+        await logLicenseOperation("ESP32 validation failed: Cannot connect to ESP32", {
+          operation: "esp32_validation_failed",
+          reason: "esp32_connection_failed",
+          duration_ms: timer.stop()
+        });
+        
         return false;
       }
 
@@ -198,8 +341,22 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
           user: "system",
           message: "License validation failed: MAC address mismatch",
         });
+        
+        await logLicenseOperation("ESP32 validation failed: MAC address mismatch", {
+          operation: "esp32_validation_failed",
+          reason: "mac_address_mismatch",
+          expected_mac: licenseData.macAddress,
+          actual_mac: esp32Mac,
+          duration_ms: timer.stop()
+        });
+        
         return false;
       }
+      
+      await logLicenseOperation("ESP32 MAC address validation successful", {
+        operation: "esp32_validation_success",
+        mac_address: esp32Mac
+      });
     }
 
     await logger({
@@ -207,6 +364,15 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
       message: `${licenseType.toUpperCase()} license validation successful - expires: ${
         licenseData.expiryDate
       }${licenseType !== "production" ? " [BYPASS_ENABLED]" : ""}`,
+    });
+    
+    await logLicenseOperation(`Full license validation successful`, {
+      operation: "validate_full_success",
+      license_type: licenseType,
+      organization: licenseData.organization,
+      expiry_date: licenseData.expiryDate,
+      bypass_enabled: licenseType !== "production",
+      duration_ms: timer.stop()
     });
 
     return true;
@@ -216,6 +382,19 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
       user: "system",
       message: `License validation error: ${error.message}`,
     });
+    
+    await runtimeLogger({
+      logType: "license",
+      component: "validator",
+      level: "error",
+      message: `Full license validation failed: ${error.message}`,
+      metadata: {
+        operation: "validate_full_error",
+        error: error.message,
+        duration_ms: timer.stop()
+      }
+    });
+    
     return false;
   }
 }
@@ -402,6 +581,13 @@ export async function validateLicenseForProduction(): Promise<{
   console.log(
     "info: Running production license validation (Phase 9: WiFi-free)..."
   );
+  
+  const timer = new PerformanceTimer();
+  
+  await logLicenseOperation("Starting production license validation", {
+    operation: "production_validation_start",
+    phase: "Phase 9: WiFi-free"
+  });
 
   const details = {
     licenseFileFound: false,
@@ -413,10 +599,19 @@ export async function validateLicenseForProduction(): Promise<{
 
   try {
     // 1. ตรวจสอบ database activation flag
+    await logLicenseOperation("Checking database activation flag", {
+      operation: "database_activation_check"
+    });
+    
     const isActivated = await isSystemActivated();
     details.databaseActivated = isActivated;
 
     if (!isActivated) {
+      await logLicenseOperation("Database activation check failed", {
+        operation: "database_activation_failed",
+        reason: "System not activated"
+      });
+      
       return {
         valid: false,
         error: "System not activated - no license found in database",
@@ -425,17 +620,31 @@ export async function validateLicenseForProduction(): Promise<{
     }
 
     // 2. ตรวจสอบ license file
+    await logLicenseOperation("Searching for license file", {
+      operation: "license_file_search"
+    });
+    
     const { LicenseFileManager } = await import("./file-manager");
     const licenseFile = await LicenseFileManager.findLicenseFile();
     details.licenseFileFound = !!licenseFile;
 
     if (!licenseFile) {
+      await logLicenseOperation("License file not found", {
+        operation: "license_file_not_found",
+        searched_locations: "expected locations"
+      });
+      
       return {
         valid: false,
         error: "License file not found in expected locations",
         details,
       };
     }
+    
+    await logLicenseOperation("License file found successfully", {
+      operation: "license_file_found",
+      file_path: licenseFile
+    });
 
     // 3. Parse license data
     // ใช้ mock MAC address เพื่อ parse license file และตรวจสอบ license type
@@ -482,6 +691,13 @@ export async function validateLicenseForProduction(): Promise<{
       console.log(
         `info: Bypassing ESP32 validation for ${licenseType} license`
       );
+      
+      await logLicenseOperation(`ESP32 validation bypassed for ${licenseType} license`, {
+        operation: "esp32_validation_bypass",
+        license_type: licenseType,
+        organization: licenseData.organization
+      });
+      
       details.esp32Connected = true; // Mark as connected for internal licenses
       details.macAddressMatched = true; // Mark as matched for internal licenses
 
@@ -493,6 +709,12 @@ export async function validateLicenseForProduction(): Promise<{
       });
     } else {
       // Standard ESP32 validation for production licenses
+      await logLicenseOperation("Starting ESP32 validation for production license", {
+        operation: "esp32_validation_start",
+        license_type: licenseType,
+        expected_mac: licenseData.macAddress
+      });
+      
       try {
         const { ESP32Client } = await import("./esp32-client");
         const esp32Mac = await ESP32Client.getMacAddress();
@@ -506,14 +728,45 @@ export async function validateLicenseForProduction(): Promise<{
             console.warn(
               `warn: MAC address mismatch - License: ${licenseData.macAddress}, ESP32: ${esp32Mac}`
             );
+            
+            await logLicenseOperation("MAC address mismatch detected", {
+              operation: "mac_address_mismatch",
+              license_mac: licenseData.macAddress,
+              esp32_mac: esp32Mac,
+              severity: "warning"
+            });
+            
             // In production, MAC mismatch is a warning, not a failure
+          } else {
+            await logLicenseOperation("MAC address validation successful", {
+              operation: "mac_address_match",
+              mac_address: esp32Mac
+            });
           }
+        } else {
+          await logLicenseOperation("ESP32 MAC address not available", {
+            operation: "esp32_mac_unavailable",
+            reason: "No MAC address returned"
+          });
         }
       } catch (esp32Error) {
         console.warn(
           "warn: ESP32 connection failed during production validation:",
           esp32Error
         );
+        
+        await runtimeLogger({
+          logType: 'license',
+          component: 'validator',
+          level: 'warning',
+          message: `ESP32 connection failed during production validation: ${esp32Error.message}`,
+          metadata: {
+            operation: 'esp32_connection_failed',
+            license_type: licenseType,
+            error: esp32Error.message
+          }
+        });
+        
         // ESP32 connection failure is not critical for production validation
         details.esp32Connected = false;
       }
@@ -526,6 +779,17 @@ export async function validateLicenseForProduction(): Promise<{
       }, ESP32: ${
         details.esp32Connected ? "connected" : "offline"
       } (WiFi-free)${licenseType !== "production" ? " [BYPASS_ENABLED]" : ""}`,
+    });
+    
+    await logLicenseOperation("Production license validation completed successfully", {
+      operation: "production_validation_success",
+      license_type: licenseType,
+      organization: licenseData.organization,
+      customer_id: licenseData.customerId,
+      expiry_date: licenseData.expiryDate,
+      esp32_connected: details.esp32Connected,
+      mac_matched: details.macAddressMatched,
+      duration_ms: timer.stop()
     });
 
     // Additional audit logging for internal/development licenses
@@ -548,6 +812,20 @@ export async function validateLicenseForProduction(): Promise<{
     await logger({
       user: "system",
       message: `Production license validation error: ${error.message}`,
+    });
+    
+    await runtimeLogger({
+      logType: 'license',
+      component: 'validator',
+      level: 'error',
+      message: `Production license validation failed: ${error.message}`,
+      metadata: {
+        operation: 'production_validation_error',
+        error: error.message,
+        stack: error.stack,
+        details: details,
+        duration_ms: timer.stop()
+      }
     });
 
     return {

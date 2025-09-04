@@ -2,6 +2,7 @@ import { BrowserWindow } from "electron";
 import { DS12Controller } from "./ds12/DS12Controller";
 import { KuControllerBase } from "./base/KuControllerBase";
 import { BuildConstants, DeviceType, DeviceConfig } from "../../config/constants/BuildConstants";
+import { runtimeLogger } from "../logger/runtime-logger";
 
 /**
  * BuildTimeController - Factory for Medical Device Controller Management
@@ -78,10 +79,29 @@ export class BuildTimeController {
     port: string,
     baudRate?: number
   ): Promise<boolean> {
+    const startTime = Date.now();
+    
+    runtimeLogger.info("BuildTimeController initialization started", {
+      operation: "controller_initialize",
+      component: "BuildTimeController",
+      details: {
+        port,
+        baudRate: baudRate || 19200,
+        hasWindow: !!win && !win?.isDestroyed()
+      }
+    });
+    
     try {
       // VALIDATION: Ensure BrowserWindow is valid for IPC
       if (!win || win.isDestroyed()) {
-        console.error("BuildTimeController: Invalid BrowserWindow provided");
+        const error = "BuildTimeController: Invalid BrowserWindow provided";
+        console.error(error);
+        runtimeLogger.error("BuildTimeController initialization failed - invalid window", {
+          operation: "controller_initialize",
+          component: "BuildTimeController",
+          error,
+          duration: Date.now() - startTime
+        });
         return false;
       }
 
@@ -90,10 +110,27 @@ export class BuildTimeController {
         this.deviceConfig = BuildConstants.getCurrentConfig();
         console.log("BuildTimeController: Loaded device configuration:", this.deviceConfig.deviceType);
         
+        runtimeLogger.info("Device configuration loaded successfully", {
+          operation: "controller_initialize",
+          component: "BuildTimeController",
+          details: {
+            deviceType: this.deviceConfig.deviceType,
+            baudRate: this.deviceConfig.baudRate,
+            auditSummary: BuildConstants.getAuditSummary()
+          }
+        });
+        
         // Log audit summary for compliance
         console.log("BuildTimeController: Configuration audit:", BuildConstants.getAuditSummary());
       } catch (configError) {
         console.error("BuildTimeController: Configuration error:", configError);
+        runtimeLogger.error("Device configuration loading failed", {
+          operation: "controller_initialize",
+          component: "BuildTimeController",
+          error: configError instanceof Error ? configError.message : String(configError),
+          stack: configError instanceof Error ? configError.stack : undefined,
+          duration: Date.now() - startTime
+        });
         return false;
       }
 
@@ -119,6 +156,16 @@ export class BuildTimeController {
       }
 
       // DEVICE CREATION: Initialize controller based on build configuration
+      runtimeLogger.info("Creating device controller instance", {
+        operation: "controller_initialize",
+        component: "BuildTimeController",
+        details: {
+          deviceType: this.deviceConfig.deviceType,
+          port,
+          baudRate: this.deviceConfig.baudRate
+        }
+      });
+      
       switch (this.deviceConfig.deviceType) {
         case 'DS12':
           this.instance = new DS12Controller(win);
@@ -131,13 +178,35 @@ export class BuildTimeController {
       }
       
       // CONNECTION ESTABLISHMENT: Connect to hardware device
+      runtimeLogger.info("Attempting hardware connection", {
+        operation: "controller_initialize",
+        component: "BuildTimeController",
+        details: {
+          deviceType: this.deviceConfig.deviceType,
+          port,
+          baudRate: this.deviceConfig.baudRate
+        }
+      });
+      
       const connectionResult = await this.instance.connect(port, this.deviceConfig.baudRate);
       
       if (!connectionResult) {
         // CONNECTION FAILED: Log error and cleanup
-        console.error(
-          `BuildTimeController: Failed to connect to ${this.deviceConfig.deviceType} on ${port} at ${this.deviceConfig.baudRate} baud`
-        );
+        const errorMsg = `BuildTimeController: Failed to connect to ${this.deviceConfig.deviceType} on ${port} at ${this.deviceConfig.baudRate} baud`;
+        console.error(errorMsg);
+        
+        runtimeLogger.error("Hardware connection failed", {
+          operation: "controller_initialize",
+          component: "BuildTimeController",
+          error: errorMsg,
+          details: {
+            deviceType: this.deviceConfig.deviceType,
+            port,
+            baudRate: this.deviceConfig.baudRate
+          },
+          duration: Date.now() - startTime
+        });
+        
         this.instance = null;
         this.isInitialized = false;
         return false;
@@ -146,14 +215,40 @@ export class BuildTimeController {
       // SUCCESS: Mark as initialized and log for audit
       this.isInitialized = true;
       
-      console.log(
-        `BuildTimeController: ${this.deviceConfig.deviceType} initialized successfully on ${port} at ${this.deviceConfig.baudRate} baud`
-      );
+      const successMsg = `BuildTimeController: ${this.deviceConfig.deviceType} initialized successfully on ${port} at ${this.deviceConfig.baudRate} baud`;
+      console.log(successMsg);
+      
+      runtimeLogger.info("BuildTimeController initialization completed successfully", {
+        operation: "controller_initialize",
+        component: "BuildTimeController",
+        details: {
+          deviceType: this.deviceConfig.deviceType,
+          port,
+          baudRate: this.deviceConfig.baudRate,
+          isInitialized: this.isInitialized,
+          hasInstance: !!this.instance
+        },
+        duration: Date.now() - startTime
+      });
       
       return true;
     } catch (error) {
       // EXCEPTION HANDLING: Log initialization errors
       console.error("BuildTimeController initialization error:", error);
+      
+      runtimeLogger.error("BuildTimeController initialization failed with exception", {
+        operation: "controller_initialize",
+        component: "BuildTimeController",
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        details: {
+          port,
+          baudRate: baudRate || 19200,
+          deviceType: this.deviceConfig?.deviceType || 'unknown'
+        },
+        duration: Date.now() - startTime
+      });
+      
       this.instance = null;
       this.isInitialized = false;
       this.deviceConfig = null;
@@ -274,6 +369,19 @@ export class BuildTimeController {
    * @param reason - Reason for emergency cleanup (for audit logging)
    */
   static async emergencyCleanup(reason: string = "Emergency cleanup requested"): Promise<void> {
+    const startTime = Date.now();
+    
+    runtimeLogger.info("Emergency cleanup initiated", {
+      operation: "emergency_cleanup",
+      component: "BuildTimeController",
+      details: {
+        reason,
+        hasInstance: !!this.instance,
+        isInitialized: this.isInitialized,
+        deviceType: this.deviceConfig?.deviceType || 'unknown'
+      }
+    });
+    
     try {
       console.log(`BuildTimeController: Emergency cleanup initiated - ${reason}`);
       
@@ -286,8 +394,28 @@ export class BuildTimeController {
           await this.instance.disconnect();
         }
       }
+      
+      runtimeLogger.info("Emergency cleanup completed successfully", {
+        operation: "emergency_cleanup",
+        component: "BuildTimeController",
+        details: {
+          reason,
+          duration: Date.now() - startTime
+        }
+      });
     } catch (error) {
       console.error("BuildTimeController: Emergency cleanup error:", error);
+      
+      runtimeLogger.error("Emergency cleanup failed", {
+        operation: "emergency_cleanup",
+        component: "BuildTimeController",
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        details: {
+          reason,
+          duration: Date.now() - startTime
+        }
+      });
     } finally {
       // FORCE RESET: Ensure clean state regardless of errors
       this.instance = null;
@@ -312,6 +440,18 @@ export class BuildTimeController {
    * - Controlled system maintenance
    */
   static async cleanup(): Promise<void> {
+    const startTime = Date.now();
+    
+    runtimeLogger.info("Graceful cleanup initiated", {
+      operation: "cleanup",
+      component: "BuildTimeController",
+      details: {
+        hasInstance: !!this.instance,
+        isInitialized: this.isInitialized,
+        deviceType: this.deviceConfig?.deviceType || 'unknown'
+      }
+    });
+    
     try {
       if (this.instance) {
         console.log("BuildTimeController: Graceful cleanup initiated");
@@ -320,9 +460,37 @@ export class BuildTimeController {
         await this.instance.disconnect();
         
         console.log("BuildTimeController: Cleanup completed successfully");
+        
+        runtimeLogger.info("Graceful cleanup completed successfully", {
+          operation: "cleanup",
+          component: "BuildTimeController",
+          details: {
+            deviceType: this.deviceConfig?.deviceType || 'unknown',
+            duration: Date.now() - startTime
+          }
+        });
+      } else {
+        runtimeLogger.info("Cleanup skipped - no instance to clean", {
+          operation: "cleanup",
+          component: "BuildTimeController",
+          details: {
+            duration: Date.now() - startTime
+          }
+        });
       }
     } catch (error) {
       console.error("BuildTimeController: Cleanup error:", error);
+      
+      runtimeLogger.error("Graceful cleanup failed", {
+        operation: "cleanup",
+        component: "BuildTimeController",
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        details: {
+          deviceType: this.deviceConfig?.deviceType || 'unknown',
+          duration: Date.now() - startTime
+        }
+      });
     } finally {
       // RESET STATE: Ensure clean state for reinitialization
       this.instance = null;
@@ -356,13 +524,56 @@ export class BuildTimeController {
     port: string,
     baudRate?: number
   ): Promise<boolean> {
+    const startTime = Date.now();
+    
+    runtimeLogger.info("Controller reinitialization requested", {
+      operation: "reinitialize",
+      component: "BuildTimeController",
+      details: {
+        port,
+        baudRate: baudRate || 'default',
+        currentDeviceType: this.deviceConfig?.deviceType || 'none',
+        wasInitialized: this.isInitialized
+      }
+    });
+    
     console.log("BuildTimeController: Reinitialization requested");
     
-    // CLEANUP: Gracefully cleanup existing instance
-    await this.cleanup();
-    
-    // REINITIALIZE: Create new instance with updated parameters
-    return await this.initialize(win, port, baudRate);
+    try {
+      // CLEANUP: Gracefully cleanup existing instance
+      await this.cleanup();
+      
+      // REINITIALIZE: Create new instance with updated parameters
+      const result = await this.initialize(win, port, baudRate);
+      
+      runtimeLogger.info("Controller reinitialization completed", {
+        operation: "reinitialize",
+        component: "BuildTimeController",
+        details: {
+          success: result,
+          port,
+          baudRate: baudRate || 'default',
+          newDeviceType: this.deviceConfig?.deviceType || 'unknown',
+          duration: Date.now() - startTime
+        }
+      });
+      
+      return result;
+    } catch (error) {
+      runtimeLogger.error("Controller reinitialization failed", {
+        operation: "reinitialize",
+        component: "BuildTimeController",
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        details: {
+          port,
+          baudRate: baudRate || 'default',
+          duration: Date.now() - startTime
+        }
+      });
+      
+      throw error;
+    }
   }
 
   /**

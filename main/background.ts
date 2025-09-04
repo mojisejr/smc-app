@@ -3,6 +3,14 @@ import { join } from "path";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
 
+// Import runtime logger for debugging build hang issues
+import { 
+  logSystemInfo, 
+  logError, 
+  logDebug, 
+  PerformanceTimer 
+} from "./logger/runtime-logger";
+
 // Environment configuration
 const env = process.env;
 const is = {
@@ -67,114 +75,220 @@ if (isProd) {
 }
 
 (async () => {
-  await app.whenReady();
-
-  // Create main application window with specific dimensions and properties
-  mainWindow = createWindow("main", {
-    fullscreen: false,
-    width: 1280,
-    height: 768,
-    minWidth: 1280,
-    minHeight: 768,
-    maxWidth: 1920,
-    maxHeight: 1080,
-    closable: true,
-    autoHideMenuBar: true,
-  });
-
-  // Initialize database connection
-  const sql = await sequelize.sync();
-
-  // Get application settings
-  const settings = await getSetting();
-
-  if (!settings || !sql) {
-    throw new Error("Failed to initialize database or load settings");
-  }
-
-  // Initialize Indicator device with settings
-
-  const indicator = new IndicatorDevice(
-    settings.indi_port,
-    settings.indi_baudrate,
-    mainWindow
-  );
-
-  // Initialize authentication system
-  const auth = new Authentication();
-
-  // Start receiving data from indicator device
-  indicator.receive();
-
-  // Initialize license system handlers
-  activateKeyHandler();
-  checkActivationKeyHandler();
-  activationProgressHandler();
-
-  if (is.dev && env.RENDERER_REMOTE_URL) {
-    mainWindow.loadURL(env.RENDERER_REMOTE_URL);
-  } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
-  }
-
-  // Initialize unified activation state manager (includes DS12Controller initialization)
-  let initialPage = "activate-key"; // Default to activation page
+  const appTimer = new PerformanceTimer('background', 'application-startup');
+  
+  logSystemInfo('background', 'Starting SMC application initialization');
   
   try {
-    // Initialize activation state manager with integrated DS12Controller
-    const activationState = await ActivationStateManager.initialize(mainWindow);
+    logDebug('background', 'Waiting for app ready state');
+    await app.whenReady();
+    appTimer.checkpoint('app-ready');
     
-    // Determine initial page based on activation state
-    initialPage = activationState.isActivated ? "home" : "activate-key";
+    logSystemInfo('background', 'Electron app ready, proceeding with initialization');
+
+    // Create main application window with specific dimensions and properties
+    logDebug('background', 'Creating main window');
+    mainWindow = createWindow("main", {
+      fullscreen: false,
+      width: 1280,
+      height: 768,
+      minWidth: 1280,
+      minHeight: 768,
+      maxWidth: 1920,
+      maxHeight: 1080,
+      closable: true,
+      autoHideMenuBar: true,
+    });
+    appTimer.checkpoint('window-created');
     
-    console.log(`info: System activation status: ${activationState.isActivated}`);
-    console.log(`info: DS12Controller status: ${activationState.ds12Available}`);
-    console.log(`info: Initial page set to: ${initialPage}`);
+    logSystemInfo('background', 'Main window created successfully');
+
+    // Initialize database connection
+    logDebug('background', 'Initializing database connection');
+    // Use alter: true in development to update schema with new fields
+    const sql = await sequelize.sync({ alter: !isProd });
+    appTimer.checkpoint('database-sync');
+    
+    if (!isProd) {
+      logDebug('background', 'Development mode: Database schema updated with new fields');
+    }
+    
+    logSystemInfo('background', 'Database synchronized successfully');
+
+    // Get application settings
+    logDebug('background', 'Loading application settings');
+    const settings = await getSetting();
+    appTimer.checkpoint('settings-loaded');
+    
+    logSystemInfo('background', 'Application settings loaded', {
+      indicatorPort: settings?.indi_port,
+      indicatorBaudrate: settings?.indi_baudrate
+    });
+
+    if (!settings || !sql) {
+      const errorMsg = "Failed to initialize database or load settings";
+      logError('background', errorMsg, undefined, {
+        settingsLoaded: !!settings,
+        databaseSynced: !!sql
+      });
+      throw new Error(errorMsg);
+    }
+
+    // Initialize Indicator device with settings
+    logDebug('background', 'Initializing indicator device', {
+      port: settings.indi_port,
+      baudrate: settings.indi_baudrate
+    });
+    
+    const indicator = new IndicatorDevice(
+      settings.indi_port,
+      settings.indi_baudrate,
+      mainWindow
+    );
+    appTimer.checkpoint('indicator-initialized');
+    
+    logSystemInfo('background', 'Indicator device initialized');
+
+    // Initialize authentication system
+    logDebug('background', 'Initializing authentication system');
+    const auth = new Authentication();
+    appTimer.checkpoint('auth-initialized');
+    
+    logSystemInfo('background', 'Authentication system initialized');
+
+    // Start receiving data from indicator device
+    logDebug('background', 'Starting indicator data reception');
+    indicator.receive();
+    appTimer.checkpoint('indicator-receiving');
+    
+    logSystemInfo('background', 'Indicator device started receiving data');
+
+    // Initialize license system handlers
+    logDebug('background', 'Initializing license system handlers');
+    activateKeyHandler();
+    checkActivationKeyHandler();
+    activationProgressHandler();
+    appTimer.checkpoint('license-handlers-initialized');
+    
+    logSystemInfo('background', 'License system handlers initialized');
+
+    if (is.dev && env.RENDERER_REMOTE_URL) {
+      logDebug('background', 'Loading development renderer URL', {
+        url: env.RENDERER_REMOTE_URL
+      });
+      mainWindow.loadURL(env.RENDERER_REMOTE_URL);
+    } else {
+      logDebug('background', 'Loading production renderer file');
+      mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+    }
+    appTimer.checkpoint('renderer-loaded');
+    
+    logSystemInfo('background', 'Renderer loaded successfully');
+
+    // Initialize unified activation state manager (includes DS12Controller initialization)
+    let initialPage = "activate-key"; // Default to activation page
+    
+    try {
+      logDebug('background', 'Initializing activation state manager');
+      
+      // Initialize activation state manager with integrated DS12Controller
+      const activationState = await ActivationStateManager.initialize(mainWindow);
+      appTimer.checkpoint('activation-state-initialized');
+      
+      // Determine initial page based on activation state
+      initialPage = activationState.isActivated ? "home" : "activate-key";
+      
+      logSystemInfo('background', 'Activation state manager initialized', {
+        isActivated: activationState.isActivated,
+        ds12Available: activationState.ds12Available,
+        initialPage
+      });
+      
+    } catch (error: any) {
+      logError('background', 'Failed to initialize activation system', error, {
+        defaultingToActivationPage: true
+      });
+      initialPage = "activate-key";
+    }
+
+    // Navigate to the appropriate initial page
+    mainWindow.webContents.once("did-finish-load", () => {
+      logSystemInfo('background', 'Renderer finished loading, navigating to initial page', {
+        initialPage
+      });
+      mainWindow?.webContents.send("navigate-to-page", initialPage);
+    });
+
+    // Register all IPC handlers for various functionalities
+    logDebug('background', 'Registering IPC handlers');
+    
+    // PHASE 4.2: Use unified device controller handler registration
+    registerAllDeviceHandlers();
+    appTimer.checkpoint('device-handlers-registered');
+    
+    logSystemInfo('background', 'Device handlers registered');
+
+    // Settings related handlers
+    getSettingHandler(mainWindow);
+    getUserHandler(mainWindow);
+    updateSettingHandler(mainWindow);
+    getAllSlotsHandler();
+    createNewUserHandler();
+    deleteUserHandler();
+    setSelectedPortHandler();
+    setSelectedIndicatorPortHandler();
+    appTimer.checkpoint('settings-handlers-registered');
+    
+    logSystemInfo('background', 'Settings handlers registered');
+
+    // Authentication related handlers
+    loginRequestHandler(mainWindow, auth);
+    logoutRequestHandler(auth);
+    appTimer.checkpoint('auth-handlers-registered');
+    
+    logSystemInfo('background', 'Authentication handlers registered');
+
+    // Logging related handlers (Phase 4.2: migrated to DS12-only mode)
+    logDispensingHanlder();
+    LoggingHandler();
+    exportLogsHandler();
+    appTimer.checkpoint('logging-handlers-registered');
+    
+    logSystemInfo('background', 'Logging handlers registered');
+
+    // Load the application UI based on environment and license status
+    logDebug('background', 'Loading application UI', {
+      environment: isProd ? 'production' : 'development',
+      initialPage
+    });
+
+    if (isProd) {
+      await mainWindow.loadURL(`app://./${initialPage}.html`);
+    } else {
+      const port = process.argv[2];
+      await mainWindow.loadURL(`http://localhost:${port}/${initialPage}`);
+      mainWindow.webContents.openDevTools();
+    }
+    
+    const totalStartupTime = appTimer.end({
+      environment: isProd ? 'production' : 'development',
+      initialPage,
+      success: true
+    });
+    
+    logSystemInfo('background', 'SMC application initialization completed successfully', {
+      totalStartupTime: `${totalStartupTime}ms`,
+      environment: isProd ? 'production' : 'development'
+    });
     
   } catch (error: any) {
-    console.error("error: Failed to initialize activation system:", error.message);
-    console.log("info: Defaulting to activation page due to error");
-    initialPage = "activate-key";
-  }
-
-  // Navigate to the appropriate initial page
-  mainWindow.webContents.once("did-finish-load", () => {
-    console.log(`info: Navigating to initial page: ${initialPage}`);
-    mainWindow?.webContents.send("navigate-to-page", initialPage);
-  });
-
-  // Register all IPC handlers for various functionalities
-  // PHASE 4.2: Use unified device controller handler registration
-  registerAllDeviceHandlers();
-
-  // Settings related handlers
-  getSettingHandler(mainWindow);
-  getUserHandler(mainWindow);
-  updateSettingHandler(mainWindow);
-  getAllSlotsHandler();
-  createNewUserHandler();
-  deleteUserHandler();
-  setSelectedPortHandler();
-  setSelectedIndicatorPortHandler();
-
-  // Authentication related handlers
-  loginRequestHandler(mainWindow, auth);
-  logoutRequestHandler(auth);
-
-  // Logging related handlers (Phase 4.2: migrated to DS12-only mode)
-  logDispensingHanlder();
-  LoggingHandler();
-  exportLogsHandler();
-
-  // Load the application UI based on environment and license status
-  console.log(`info: Loading initial page: ${initialPage}`);
-
-  if (isProd) {
-    await mainWindow.loadURL(`app://./${initialPage}.html`);
-  } else {
-    const port = process.argv[2];
-    await mainWindow.loadURL(`http://localhost:${port}/${initialPage}`);
-    mainWindow.webContents.openDevTools();
+    logError('background', 'Critical error during application initialization', error, {
+      stage: 'startup',
+      environment: isProd ? 'production' : 'development'
+    });
+    
+    // Re-throw to maintain existing error handling behavior
+    throw error;
   }
 })();
 
@@ -182,18 +296,19 @@ if (isProd) {
 app.on("window-all-closed", async () => {
   // PHASE 4.1: Graceful shutdown with BuildTimeController cleanup
   try {
-    console.log("Application shutdown initiated - cleaning up controllers");
+    logSystemInfo('background', 'Application shutdown initiated - cleaning up controllers');
 
     // Cleanup BuildTimeController gracefully
     await BuildTimeController.cleanup();
 
-    console.log("Controller cleanup completed successfully");
-  } catch (error) {
-    console.error("Error during controller cleanup:", error);
+    logSystemInfo('background', 'Controller cleanup completed successfully');
+  } catch (error: any) {
+    logError('background', 'Error during controller cleanup', error);
 
     // Emergency cleanup if graceful cleanup fails
     await BuildTimeController.emergencyCleanup("Application shutdown error");
   } finally {
+    logSystemInfo('background', 'Application quit initiated');
     app.quit();
   }
 });

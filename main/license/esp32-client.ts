@@ -1,6 +1,7 @@
 import * as http from "http";
 import { logger } from "../logger";
 import { getValidationMode } from "../utils/environment";
+import { runtimeLogger, logHardwareOperation, PerformanceTimer } from "../logger/runtime-logger";
 
 /**
  * ESP32 Client
@@ -47,23 +48,60 @@ export class ESP32Client {
    */
   static async testConnection(ip?: string): Promise<boolean> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
+    const timer = new PerformanceTimer();
 
     try {
       console.log(`info: Testing ESP32 connection to ${targetIp}`);
+      
+      await logHardwareOperation(`Testing ESP32 connection to ${targetIp}`, {
+        operation: "esp32_connection_test",
+        target_ip: targetIp,
+        endpoint: this.MAC_ENDPOINT
+      });
 
       const response = await this.makeHttpRequest(targetIp, this.MAC_ENDPOINT);
 
       if (response.statusCode === 200) {
         console.log(`info: ESP32 connection test successful`);
+        
+        await logHardwareOperation(`ESP32 connection test successful`, {
+          operation: "esp32_connection_test_success",
+          target_ip: targetIp,
+          status_code: response.statusCode,
+          duration_ms: timer.stop()
+        });
+        
         return true;
       } else {
         console.log(
           `debug: ESP32 connection test failed with status ${response.statusCode}`
         );
+        
+        await logHardwareOperation(`ESP32 connection test failed`, {
+          operation: "esp32_connection_test_failed",
+          target_ip: targetIp,
+          status_code: response.statusCode,
+          duration_ms: timer.stop()
+        });
+        
         return false;
       }
     } catch (error) {
       console.error(`error: ESP32 connection test failed:`, error);
+      
+      await runtimeLogger({
+        logType: "hardware",
+        component: "esp32-client",
+        level: "error",
+        message: `ESP32 connection test failed: ${error.message}`,
+        metadata: {
+          operation: "esp32_connection_test_error",
+          target_ip: targetIp,
+          error: error.message,
+          duration_ms: timer.stop()
+        }
+      });
+      
       return false;
     }
   }
@@ -75,6 +113,7 @@ export class ESP32Client {
    */
   static async getMacAddress(ip?: string): Promise<string | null> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
+    const timer = new PerformanceTimer();
 
     // ตรวจสอบ license type ก่อนเรียก ESP32 hardware
     try {
@@ -94,6 +133,14 @@ export class ESP32Client {
           message: `${licenseData.license_type.toUpperCase()} license bypass - ESP32 hardware validation skipped for organization: ${
             licenseData.organization
           }`,
+        });
+
+        await logHardwareOperation(`Bypassing ESP32 MAC address check for ${licenseData.license_type} license`, {
+          operation: "esp32_mac_bypass",
+          license_type: licenseData.license_type,
+          organization: licenseData.organization,
+          target_ip: targetIp,
+          mock_mac: "AA:BB:CC:DD:EE:FF"
         });
 
         // Return mock MAC address for internal/development licenses
@@ -117,6 +164,13 @@ export class ESP32Client {
       message: "ESP32 MAC address request - hardware binding required",
     });
 
+    await logHardwareOperation(`Starting ESP32 MAC address retrieval`, {
+      operation: "esp32_get_mac_start",
+      target_ip: targetIp,
+      endpoint: this.MAC_ENDPOINT,
+      max_retries: this.DEFAULT_CONFIG.max_retries
+    });
+
     let lastError: Error | null = null;
 
     for (
@@ -124,10 +178,18 @@ export class ESP32Client {
       attempt <= this.DEFAULT_CONFIG.max_retries;
       attempt++
     ) {
+      const attemptTimer = new PerformanceTimer();
       try {
         console.log(
           `info: Attempting to get MAC address from ESP32 (attempt ${attempt}/${this.DEFAULT_CONFIG.max_retries})`
         );
+
+        await logHardwareOperation(`ESP32 MAC address attempt ${attempt}`, {
+          operation: "esp32_get_mac_attempt",
+          target_ip: targetIp,
+          attempt: attempt,
+          max_retries: this.DEFAULT_CONFIG.max_retries
+        });
 
         const response = await this.makeHttpRequest(
           targetIp,
@@ -171,6 +233,16 @@ export class ESP32Client {
           message: "ESP32 MAC address validated successfully",
         });
 
+        await logHardwareOperation(`Successfully retrieved MAC address: ${macAddress}`, {
+          operation: "esp32_get_mac_success",
+          target_ip: targetIp,
+          mac_address: macAddress,
+          attempt: attempt,
+          status_code: response.statusCode,
+          attempt_duration_ms: attemptTimer.stop(),
+          total_duration_ms: timer.stop()
+        });
+
         return macAddress;
       } catch (error: any) {
         lastError = error;
@@ -178,6 +250,21 @@ export class ESP32Client {
           `error: Failed to get MAC address (attempt ${attempt}):`,
           error.message
         );
+
+        await runtimeLogger({
+          logType: "hardware",
+          component: "esp32-client",
+          level: "error",
+          message: `ESP32 MAC address attempt ${attempt} failed: ${error.message}`,
+          metadata: {
+            operation: "esp32_get_mac_attempt_failed",
+            target_ip: targetIp,
+            attempt: attempt,
+            max_retries: this.DEFAULT_CONFIG.max_retries,
+            error: error.message,
+            attempt_duration_ms: attemptTimer.stop()
+          }
+        });
 
         // รอก่อน retry (เว้นแต่เป็น attempt สุดท้าย)
         if (attempt < this.DEFAULT_CONFIG.max_retries) {
@@ -196,6 +283,20 @@ export class ESP32Client {
     await logger({
       user: "system",
       message: `ESP32 MAC address retrieval failed after ${this.DEFAULT_CONFIG.max_retries} attempts: ${lastError?.message}`,
+    });
+
+    await runtimeLogger({
+      logType: "hardware",
+      component: "esp32-client",
+      level: "error",
+      message: `ESP32 MAC address retrieval failed after all attempts: ${lastError?.message}`,
+      metadata: {
+        operation: "esp32_get_mac_failed",
+        target_ip: targetIp,
+        max_retries: this.DEFAULT_CONFIG.max_retries,
+        error: lastError?.message,
+        total_duration_ms: timer.stop()
+      }
     });
 
     return null;

@@ -3,6 +3,7 @@ import * as os from 'os';
 import { promisify } from 'util';
 import { logger } from '../logger';
 import { getValidationMode, getPlatformWiFiStrategy, logPhase42Configuration } from '../utils/environment';
+import { runtimeLogger, logHardwareOperation, PerformanceTimer } from '../logger/runtime-logger';
 
 const execAsync = promisify(exec);
 
@@ -27,8 +28,15 @@ export class SystemWiFiManager {
    * ดึงรายการ WiFi networks ที่พบ
    */
   static async scanNetworks(): Promise<WiFiNetwork[]> {
+    const timer = new PerformanceTimer();
+    
     try {
       console.log('info: Scanning for available WiFi networks');
+      
+      await logHardwareOperation('Starting WiFi network scan', {
+        operation: 'wifi_scan_start',
+        platform: this.platform
+      });
       
       let command = '';
       
@@ -47,10 +55,33 @@ export class SystemWiFiManager {
       }
 
       const { stdout } = await execAsync(command);
-      return this.parseNetworkList(stdout);
+      const networks = this.parseNetworkList(stdout);
+      
+      await logHardwareOperation(`WiFi scan completed - found ${networks.length} networks`, {
+        operation: 'wifi_scan_success',
+        platform: this.platform,
+        networks_found: networks.length,
+        duration_ms: timer.stop()
+      });
+      
+      return networks;
       
     } catch (error) {
       console.error('error: Failed to scan WiFi networks:', error);
+      
+      await runtimeLogger({
+        logType: 'hardware',
+        component: 'wifi-manager',
+        level: 'error',
+        message: `WiFi network scan failed: ${error.message}`,
+        metadata: {
+          operation: 'wifi_scan_error',
+          platform: this.platform,
+          error: error.message,
+          duration_ms: timer.stop()
+        }
+      });
+      
       return [];
     }
   }
@@ -60,12 +91,22 @@ export class SystemWiFiManager {
    * รองรับ validation modes และ platform-specific strategies
    */
   static async connectToNetwork(ssid: string, password: string): Promise<boolean | { requiresManualConnection: boolean; platform: string; }> {
+    const timer = new PerformanceTimer();
+    
     try {
       const validationMode = getValidationMode();
       const wifiStrategy = getPlatformWiFiStrategy();
       
       console.log(`info: Phase 4.2 WiFi Connection - SSID: ${ssid}`);
       logPhase42Configuration();
+      
+      await logHardwareOperation(`Starting WiFi connection to ${ssid}`, {
+        operation: 'wifi_connect_start',
+        ssid: ssid,
+        platform: this.platform,
+        validation_mode: validationMode,
+        wifi_strategy: wifiStrategy
+      });
       
       // ตรวจสอบ validation mode
       if (validationMode === 'bypass') {
@@ -74,6 +115,14 @@ export class SystemWiFiManager {
           user: "system",
           message: `WiFi connection bypassed - SMC_LICENSE_BYPASS_MODE=true`
         });
+        
+        await logHardwareOperation('WiFi connection bypassed due to validation mode', {
+          operation: 'wifi_connect_bypass',
+          ssid: ssid,
+          validation_mode: validationMode,
+          duration_ms: timer.stop()
+        });
+        
         return true;
       }
       
@@ -85,6 +134,14 @@ export class SystemWiFiManager {
           message: `Manual WiFi connection required for ${this.platform} - SSID: ${ssid}`
         });
         
+        await logHardwareOperation('WiFi connection requires manual setup', {
+          operation: 'wifi_connect_manual_required',
+          ssid: ssid,
+          platform: this.platform,
+          wifi_strategy: wifiStrategy,
+          duration_ms: timer.stop()
+        });
+        
         return {
           requiresManualConnection: true,
           platform: this.platform
@@ -93,6 +150,13 @@ export class SystemWiFiManager {
       
       // Auto WiFi connection (Windows หรือ forced auto mode)
       console.log(`info: [AUTO] Attempting automatic WiFi connection on ${this.platform}`);
+      
+      await logHardwareOperation(`Starting automatic WiFi connection on ${this.platform}`, {
+        operation: 'wifi_connect_auto_start',
+        ssid: ssid,
+        platform: this.platform,
+        wifi_strategy: wifiStrategy
+      });
       
       let command = '';
       
@@ -118,10 +182,31 @@ export class SystemWiFiManager {
       }
 
       console.log(`debug: Executing WiFi connect command for ${this.platform}`);
+      
+      await logHardwareOperation(`Executing WiFi connect command`, {
+        operation: 'wifi_connect_command_execute',
+        ssid: ssid,
+        platform: this.platform,
+        command_type: this.platform
+      });
+      
       const { stdout, stderr } = await execAsync(command);
       
       if (stderr && !stderr.includes('success')) {
         console.log(`debug: WiFi connect stderr: ${stderr}`);
+        
+        await runtimeLogger({
+          logType: 'hardware',
+          component: 'wifi-manager',
+          level: 'warn',
+          message: `WiFi connect command stderr: ${stderr}`,
+          metadata: {
+            operation: 'wifi_connect_command_stderr',
+            ssid: ssid,
+            platform: this.platform,
+            stderr: stderr
+          }
+        });
       }
       
       // รอให้ connection สำเร็จ (เพิ่มเวลาสำหรับ macOS)
@@ -129,9 +214,23 @@ export class SystemWiFiManager {
       await this.delay(7000);
       
       // ลองตรวจสอบการเชื่อมต่อหลายครั้ง (retry mechanism)
+      await logHardwareOperation('Starting WiFi connection verification', {
+        operation: 'wifi_connect_verification_start',
+        ssid: ssid,
+        max_retries: 3
+      });
+      
       let isConnected = false;
       for (let retryCount = 1; retryCount <= 3; retryCount++) {
         console.log(`info: Checking WiFi connection (attempt ${retryCount}/3)...`);
+        
+        await logHardwareOperation(`WiFi connection check attempt ${retryCount}`, {
+          operation: 'wifi_connect_verification_attempt',
+          ssid: ssid,
+          attempt: retryCount,
+          max_retries: 3
+        });
+        
         isConnected = await this.isConnectedTo(ssid);
         
         if (isConnected) {
@@ -150,9 +249,27 @@ export class SystemWiFiManager {
           user: "system",
           message: `Connected to WiFi network: ${ssid} after connection verification`
         });
+        
+        await logHardwareOperation(`WiFi connection successful to ${ssid}`, {
+          operation: 'wifi_connect_success',
+          ssid: ssid,
+          platform: this.platform,
+          verification_attempts: isConnected ? 'verified' : 'failed',
+          duration_ms: timer.stop()
+        });
+        
         return true;
       } else {
         console.error(`error: Failed to connect to WiFi: ${ssid} (verified with ${3} attempts)`);
+        
+        await logHardwareOperation(`WiFi connection failed after verification attempts`, {
+          operation: 'wifi_connect_failed',
+          ssid: ssid,
+          platform: this.platform,
+          verification_attempts: 3,
+          duration_ms: timer.stop()
+        });
+        
         return false;
       }
       
@@ -162,6 +279,21 @@ export class SystemWiFiManager {
         user: "system",
         message: `WiFi connection failed: ${ssid} - ${error.message}`
       });
+      
+      await runtimeLogger({
+        logType: 'hardware',
+        component: 'wifi-manager',
+        level: 'error',
+        message: `WiFi connection failed: ${error.message}`,
+        metadata: {
+          operation: 'wifi_connect_error',
+          ssid: ssid,
+          platform: this.platform,
+          error: error.message,
+          duration_ms: timer.stop()
+        }
+      });
+      
       return false;
     }
   }

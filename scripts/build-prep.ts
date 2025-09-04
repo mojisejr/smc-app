@@ -27,6 +27,7 @@ import {
   LicenseData,
   LicenseParserError,
 } from "./utils/licenseParser";
+import { runtimeLogger } from "../main/logger/runtime-logger";
 
 // Load environment variables
 dotenv.config();
@@ -50,7 +51,17 @@ interface BuildConfig {
  * Main build preparation function
  */
 async function main(): Promise<void> {
+  const startTime = Date.now();
+  
   try {
+    runtimeLogger.info("Build preparation started", {
+      component: "build-prep",
+      operation: "main",
+      timestamp: new Date().toISOString(),
+      platform: process.platform,
+      nodeVersion: process.version
+    });
+    
     console.log("info: Starting SMC App production build preparation...");
     console.log("======================================================");
 
@@ -85,6 +96,19 @@ async function main(): Promise<void> {
 
     console.log("");
     console.log("======================================================");
+    const duration = Date.now() - startTime;
+    
+    runtimeLogger.info("Build preparation completed successfully", {
+      component: "build-prep",
+      operation: "main",
+      duration: `${duration}ms`,
+      organizationName: config.organizationName,
+      deviceType: config.deviceType,
+      licenseType: config.licenseType,
+      isInternalBuild: config.isInternalBuild,
+      useLicenseData: config.useLicenseData
+    });
+    
     console.log(
       "info: Production build preparation completed successfully! 🎉"
     );
@@ -126,6 +150,18 @@ async function main(): Promise<void> {
     }
     console.log("");
   } catch (error: any) {
+    const duration = Date.now() - startTime;
+    
+    runtimeLogger.error("Build preparation failed", {
+      component: "build-prep",
+      operation: "main",
+      error: error.message,
+      stack: error.stack,
+      duration: `${duration}ms`,
+      platform: process.platform,
+      nodeVersion: process.version
+    });
+    
     console.error("\n❌ Build preparation failed:", error.message);
     console.error("\nTroubleshooting:");
     console.error("  1. Check .env file contains SHARED_SECRET_KEY");
@@ -141,8 +177,14 @@ async function main(): Promise<void> {
  */
 async function parseBuildConfiguration(): Promise<BuildConfig> {
   console.log("info: Parsing build configuration...");
+  
+  runtimeLogger.info("Starting build configuration parsing", {
+    component: "build-prep",
+    operation: "parseBuildConfiguration",
+    args: process.argv.slice(2)
+  });
 
-  // Parse command line arguments สำหรับ --license parameter
+  // Parse command line arguments for license file
   const args = process.argv.slice(2);
   let licenseFile: string | null = null;
 
@@ -314,6 +356,16 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
     isInternalBuild,
   };
 
+  runtimeLogger.info("Build configuration parsed successfully", {
+    component: "build-prep",
+    operation: "parseBuildConfiguration",
+    organizationName: config.organizationName,
+    deviceType: config.deviceType,
+    licenseType: config.licenseType,
+    isInternalBuild: config.isInternalBuild,
+    useLicenseData: config.useLicenseData
+  });
+  
   console.log("info: Build configuration parsed successfully");
   return config;
 }
@@ -323,6 +375,13 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
  */
 async function validateBuildEnvironment(config: BuildConfig): Promise<void> {
   console.log("info: Validating build environment...");
+  
+  runtimeLogger.info("Starting build environment validation", {
+    component: "build-prep",
+    operation: "validateBuildEnvironment",
+    nodeVersion: process.version,
+    platform: process.platform
+  });
 
   // Check SHARED_SECRET_KEY
   if (!config.sharedSecretKey || config.sharedSecretKey.length < 32) {
@@ -363,6 +422,13 @@ async function validateBuildEnvironment(config: BuildConfig): Promise<void> {
     );
   }
 
+  runtimeLogger.info("Build environment validation completed", {
+    component: "build-prep",
+    operation: "validateBuildEnvironment",
+    nodeVersion: process.version,
+    majorVersion: parseInt(process.version.slice(1).split(".")[0])
+  });
+  
   console.log("info: Build environment validation completed");
 }
 
@@ -371,6 +437,11 @@ async function validateBuildEnvironment(config: BuildConfig): Promise<void> {
  */
 async function cleanDatabase(): Promise<void> {
   console.log("info: Cleaning and resetting database...");
+  
+  runtimeLogger.info("Starting database cleanup", {
+    component: "build-prep",
+    operation: "cleanDatabase"
+  });
 
   const dbPath = path.join(process.cwd(), "database.db");
   const resourceDbPath = path.join(
@@ -477,6 +548,11 @@ async function cleanDatabase(): Promise<void> {
     await sequelize.close();
   }
 
+  runtimeLogger.info("Database cleanup completed", {
+    component: "build-prep",
+    operation: "cleanDatabase"
+  });
+  
   console.log("info: Database cleanup completed");
 }
 
@@ -486,6 +562,14 @@ async function cleanDatabase(): Promise<void> {
  */
 async function setupOrganizationData(config: BuildConfig): Promise<void> {
   console.log("info: Setting up organization data...");
+  
+  runtimeLogger.info("Starting organization data setup", {
+    component: "build-prep",
+    operation: "setupOrganizationData",
+    organizationName: config.organizationName,
+    customerName: config.customerName,
+    useLicenseData: config.useLicenseData
+  });
 
   const resourceDbPath = path.join(
     process.cwd(),
@@ -616,11 +700,24 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
       `info: Organization data setup completed (${availableSlots} slots initialized)`
     );
   } catch (error) {
+    runtimeLogger.error("Failed to setup organization data", {
+      component: "build-prep",
+      operation: "setupOrganizationData",
+      error: error instanceof Error ? error.message : String(error),
+      organizationName: config.organizationName
+    });
+    
     console.error("error: Failed to setup organization data:", error);
     throw error;
   } finally {
     await sequelize.close();
   }
+  
+  runtimeLogger.info("Organization data setup completed", {
+    component: "build-prep",
+    operation: "setupOrganizationData",
+    organizationName: config.organizationName
+  });
 }
 
 /**
@@ -628,6 +725,11 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
  */
 async function prepareResourcesDirectory(): Promise<void> {
   console.log("info: Preparing resources directory...");
+  
+  runtimeLogger.info("Starting resources directory preparation", {
+    component: "build-prep",
+    operation: "prepareResourcesDirectory"
+  });
 
   const resourcesDir = path.join(process.cwd(), "resources");
 
@@ -693,6 +795,11 @@ Generated: ${new Date().toISOString()}
   // Inject environment variables for production build
   await injectEnvironmentVariables(buildInfo);
 
+  runtimeLogger.info("Resources directory preparation completed", {
+    component: "build-prep",
+    operation: "prepareResourcesDirectory"
+  });
+  
   console.log("info: Resources directory preparation completed");
 }
 
@@ -729,6 +836,11 @@ async function injectEnvironmentVariables(buildInfo: any): Promise<void> {
  */
 async function validateBuildReadiness(): Promise<void> {
   console.log("info: Validating build readiness...");
+  
+  runtimeLogger.info("Starting build readiness validation", {
+    component: "build-prep",
+    operation: "validateBuildReadiness"
+  });
 
   // Check database exists and has correct structure
   const resourceDbPath = path.join(
@@ -799,6 +911,11 @@ async function validateBuildReadiness(): Promise<void> {
     }
   }
 
+  runtimeLogger.info("Build readiness validation completed", {
+    component: "build-prep",
+    operation: "validateBuildReadiness"
+  });
+  
   console.log("info: Resources directory validation passed");
   console.log("info: Build readiness validation completed ✅");
 }
@@ -812,9 +929,18 @@ async function validateBuildReadiness(): Promise<void> {
  */
 async function validateBuildSafety(config?: BuildConfig): Promise<void> {
   console.log("info: Validating build safety...");
-
+  
   const isInternalBuild = config?.isInternalBuild || false;
   const licenseType = config?.licenseType || "production";
+  
+  runtimeLogger.info("Starting build safety validation", {
+    component: "build-prep",
+    operation: "validateBuildSafety",
+    isInternalBuild,
+    licenseType,
+    bypassMode: process.env.SMC_LICENSE_BYPASS_MODE,
+    realHardware: process.env.SMC_DEV_REAL_HARDWARE
+  });
 
   // For internal/development builds, allow more flexibility
   if (isInternalBuild) {
@@ -832,6 +958,13 @@ async function validateBuildSafety(config?: BuildConfig): Promise<void> {
       );
     }
 
+    runtimeLogger.info("Internal build safety validation passed", {
+      component: "build-prep",
+      operation: "validateBuildSafety",
+      licenseType,
+      bypassMode: process.env.SMC_LICENSE_BYPASS_MODE
+    });
+    
     console.log("info: Internal build safety validation passed");
     return;
   }
@@ -870,6 +1003,14 @@ async function validateBuildSafety(config?: BuildConfig): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
+  runtimeLogger.info("Production build safety validation passed", {
+    component: "build-prep",
+    operation: "validateBuildSafety",
+    licenseType: "production",
+    bypassMode: process.env.SMC_LICENSE_BYPASS_MODE,
+    realHardware: process.env.SMC_DEV_REAL_HARDWARE
+  });
+  
   console.log("info: Production build safety validation passed");
 }
 
@@ -878,6 +1019,11 @@ async function validateBuildSafety(config?: BuildConfig): Promise<void> {
  */
 async function cleanLicenseFiles(): Promise<void> {
   console.log("info: Cleaning license files from build...");
+  
+  runtimeLogger.info("Starting license file cleanup", {
+    component: "build-prep",
+    operation: "cleanLicenseFiles"
+  });
 
   const licenseFiles = [
     path.join(process.cwd(), "resources", "license.lic"),
@@ -909,6 +1055,12 @@ async function cleanLicenseFiles(): Promise<void> {
     console.log(`info: Cleaned ${removedCount} license file(s)`);
   }
 
+  runtimeLogger.info("License file cleanup completed", {
+    component: "build-prep",
+    operation: "cleanLicenseFiles",
+    removedCount
+  });
+  
   console.log("info: License file cleanup completed");
   console.log("info: Production build will NOT include license.lic file");
   console.log("info: License must be provided separately during deployment");
