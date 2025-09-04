@@ -97,7 +97,7 @@ export class ESP32Client {
         });
 
         // Return mock MAC address for internal/development licenses
-        const mockMacAddress = "F4:65:0B:58:66:A4"; // Standard format mock MAC
+        const mockMacAddress = "AA:BB:CC:DD:EE:FF"; // Standard format mock MAC
         console.log(
           `info: Using mock MAC address for ${licenseData.license_type} license: ${mockMacAddress}`
         );

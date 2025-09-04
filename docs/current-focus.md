@@ -1,100 +1,154 @@
-# Current Focus: Internal License Bypass System Implementation
+# Current Focus: Internal License Complete Bypass System Implementation
 
-**Status:** 🔄 ACTIVE DEVELOPMENT - License-based Bypass for Internal Deployment  
+**Status:** 🔄 ACTIVE DEVELOPMENT - Complete ESP32 Bypass for Internal License  
 **Date Updated:** January 15, 2025  
-**System Version:** SMC License System v2.2.0 - Internal Bypass Enhancement
+**System Version:** SMC License System v2.2.0 - Complete Internal Bypass Enhancement
+
+## 🚨 LATEST ISSUE UPDATE - ESP32 MAC Address Error
+
+**New Critical Error Identified:**
+- **Error Message**: "ไม่สามารถดึง MAC address จาก ESP32 ได้ กรุณาตรวจสอบการเชื่อมต่อ"
+- **Context**: เจอ license แต่ติดที่ 30% ด้วย error นี้เหมือนเดิม
+- **Status**: ปัญหาใน unpack process ที่ยังคงพยายามเชื่อมต่อกับ ESP32 จริงแม้จะมี license bypass
+- **Impact**: License validation ล้มเหลวที่ขั้นตอน MAC address verification
+
+**Root Cause Identified:**
+- ปัญหาอยู่ที่ `activate-key.ts` เรียก `ESP32Client.getMacAddress()` ก่อนตรวจสอบ license type
+- License type ต้องถูกตรวจสอบจาก KDF context info ก่อนเรียก ESP32 hardware
+- ESP32 bypass logic ใน `esp32-client.ts` ทำงานถูกต้อง แต่ไม่ถูกเรียกใช้เพราะ activation flow ผิด
+
+**Fix Applied:**
+- ✅ แก้ไข `activate-key.ts` ให้ตรวจสอบ license type จาก KDF context ก่อน
+- ✅ เพิ่ม license type detection ที่ progress 25%
+- ✅ ใช้ mock MAC address (AA:BB:CC:DD:EE:FF) สำหรับ internal/development licenses
+- ✅ เรียก ESP32 hardware เฉพาะ production licenses เท่านั้น
+
+**Testing Required:**
+- ทดสอบ license activation ด้วย internal license
+- ตรวจสอบว่า progress ผ่าน 30% ได้แล้ว
+- ยืนยันว่า ESP32 error ไม่เกิดขึ้นอีก
+
+## 🆕 NEW PLAN - Complete Internal License Bypass Strategy
+
+**Updated Strategy Based on Yesterday's Findings:**
+
+จากการทดลองเมื่อวานที่พยายาม bypass ESP32 connection validation แต่ไม่สำเร็จ ตอนนี้มีแผนใหม่:
+
+**🎯 New Approach: Complete MAC Address Skip for Internal License**
+
+1. **License Type Detection First**: ตรวจสอบ license type จาก KDF context ก่อนทำอะไร
+2. **Complete ESP32 Skip**: ถ้าเป็น internal license ไม่ต้องตรวจ MAC address เลย ข้ามไปเลย
+3. **Direct Activation**: activate license ให้ผ่านเข้าไปได้เลยโดยไม่ต้องผ่าน ESP32 validation
+
+**Implementation Plan:**
+- ✅ แก้ไข `activate-key.ts` ให้ skip ESP32 MAC validation สำหรับ internal license
+- ✅ ใช้ mock MAC address แทนการเชื่อมต่อจริง
+- 🔄 **NEXT**: ปรับปรุงให้ข้าม MAC address validation เลยสำหรับ internal license
+- 🔄 **NEXT**: ทดสอบ activation flow ให้ผ่านได้ 100% สำหรับ internal license
+
+**Expected Result:**
+- Internal license จะ activate ได้ทันทีโดยไม่ต้องเชื่อมต่อ ESP32
+- Production license ยังคงต้องตรวจสอบ ESP32 MAC address ตามปกติ
+- ระบบจะแยกแยะ license type ได้อย่างถูกต้อง
 
 ## Current Status
 
-## 🚨 Critical Issue Identified
+## 🚨 Critical Issue Identified - ROOT CAUSE FOUND
 
 ### Problem Description
 
 - **Installed Application**: ESP32 validation bypass ไม่ทำงาน - ยังคงตรวจสอบ ESP32 จริง
-- **Unpacked Application**: ESP32 validation bypass ทำงานปกติ
+- **Unpacked Application**: ESP32 validation bypass ทำงานปกติ แต่ก็ติด ESP32 เหมือนกัน
 - **License Detection**: Application ตรวจเจอ internal license ใน resources folder ได้
 - **Core Issue**: มีความแตกต่างในการทำงานระหว่าง development และ production build
+- **🔍 NEW FINDING**: Database มี organization และ customer_id เป็น placeholder values แทนที่จะเป็นข้อมูลจาก license file
 
-### Root Cause Analysis
+### Root Cause Analysis - CONFIRMED
 
-**สาเหตุที่เป็นไปได้:**
+**🎯 PRIMARY ROOT CAUSE IDENTIFIED:**
 
-1. **Environment Variables Missing in Production**
+**Database Placeholder Data Issue:**
 
-   - `SMC_LICENSE_BYPASS_MODE=true` อาจไม่ถูกตั้งค่าใน installed version
-   - `SMC_DEV_REAL_HARDWARE=true` อาจไม่ถูก embed ใน production build
+- `build-prep.ts` ตั้งค่า `customerName = "CUSTOMER_ID_PLACEHOLDER"` เป็น default value (line 161)
+- ข้อมูลจาก license file จะถูกใช้เฉพาะเมื่อมี `--license` parameter ใน build-prep command
+- ผู้ใช้ไม่ได้ใช้ `--license` parameter ทำให้ database ถูกสร้างด้วย placeholder data
+- `validateOrganizationData()` ใน validator.ts เปรียบเทียบข้อมูลใน license กับ database และล้มเหลวเพราะไม่ตรงกัน
 
-2. **Build Configuration Issues**
+**Secondary Issues:**
 
-   - electron-builder อาจไม่ include environment variables ใน final package
-   - webpack/build process อาจ strip out development flags
+1. **Build Process Workflow Gap**
 
-3. **License File Path Issues**
+   - Internal build process ไม่ได้ integrate license data กับ database setup อย่างถูกต้อง
+   - License file ถูก copy หลัง build-prep แต่ database ถูกสร้างก่อนหน้านั้น
 
-   - Path resolution แตกต่างกันระหว่าง unpacked และ installed
-   - License file อาจไม่ถูก copy ไปยัง correct location ใน installed version
+2. **Organization Validation Failure**
+   - License มี organization และ customer_id ที่ถูกต้อง
+   - Database มี "SMC Medical Center" และ "CUSTOMER_ID_PLACEHOLDER"
+   - `validateOrganizationData()` return false ทำให้ validation ล้มเหลวที่ 30%
 
-4. **Code Bundling/Minification Issues**
-   - License validation logic อาจถูก optimize ออกใน production build
-   - Conditional statements สำหรับ bypass อาจไม่ทำงานใน minified code
+### Implementation Plan - UPDATED WITH ROOT CAUSE FIX
 
-### Implementation Plan (Ready for Development)
+**🎯 IMMEDIATE FIX REQUIRED (CRITICAL PRIORITY):**
 
-**Phase 1: ESP32Client License Type Bypass** (HIGH PRIORITY)
+**Phase 1: Build Process License Integration Fix**
 
-- ✅ **Analysis Complete:** `esp32-client.ts` ไม่มี license type bypass logic
-- 🔄 **Next:** Modify `ESP32Client.getMacAddress()` เพื่อรองรับ license type bypass
-- 📋 **Implementation:** เพิ่ม license type detection ก่อนเรียก ESP32 hardware
+- **Problem:** `build-prep.ts` ไม่ได้ใช้ license data เมื่อไม่มี `--license` parameter
+- **Solution:** แก้ไข internal build workflow ให้ใช้ license file ที่มีอยู่ใน resources folder
+- **Implementation:**
+  1. แก้ไข `build-prep:internal:ds12` command ให้ detect license file ใน resources folder
+  2. หรือ แก้ไข `parseBuildConfiguration()` ให้ auto-detect license file
+  3. หรือ สร้าง separate build command ที่ใช้ license file อย่างถูกต้อง
 
-**Phase 2: Environment Variable Injection** (HIGH PRIORITY)
+**Phase 2: Organization Validation Logic Enhancement** (HIGH PRIORITY)
 
-- ✅ **Analysis Complete:** `electron-builder.yml` ไม่มี env configuration
-- 🔄 **Next:** Configure electron-builder เพื่อ inject environment variables
-- 📋 **Implementation:** เพิ่ม `SMC_LICENSE_BYPASS_MODE` และ `BUILD_TYPE` ใน production build
+- **Problem:** `validateOrganizationData()` เข้มงวดเกินไปสำหรับ internal licenses
+- **Solution:** แก้ไข validation logic ให้ยืดหยุ่นสำหรับ internal license types
+- **Implementation:** Skip organization validation หรือ use license data แทน database data
 
-**Phase 3: Build Preparation Enhancement** (HIGH PRIORITY)
+**Phase 3: Database Initialization Enhancement** (MEDIUM PRIORITY)
 
-- ✅ **Analysis Complete:** `build-prep.ts` มี environment variable handling แต่ไม่ครบถ้วน
-- 🔄 **Next:** Update build-prep script เพื่อ inject bypass flags ใน `build-info.json`
-- 📋 **Implementation:** Ensure proper environment variable injection ใน production
+- **Problem:** Database ถูกสร้างด้วย placeholder data แม้มี license file
+- **Solution:** แก้ไข `setupOrganizationData()` ให้ใช้ license data เป็น priority
+- **Implementation:** Auto-detect และ parse license file ใน build-prep process
 
-**Phase 4: IPC Handlers Consistency** (MEDIUM PRIORITY)
+### Next Actions - FOCUSED ON ROOT CAUSE FIX
 
-- ✅ **Analysis Complete:** IPC handlers ใน `check-activation-key.ts` และ `activation-state-manager.ts`
-- 🔄 **Next:** Update validation logic เพื่อรองรับ license type bypass
-- 📋 **Implementation:** Ensure consistent license type handling across all validation paths
+**🚨 CRITICAL IMMEDIATE ACTIONS:**
 
-**Phase 5: Testing & Validation** (MEDIUM PRIORITY)
+1. **🎯 Fix Build Process License Integration**
 
-- 🔄 **Next:** ทดสอบ fix ใน installed version และ unpacked version
-- 📋 **Implementation:** Verify ESP32 validation bypass ทำงานถูกต้องใน internal/development licenses
+   - แก้ไข `npm run build-prep:internal:ds12` ให้ใช้ `--license` parameter
+   - หรือ แก้ไข `build-prep.ts` ให้ auto-detect license file ใน resources folder
+   - หรือ สร้าง new command: `npm run build-prep:internal:ds12 --license=./resources/license.lic`
 
-### Next Actions (Implementation Ready)
+2. **🔧 Fix Organization Validation Logic**
 
-**Immediate Actions:**
+   - แก้ไข `validateOrganizationData()` ใน `validator.ts`
+   - Skip organization validation สำหรับ internal license types
+   - หรือ use license data แทน database data สำหรับ comparison
 
-1. 🎯 **Start with ESP32Client modification** - แก้ไข `esp32-client.ts` เพื่อเพิ่ม license type bypass logic
-2. 🔧 **Update electron-builder configuration** - เพิ่ม environment variable injection
-3. ⚙️ **Enhance build-prep script** - Update environment variable handling ใน production build
-4. 🧪 **Test comprehensive fix** - ทดสอบใน installed version
+3. **⚙️ Test Complete Workflow**
+   - Generate internal license → Copy to resources → Run corrected build-prep → Build → Test
 
 **Key Files to Modify:**
 
-- `main/license/esp32-client.ts` - Primary fix location
-- `electron-builder.yml` - Environment variable injection
-- `scripts/build-prep.ts` - Build-time environment handling
-- `main/license/ipcMain/check-activation-key.ts` - IPC validation consistency
+- `scripts/build-prep.ts` - License integration fix (PRIMARY)
+- `main/license/validator.ts` - Organization validation logic (SECONDARY)
+- `package.json` - Build command enhancement (OPTIONAL)
 
 **Success Criteria:**
 
-- ✅ Internal license ใช้งานได้โดยไม่ต้องต่อ ESP32 hardware ใน installed version
-- ✅ ESP32 validation bypass ทำงานสำหรับ internal/development licenses
-- ✅ Production licenses ยังคงใช้ ESP32 validation ตามปกติ
-- ✅ Audit logging และ security measures ยังคงทำงานครบถ้วน
+- ✅ Database มี organization และ customer_id ที่ตรงกับ license file
+- ✅ `validateOrganizationData()` return true สำหรับ internal licenses
+- ✅ Application ผ่าน 30% checkpoint และ bypass ESP32 validation
+- ✅ Internal license ใช้งานได้ใน installed version
 
-### Priority: HIGH
+### Priority: CRITICAL - ROOT CAUSE IDENTIFIED
 
-ปัญหานี้ส่งผลกระทบต่อการใช้งาน internal license ใน production environment
+**🔍 CONFIRMED ROOT CAUSE:** Database placeholder data mismatch กับ license file data
+**📊 IMPACT:** ปัญหานี้ส่งผลกระทบต่อการใช้งาน internal license ใน production environment
+**⏱️ ESTIMATED FIX TIME:** 30-60 minutes (build process modification)
+**🎯 CONFIDENCE LEVEL:** HIGH - สาเหตุชัดเจนและมีแผนการแก้ไขที่เฉพาะเจาะจง
 
 ⚠️ **ISSUE IDENTIFIED: ESP32 Validation Not Fully Bypassed in Internal Build**
 

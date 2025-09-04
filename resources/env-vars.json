@@ -1,7 +1,7 @@
 {
   "SMC_LICENSE_BYPASS_MODE": "true",
   "BUILD_TYPE": "internal",
-  "SMC_DEV_REAL_HARDWARE": "true",
+  "SMC_DEV_REAL_HARDWARE": "false",
   "NODE_ENV": "production",
   "DEVICE_TYPE": "DS12",
   "ESP32_VALIDATION_BYPASS": "true"

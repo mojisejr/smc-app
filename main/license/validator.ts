@@ -222,6 +222,7 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
 
 /**
  * ตรวจสอบ organization และ customer data ว่าตรงกับ setting หรือไม่
+ * สำหรับ internal/development licenses จะใช้ license data เป็น source of truth
  */
 export async function validateOrganizationData(
   licenseData: any
@@ -234,7 +235,54 @@ export async function validateOrganizationData(
 
     const organization = setting.dataValues.organization;
     const customerName = setting.dataValues.customer_name;
+    const licenseType = licenseData.license_type || "production";
 
+    // สำหรับ internal/development licenses: ใช้ license data เป็น source of truth
+    if (licenseType === "internal" || licenseType === "development") {
+      console.log(`debug: Using flexible validation for ${licenseType} license`);
+      
+      // ตรวจสอบว่า database มี placeholder data หรือไม่
+      const hasPlaceholderData = organization === "PLACEHOLDER_ORG" || 
+                                customerName === "PLACEHOLDER_CUSTOMER" ||
+                                organization === "" || customerName === "";
+      
+      if (hasPlaceholderData) {
+        console.log(`debug: Database has placeholder data, using license data as source of truth`);
+        console.log(`debug: License org: ${licenseData.organization}`);
+        console.log(`debug: License customer: ${licenseData.customerId}`);
+        
+        await logger({
+          user: "system",
+          message: `Organization validation bypassed for ${licenseType.toUpperCase()} license - Using license data: ${licenseData.organization}/${licenseData.customerId}`
+        });
+        
+        return true;
+      }
+      
+      // หาก database มีข้อมูลจริง ให้ตรวจสอบแบบ flexible
+      const orgMatches = licenseData.organization === organization;
+      const customerMatches = licenseData.customerId === customerName;
+      
+      if (!orgMatches || !customerMatches) {
+        console.log(`debug: ${licenseType} license data mismatch with database (flexible mode)`);
+        console.log(`debug: License org: ${licenseData.organization}, DB org: ${organization}`);
+        console.log(`debug: License customer: ${licenseData.customerId}, DB customer: ${customerName}`);
+        
+        await logger({
+          user: "system",
+          message: `${licenseType.toUpperCase()} license validation: Data mismatch detected but proceeding (flexible validation)`
+        });
+        
+        // สำหรับ internal/development ให้ผ่านแม้ข้อมูลไม่ตรง
+        return true;
+      }
+      
+      return true;
+    }
+
+    // สำหรับ production licenses: ใช้ strict validation
+    console.log("debug: Using strict validation for production license");
+    
     // ตรวจสอบ organization matching
     if (licenseData.organization !== organization) {
       console.log("debug: Organization mismatch");
@@ -282,7 +330,10 @@ export async function validateLicense(): Promise<boolean> {
 
     // 2. โหลดและ parse license file เพื่อตรวจสอบ license type
     const { LicenseFileManager } = await import("./file-manager");
-    const licenseData = await LicenseFileManager.parseLicenseFile();
+    
+    // ใช้ mock MAC address เพื่อ parse license file และตรวจสอบ license type
+    const mockMacAddress = "AA:BB:CC:DD:EE:FF";
+    const licenseData = await LicenseFileManager.parseLicenseFile(undefined, mockMacAddress);
 
     if (!licenseData) {
       console.log("debug: Failed to parse license file");
@@ -387,7 +438,9 @@ export async function validateLicenseForProduction(): Promise<{
     }
 
     // 3. Parse license data
-    const licenseData = await LicenseFileManager.parseLicenseFile(licenseFile);
+    // ใช้ mock MAC address เพื่อ parse license file และตรวจสอบ license type
+    const mockMacAddress = "AA:BB:CC:DD:EE:FF";
+    const licenseData = await LicenseFileManager.parseLicenseFile(licenseFile, mockMacAddress);
     if (!licenseData) {
       return {
         valid: false,

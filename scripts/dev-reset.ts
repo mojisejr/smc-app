@@ -218,7 +218,7 @@ async function parseDevConfiguration(): Promise<DevResetConfig> {
 
       // Phase 9: For HKDF licenses, only MAC address is needed (WiFi-free)
       const sensitiveDataForHKDF = {
-        macAddress: "F4:65:0B:58:66:A4", // Match real ESP32 MAC address
+        macAddress: "AA:BB:CC:DD:EE:FF", // Match real ESP32 MAC address
         // Phase 9: WiFi SSID no longer needed for license parsing
       };
 

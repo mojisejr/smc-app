@@ -80,21 +80,46 @@ export const activateKeyHandler = async () => {
         };
       }
       
-      // Step 2: ดึง MAC address จาก ESP32 ก่อน (เพื่อใช้ในการ parse license)
+      // Step 2: ตรวจสอบ license type ก่อนเรียก ESP32 hardware
+      event.sender.send('activation-progress', { step: 'license-type-check', progress: 25 });
+      
+      // ตรวจสอบ license type จาก KDF context info (ไม่ต้อง decrypt)
+      const licenseType = infoParts.length >= 5 ? infoParts[4] : 'production'; // Default to production
+      
+      console.log(`info: License type detected: ${licenseType}`);
+      
+      let esp32Mac: string;
+      let isInternalLicense = false;
+      
+      // Step 3: ดึง MAC address (complete bypass สำหรับ internal/development licenses)
       event.sender.send('activation-progress', { step: 'mac-retrieval', progress: 30 });
       
-      const esp32Mac = await ESP32Client.getMacAddress();
-      if (!esp32Mac) {
-        return {
-          success: false,
-          error: 'ไม่สามารถดึง MAC address จาก ESP32 ได้ กรุณาตรวจสอบการเชื่อมต่อ',
-          step: 'mac-retrieval'
-        };
+      if (licenseType === 'internal' || licenseType === 'development') {
+        isInternalLicense = true;
+        console.log(`info: ${licenseType.toUpperCase()} license detected - complete ESP32 bypass activated`);
+        esp32Mac = 'AA:BB:CC:DD:EE:FF'; // Mock MAC for internal/development licenses
+        
+        await logger({
+          user: 'system',
+          message: `${licenseType.toUpperCase()} license activation - complete ESP32 hardware bypass activated`
+        });
+        
+        // ข้าม ESP32 hardware validation ทั้งหมด
+        event.sender.send('activation-progress', { step: 'esp32-bypass-active', progress: 35 });
+      } else {
+        // Production license - ต้องใช้ ESP32 hardware จริง
+        esp32Mac = await ESP32Client.getMacAddress();
+        if (!esp32Mac) {
+          return {
+            success: false,
+            error: 'ไม่สามารถดึง MAC address จาก ESP32 ได้ กรุณาตรวจสอบการเชื่อมต่อ',
+            step: 'mac-retrieval'
+          };
+        }
+        console.log(`info: ESP32 MAC address retrieved: ${esp32Mac}`);
       }
 
-      console.log(`info: ESP32 MAC address retrieved: ${esp32Mac}`);
-
-      // Step 3: Parse license file ด้วย ESP32 MAC (HKDF v2.0 - WiFi SSID จาก context)
+      // Step 4: Parse license file ด้วย MAC address (HKDF v2.0 - WiFi SSID จาก context)
       event.sender.send('activation-progress', { step: 'file-parsing', progress: 45 });
       
       const licenseData = await LicenseFileManager.parseLicenseFile(filePath, esp32Mac);
@@ -168,24 +193,33 @@ export const activateKeyHandler = async () => {
         };
       }
 
-      // Step 7: MAC address validation (เพิ่มเติม - เผื่อต้องการ double-check)
+      // Step 7: MAC address validation (skip สำหรับ internal license)
       event.sender.send('activation-progress', { step: 'mac-validation', progress: 85 });
       
-      if (licenseData.macAddress.toUpperCase() !== esp32Mac.toUpperCase()) {
-        console.log(`debug: MAC address mismatch in license data validation`);
-        console.log(`debug: License MAC: ${licenseData.macAddress}`);
-        console.log(`debug: ESP32 MAC: ${esp32Mac}`);
-        
+      if (isInternalLicense) {
+        console.log(`info: Internal license detected - skipping MAC address validation`);
         await logger({
           user: "system",
-          message: "License activation failed: MAC address mismatch with ESP32"
+          message: `${licenseType.toUpperCase()} license - MAC address validation bypassed`
         });
-        
-        return {
-          success: false,
-          error: 'MAC address ไม่ตรงกับอุปกรณ์ ESP32 ที่เชื่อมต่อ',
-          step: 'mac-validation'
-        };
+      } else {
+        // Production license - ตรวจสอบ MAC address matching
+        if (licenseData.macAddress.toUpperCase() !== esp32Mac.toUpperCase()) {
+          console.log(`debug: MAC address mismatch in license data validation`);
+          console.log(`debug: License MAC: ${licenseData.macAddress}`);
+          console.log(`debug: ESP32 MAC: ${esp32Mac}`);
+          
+          await logger({
+            user: "system",
+            message: "License activation failed: MAC address mismatch with ESP32"
+          });
+          
+          return {
+            success: false,
+            error: 'MAC address ไม่ตรงกับอุปกรณ์ ESP32 ที่เชื่อมต่อ',
+            step: 'mac-validation'
+          };
+        }
       }
 
       // Step 7: บันทึก activation ลงฐานข้อมูล

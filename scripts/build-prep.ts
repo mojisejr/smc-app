@@ -216,15 +216,68 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
       );
     }
   } else {
-    console.log("info: No license file specified, using environment variables");
-    // Check for internal build flag from environment
-    const buildType = process.env.BUILD_TYPE;
-    if (buildType === "internal" || buildType === "development") {
-      licenseType = buildType as "internal" | "development";
-      isInternalBuild = true;
-      console.log(
-        `info: Internal build mode detected from BUILD_TYPE=${buildType}`
-      );
+    // Auto-detect license file in resources folder
+    const resourcesLicenseFile = path.join(process.cwd(), "resources", "license.lic");
+    
+    if (fs.existsSync(resourcesLicenseFile)) {
+      console.log("info: Auto-detected license file in resources folder");
+      licenseFile = resourcesLicenseFile;
+      
+      try {
+        console.log(`info: Auto-detected license file: ${licenseFile}`);
+
+        const licenseParser = new LicenseParser({ verbose: true });
+
+        // For HKDF v2.0 licenses, provide sensitive data matching CLI generation
+        const sensitiveDataForHKDF = {
+          macAddress: "AA:BB:CC:DD:EE:FF", // Match CLI test license
+          wifiSsid: "TestWiFi_HKDF", // Match CLI test license
+        };
+
+        console.log(
+          "info: Parsing auto-detected license (using sensitive data for HKDF if needed)..."
+        );
+        const licenseData = await licenseParser.parseLicenseFile(
+          licenseFile,
+          sensitiveDataForHKDF
+        );
+
+        // ใช้ข้อมูลจาก license แทน environment variables
+        organizationName = licenseData.organization;
+        customerName = licenseData.customer;
+        licenseType = (licenseData as any).license_type || "production";
+        isInternalBuild =
+          licenseType === "internal" || licenseType === "development";
+        useLicenseData = true;
+
+        console.log("info: Using organization data from auto-detected license file");
+        console.log(`info: License organization: ${organizationName}`);
+        console.log(`info: License customer: ${customerName}`);
+        console.log(`info: License type: ${licenseType}`);
+        
+        if (isInternalBuild) {
+          console.log(
+            `info: Internal license detected - ESP32 validation will be bypassed`
+          );
+        }
+      } catch (error: any) {
+        console.warn(`⚠️  Failed to parse auto-detected license file: ${error.message}`);
+        console.log("info: Falling back to environment variables");
+        // Fall back to environment variables if license parsing fails
+      }
+    }
+    
+    if (!useLicenseData) {
+      console.log("info: No license file specified or auto-detected, using environment variables");
+      // Check for internal build flag from environment
+      const buildType = process.env.BUILD_TYPE;
+      if (buildType === "internal" || buildType === "development") {
+        licenseType = buildType as "internal" | "development";
+        isInternalBuild = true;
+        console.log(
+          `info: Internal build mode detected from BUILD_TYPE=${buildType}`
+        );
+      }
     }
   }
 
@@ -429,6 +482,7 @@ async function cleanDatabase(): Promise<void> {
 
 /**
  * Setup organization data and default settings
+ * Priority: License data > Environment variables > Defaults
  */
 async function setupOrganizationData(config: BuildConfig): Promise<void> {
   console.log("info: Setting up organization data...");
@@ -460,6 +514,31 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
     // Calculate available slots based on device type
     const availableSlots = config.deviceType === "DS16" ? 15 : 12;
 
+    // Determine organization and customer data with priority:
+    // 1. License data (if available and valid)
+    // 2. Environment variables
+    // 3. Fallback defaults
+    let finalOrganizationName = config.organizationName;
+    let finalCustomerName = config.customerName;
+    
+    if (config.useLicenseData) {
+      console.log("info: Using organization data from license file");
+      console.log(`info: License organization: ${finalOrganizationName}`);
+      console.log(`info: License customer: ${finalCustomerName}`);
+      console.log(`info: License type: ${config.licenseType || "production"}`);
+    } else {
+      console.log("info: Using organization data from environment variables");
+      // Ensure we don't use placeholder values in production
+      if (finalOrganizationName === "PLACEHOLDER_ORG" || finalOrganizationName === "") {
+        finalOrganizationName = process.env.ORGANIZATION_NAME || "SMC Medical Center";
+        console.log(`info: Replaced placeholder organization with: ${finalOrganizationName}`);
+      }
+      if (finalCustomerName === "PLACEHOLDER_CUSTOMER" || finalCustomerName === "") {
+        finalCustomerName = process.env.CUSTOMER_NAME || "DEFAULT_CUSTOMER";
+        console.log(`info: Replaced placeholder customer with: ${finalCustomerName}`);
+      }
+    }
+
     // Insert default settings record with complete configuration
     await sequelize.query(
       `
@@ -481,8 +560,8 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
           maxUser,
           serviceCode,
           maxLogCounts,
-          config.organizationName,
-          config.customerName,
+          finalOrganizationName,
+          finalCustomerName,
           indiPort,
           indiBaudrate,
           config.deviceType,
