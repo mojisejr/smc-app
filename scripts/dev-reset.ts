@@ -20,6 +20,43 @@ import { Sequelize } from "sequelize";
 import * as dotenv from "dotenv";
 import { LicenseParser, LicenseParserError } from "./utils/licenseParser";
 
+// Database lock detection and retry utility
+async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's a file lock error
+      const isLockError = 
+        error.message?.includes('EBUSY') ||
+        error.message?.includes('resource busy') ||
+        error.code === 'EBUSY';
+      
+      if (isLockError && attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        console.log(`debug: File lock detected in ${operationName}, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      // If it's not a lock error or we've exhausted retries, throw the error
+      throw error;
+    }
+  }
+  
+  throw lastError!;
+}
+
 // Load environment variables
 dotenv.config();
 
@@ -310,8 +347,11 @@ async function resetDevelopmentDatabase(
         console.warn(`warn: Could not create development backup: ${error}`);
       }
 
-      // Remove existing database
-      fs.unlinkSync(currentDbPath);
+      // Remove existing database with retry logic
+      await executeWithRetry(
+        () => Promise.resolve(fs.unlinkSync(currentDbPath)),
+        `remove existing database: ${path.basename(currentDbPath)}`
+      );
       console.log(
         `info: Removed existing database: ${path.basename(currentDbPath)}`
       );

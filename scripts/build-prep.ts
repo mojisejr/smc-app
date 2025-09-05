@@ -40,23 +40,25 @@ async function executeWithRetry<T>(
   baseDelay: number = 1000
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error: any) {
       lastError = error;
-      
+
       // Check if it's a database lock error
-      const isLockError = 
-        error.message?.includes('database is locked') ||
-        error.message?.includes('SQLITE_BUSY') ||
-        error.code === 'SQLITE_BUSY';
-      
+      const isLockError =
+        error.message?.includes("database is locked") ||
+        error.message?.includes("SQLITE_BUSY") ||
+        error.code === "SQLITE_BUSY";
+
       if (isLockError && attempt < maxRetries) {
         const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
-        console.warn(`warn: Database lock detected in ${operationName}, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
-        
+        console.warn(
+          `warn: Database lock detected in ${operationName}, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`
+        );
+
         await runtimeLogger({
           user: "system",
           message: `Database lock detected during ${operationName}, retrying`,
@@ -68,19 +70,19 @@ async function executeWithRetry<T>(
             attempt,
             maxRetries,
             delay,
-            error: error.message
-          }
+            error: error.message,
+          },
         });
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
-      
+
       // If it's not a lock error or we've exhausted retries, throw the error
       throw error;
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -104,7 +106,7 @@ interface BuildConfig {
  */
 async function main(): Promise<void> {
   const startTime = Date.now();
-  
+
   try {
     await runtimeLogger({
       user: "system",
@@ -116,10 +118,10 @@ async function main(): Promise<void> {
         operation: "main",
         timestamp: new Date().toISOString(),
         platform: process.platform,
-        nodeVersion: process.version
-      }
+        nodeVersion: process.version,
+      },
     });
-    
+
     console.log("info: Starting SMC App production build preparation...");
     console.log("======================================================");
 
@@ -155,7 +157,7 @@ async function main(): Promise<void> {
     console.log("");
     console.log("======================================================");
     const duration = Date.now() - startTime;
-    
+
     await runtimeLogger({
       user: "system",
       message: "Build preparation completed successfully",
@@ -169,10 +171,10 @@ async function main(): Promise<void> {
         deviceType: config.deviceType,
         licenseType: config.licenseType,
         isInternalBuild: config.isInternalBuild,
-        useLicenseData: config.useLicenseData
-      }
+        useLicenseData: config.useLicenseData,
+      },
     });
-    
+
     console.log(
       "info: Production build preparation completed successfully! 🎉"
     );
@@ -215,7 +217,7 @@ async function main(): Promise<void> {
     console.log("");
   } catch (error: any) {
     const duration = Date.now() - startTime;
-    
+
     await runtimeLogger({
       user: "system",
       message: "Build preparation failed",
@@ -228,16 +230,17 @@ async function main(): Promise<void> {
         stack: error.stack,
         duration: `${duration}ms`,
         platform: process.platform,
-        nodeVersion: process.version
-      }
+        nodeVersion: process.version,
+      },
     });
-    
+
     console.error("\n❌ Build preparation failed:", error.message);
     console.error("\nTroubleshooting:");
-    console.error("  1. Check .env file contains SHARED_SECRET_KEY");
-    console.error("  2. Ensure ORGANIZATION_NAME environment variable is set");
-    console.error("  3. Verify database permissions and Node.js version");
-    console.error("  4. Check npm dependencies are installed");
+    console.error("  1. Ensure ORGANIZATION_NAME environment variable is set");
+    console.error("  2. Verify database permissions and Node.js version");
+    console.error("  3. Check npm dependencies are installed");
+    console.error("  4. For database lock issues, ensure no other processes are using the database");
+    console.error("  5. Try running the build command again after a few seconds");
     process.exit(1);
   }
 }
@@ -247,7 +250,7 @@ async function main(): Promise<void> {
  */
 async function parseBuildConfiguration(): Promise<BuildConfig> {
   console.log("info: Parsing build configuration...");
-  
+
   await runtimeLogger({
     user: "system",
     message: "Starting build configuration parsing",
@@ -256,8 +259,8 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
     level: "info",
     metadata: {
       operation: "parseBuildConfiguration",
-      args: process.argv.slice(2)
-    }
+      args: process.argv.slice(2),
+    },
   });
 
   // Parse command line arguments for license file
@@ -335,12 +338,16 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
     }
   } else {
     // Auto-detect license file in resources folder
-    const resourcesLicenseFile = path.join(process.cwd(), "resources", "license.lic");
-    
+    const resourcesLicenseFile = path.join(
+      process.cwd(),
+      "resources",
+      "license.lic"
+    );
+
     if (fs.existsSync(resourcesLicenseFile)) {
       console.log("info: Auto-detected license file in resources folder");
       licenseFile = resourcesLicenseFile;
-      
+
       try {
         console.log(`info: Auto-detected license file: ${licenseFile}`);
 
@@ -368,25 +375,31 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
           licenseType === "internal" || licenseType === "development";
         useLicenseData = true;
 
-        console.log("info: Using organization data from auto-detected license file");
+        console.log(
+          "info: Using organization data from auto-detected license file"
+        );
         console.log(`info: License organization: ${organizationName}`);
         console.log(`info: License customer: ${customerName}`);
         console.log(`info: License type: ${licenseType}`);
-        
+
         if (isInternalBuild) {
           console.log(
             `info: Internal license detected - ESP32 validation will be bypassed`
           );
         }
       } catch (error: any) {
-        console.warn(`⚠️  Failed to parse auto-detected license file: ${error.message}`);
+        console.warn(
+          `⚠️  Failed to parse auto-detected license file: ${error.message}`
+        );
         console.log("info: Falling back to environment variables");
         // Fall back to environment variables if license parsing fails
       }
     }
-    
+
     if (!useLicenseData) {
-      console.log("info: No license file specified or auto-detected, using environment variables");
+      console.log(
+        "info: No license file specified or auto-detected, using environment variables"
+      );
       // Check for internal build flag from environment
       const buildType = process.env.BUILD_TYPE;
       if (buildType === "internal" || buildType === "development") {
@@ -444,10 +457,10 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
       deviceType: config.deviceType,
       licenseType: config.licenseType,
       isInternalBuild: config.isInternalBuild,
-      useLicenseData: config.useLicenseData
-    }
+      useLicenseData: config.useLicenseData,
+    },
   });
-  
+
   console.log("info: Build configuration parsed successfully");
   return config;
 }
@@ -457,7 +470,7 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
  */
 async function validateBuildEnvironment(config: BuildConfig): Promise<void> {
   console.log("info: Validating build environment...");
-  
+
   await runtimeLogger({
     user: "system",
     message: "Starting build environment validation",
@@ -467,8 +480,8 @@ async function validateBuildEnvironment(config: BuildConfig): Promise<void> {
     metadata: {
       operation: "validateBuildEnvironment",
       nodeVersion: process.version,
-      platform: process.platform
-    }
+      platform: process.platform,
+    },
   });
 
   // Check SHARED_SECRET_KEY
@@ -519,10 +532,10 @@ async function validateBuildEnvironment(config: BuildConfig): Promise<void> {
     metadata: {
       operation: "validateBuildEnvironment",
       nodeVersion: process.version,
-      majorVersion: parseInt(process.version.slice(1).split(".")[0])
-    }
+      majorVersion: parseInt(process.version.slice(1).split(".")[0]),
+    },
   });
-  
+
   console.log("info: Build environment validation completed");
 }
 
@@ -531,7 +544,7 @@ async function validateBuildEnvironment(config: BuildConfig): Promise<void> {
  */
 async function cleanDatabase(): Promise<void> {
   console.log("info: Cleaning and resetting database...");
-  
+
   await runtimeLogger({
     user: "system",
     message: "Starting database cleanup",
@@ -539,8 +552,8 @@ async function cleanDatabase(): Promise<void> {
     component: "build-prep",
     level: "info",
     metadata: {
-      operation: "cleanDatabase"
-    }
+      operation: "cleanDatabase",
+    },
   });
 
   const dbPath = path.join(process.cwd(), "database.db");
@@ -551,11 +564,64 @@ async function cleanDatabase(): Promise<void> {
     "database.db"
   );
 
-  // Remove existing databases if they exist
+  // Add delay to ensure any previous database connections are fully closed
+  console.log('info: Waiting for any existing database connections to close...');
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // Remove existing databases if they exist with retry logic
   for (const currentDbPath of [dbPath, resourceDbPath]) {
     if (fs.existsSync(currentDbPath)) {
-      fs.unlinkSync(currentDbPath);
-      console.log(`info: Removed existing database: ${currentDbPath}`);
+      try {
+        await executeWithRetry(
+          async () => {
+            // Additional delay before each file deletion attempt
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Try multiple strategies to handle Windows file locks
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            while (attempts < maxAttempts) {
+              try {
+                const tempPath = currentDbPath + '.tmp.' + Date.now() + '.' + attempts;
+                
+                // Strategy 1: Try to move first
+                try {
+                  fs.renameSync(currentDbPath, tempPath);
+                  fs.unlinkSync(tempPath);
+                  return Promise.resolve();
+                } catch (moveError) {
+                  // Strategy 2: Try direct deletion with longer delay
+                  if (attempts === maxAttempts - 1) {
+                    // Last attempt - longer wait
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                  }
+                  fs.unlinkSync(currentDbPath);
+                  return Promise.resolve();
+                }
+              } catch (error) {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                  throw error;
+                }
+                // Exponential backoff
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+              }
+            }
+          },
+          `remove existing database: ${currentDbPath}`
+        );
+        console.log(`info: Removed existing database: ${currentDbPath}`);
+      } catch (deleteError) {
+        // If deletion fails due to file locks, rename the file instead
+        const backupPath = currentDbPath + '.backup.' + Date.now();
+        try {
+          fs.renameSync(currentDbPath, backupPath);
+          console.log(`warning: Could not delete ${currentDbPath}, renamed to ${backupPath}`);
+        } catch (renameError) {
+          console.log(`warning: Could not delete or rename ${currentDbPath}, continuing with existing file`);
+        }
+      }
     }
   }
 
@@ -568,15 +634,12 @@ async function cleanDatabase(): Promise<void> {
       max: 1,
       min: 0,
       acquire: 30000,
-      idle: 10000
+      idle: 10000,
     },
     retry: {
-      match: [
-        /SQLITE_BUSY/,
-        /database is locked/
-      ],
-      max: 3
-    }
+      match: [/SQLITE_BUSY/, /database is locked/],
+      max: 3,
+    },
   });
 
   try {
@@ -664,7 +727,11 @@ async function cleanDatabase(): Promise<void> {
     throw error;
   } finally {
     await executeWithRetry(
-      () => sequelize.close(),
+      async () => {
+        await sequelize.close();
+        // Add delay to ensure connection is fully closed before file operations
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      },
       "close database connection"
     );
   }
@@ -676,10 +743,10 @@ async function cleanDatabase(): Promise<void> {
     component: "build-prep",
     level: "info",
     metadata: {
-      operation: "cleanDatabase"
-    }
+      operation: "cleanDatabase",
+    },
   });
-  
+
   console.log("info: Database cleanup completed");
 }
 
@@ -689,7 +756,7 @@ async function cleanDatabase(): Promise<void> {
  */
 async function setupOrganizationData(config: BuildConfig): Promise<void> {
   console.log("info: Setting up organization data...");
-  
+
   await runtimeLogger({
     user: "system",
     message: "Starting organization data setup",
@@ -700,8 +767,8 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
       operation: "setupOrganizationData",
       organizationName: config.organizationName,
       customerName: config.customerName,
-      useLicenseData: config.useLicenseData
-    }
+      useLicenseData: config.useLicenseData,
+    },
   });
 
   const resourceDbPath = path.join(
@@ -720,15 +787,12 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
       max: 1,
       min: 0,
       acquire: 30000,
-      idle: 10000
+      idle: 10000,
     },
     retry: {
-      match: [
-        /SQLITE_BUSY/,
-        /database is locked/
-      ],
-      max: 3
-    }
+      match: [/SQLITE_BUSY/, /database is locked/],
+      max: 3,
+    },
   });
 
   try {
@@ -750,7 +814,7 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
     // 3. Fallback defaults
     let finalOrganizationName = config.organizationName;
     let finalCustomerName = config.customerName;
-    
+
     if (config.useLicenseData) {
       console.log("info: Using organization data from license file");
       console.log(`info: License organization: ${finalOrganizationName}`);
@@ -759,16 +823,32 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
     } else {
       console.log("info: Using organization data from environment variables");
       // Ensure we don't use placeholder values in production
-      if (finalOrganizationName === "PLACEHOLDER_ORG" || finalOrganizationName === "") {
-        finalOrganizationName = process.env.ORGANIZATION_NAME || "SMC Medical Center";
-        console.log(`info: Replaced placeholder organization with: ${finalOrganizationName}`);
+      if (
+        finalOrganizationName === "PLACEHOLDER_ORG" ||
+        finalOrganizationName === ""
+      ) {
+        finalOrganizationName =
+          process.env.ORGANIZATION_NAME || "SMC Medical Center";
+        console.log(
+          `info: Replaced placeholder organization with: ${finalOrganizationName}`
+        );
       }
-      if (finalCustomerName === "PLACEHOLDER_CUSTOMER" || finalCustomerName === "") {
+      if (
+        finalCustomerName === "PLACEHOLDER_CUSTOMER" ||
+        finalCustomerName === ""
+      ) {
         finalCustomerName = process.env.CUSTOMER_NAME || "DEFAULT_CUSTOMER";
-        console.log(`info: Replaced placeholder customer with: ${finalCustomerName}`);
+        console.log(
+          `info: Replaced placeholder customer with: ${finalCustomerName}`
+        );
       }
     }
 
+    // Clear existing data to prevent conflicts
+    await sequelize.query('DELETE FROM Setting WHERE id = 1');
+    await sequelize.query('DELETE FROM User WHERE id = 1');
+    await sequelize.query('DELETE FROM Slot');
+    
     // Insert default settings record with complete configuration
     await sequelize.query(
       `
@@ -855,16 +935,23 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
       metadata: {
         operation: "setupOrganizationData",
         error: error instanceof Error ? error.message : String(error),
-        organizationName: config.organizationName
-      }
+        organizationName: config.organizationName,
+      },
     });
-    
+
     console.error("error: Failed to setup organization data:", error);
     throw error;
   } finally {
-    await sequelize.close();
+    await executeWithRetry(
+      async () => {
+        await sequelize.close();
+        // Add delay to ensure connection is fully closed before file operations
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      },
+      "close database connection"
+    );
   }
-  
+
   await runtimeLogger({
     user: "system",
     message: "Organization data setup completed",
@@ -873,8 +960,8 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
     level: "info",
     metadata: {
       operation: "setupOrganizationData",
-      organizationName: config.organizationName
-    }
+      organizationName: config.organizationName,
+    },
   });
 }
 
@@ -883,7 +970,7 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
  */
 async function prepareResourcesDirectory(): Promise<void> {
   console.log("info: Preparing resources directory...");
-  
+
   await runtimeLogger({
     user: "system",
     message: "Starting resources directory preparation",
@@ -891,8 +978,8 @@ async function prepareResourcesDirectory(): Promise<void> {
     component: "build-prep",
     level: "info",
     metadata: {
-      operation: "prepareResourcesDirectory"
-    }
+      operation: "prepareResourcesDirectory",
+    },
   });
 
   const resourcesDir = path.join(process.cwd(), "resources");
@@ -966,10 +1053,10 @@ Generated: ${new Date().toISOString()}
     component: "build-prep",
     level: "info",
     metadata: {
-      operation: "prepareResourcesDirectory"
-    }
+      operation: "prepareResourcesDirectory",
+    },
   });
-  
+
   console.log("info: Resources directory preparation completed");
 }
 
@@ -1006,7 +1093,7 @@ async function injectEnvironmentVariables(buildInfo: any): Promise<void> {
  */
 async function validateBuildReadiness(): Promise<void> {
   console.log("info: Validating build readiness...");
-  
+
   await runtimeLogger({
     user: "system",
     message: "Starting build readiness validation",
@@ -1014,8 +1101,8 @@ async function validateBuildReadiness(): Promise<void> {
     component: "build-prep",
     level: "info",
     metadata: {
-      operation: "validateBuildReadiness"
-    }
+      operation: "validateBuildReadiness",
+    },
   });
 
   // Check database exists and has correct structure
@@ -1038,15 +1125,12 @@ async function validateBuildReadiness(): Promise<void> {
       max: 1,
       min: 0,
       acquire: 30000,
-      idle: 10000
+      idle: 10000,
     },
     retry: {
-      match: [
-        /SQLITE_BUSY/,
-        /database is locked/
-      ],
-      max: 3
-    }
+      match: [/SQLITE_BUSY/, /database is locked/],
+      max: 3,
+    },
   });
 
   try {
@@ -1083,7 +1167,14 @@ async function validateBuildReadiness(): Promise<void> {
     console.error("error: Database validation failed:", error);
     throw error;
   } finally {
-    await sequelize.close();
+    await executeWithRetry(
+      async () => {
+        await sequelize.close();
+        // Add delay to ensure connection is fully closed before file operations
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      },
+      "close database connection"
+    );
   }
 
   // Check resources directory structure
@@ -1107,10 +1198,10 @@ async function validateBuildReadiness(): Promise<void> {
     component: "build-prep",
     level: "info",
     metadata: {
-      operation: "validateBuildReadiness"
-    }
+      operation: "validateBuildReadiness",
+    },
   });
-  
+
   console.log("info: Resources directory validation passed");
   console.log("info: Build readiness validation completed ✅");
 }
@@ -1124,10 +1215,10 @@ async function validateBuildReadiness(): Promise<void> {
  */
 async function validateBuildSafety(config?: BuildConfig): Promise<void> {
   console.log("info: Validating build safety...");
-  
+
   const isInternalBuild = config?.isInternalBuild || false;
   const licenseType = config?.licenseType || "production";
-  
+
   await runtimeLogger({
     user: "system",
     message: "Starting build safety validation",
@@ -1139,8 +1230,8 @@ async function validateBuildSafety(config?: BuildConfig): Promise<void> {
       isInternalBuild,
       licenseType,
       bypassMode: process.env.SMC_LICENSE_BYPASS_MODE,
-      realHardware: process.env.SMC_DEV_REAL_HARDWARE
-    }
+      realHardware: process.env.SMC_DEV_REAL_HARDWARE,
+    },
   });
 
   // For internal/development builds, allow more flexibility
@@ -1168,10 +1259,10 @@ async function validateBuildSafety(config?: BuildConfig): Promise<void> {
       metadata: {
         operation: "validateBuildSafety",
         licenseType,
-        bypassMode: process.env.SMC_LICENSE_BYPASS_MODE
-      }
+        bypassMode: process.env.SMC_LICENSE_BYPASS_MODE,
+      },
     });
-    
+
     console.log("info: Internal build safety validation passed");
     return;
   }
@@ -1220,10 +1311,10 @@ async function validateBuildSafety(config?: BuildConfig): Promise<void> {
       operation: "validateBuildSafety",
       licenseType: "production",
       bypassMode: process.env.SMC_LICENSE_BYPASS_MODE,
-      realHardware: process.env.SMC_DEV_REAL_HARDWARE
-    }
+      realHardware: process.env.SMC_DEV_REAL_HARDWARE,
+    },
   });
-  
+
   console.log("info: Production build safety validation passed");
 }
 
@@ -1232,7 +1323,7 @@ async function validateBuildSafety(config?: BuildConfig): Promise<void> {
  */
 async function cleanLicenseFiles(): Promise<void> {
   console.log("info: Cleaning license files from build...");
-  
+
   await runtimeLogger({
     user: "system",
     message: "Starting license file cleanup",
@@ -1240,8 +1331,8 @@ async function cleanLicenseFiles(): Promise<void> {
     component: "build-prep",
     level: "info",
     metadata: {
-      operation: "cleanLicenseFiles"
-    }
+      operation: "cleanLicenseFiles",
+    },
   });
 
   const licenseFiles = [
@@ -1257,7 +1348,10 @@ async function cleanLicenseFiles(): Promise<void> {
   for (const licenseFile of licenseFiles) {
     if (fs.existsSync(licenseFile)) {
       try {
-        fs.unlinkSync(licenseFile);
+        await executeWithRetry(
+          () => Promise.resolve(fs.unlinkSync(licenseFile)),
+          `remove license file: ${licenseFile}`
+        );
         console.log(`info: Removed license file: ${licenseFile}`);
         removedCount++;
       } catch (error) {
@@ -1282,10 +1376,10 @@ async function cleanLicenseFiles(): Promise<void> {
     level: "info",
     metadata: {
       operation: "cleanLicenseFiles",
-      removedCount
-    }
+      removedCount,
+    },
   });
-  
+
   console.log("info: License file cleanup completed");
   console.log("info: Production build will NOT include license.lic file");
   console.log("info: License must be provided separately during deployment");
