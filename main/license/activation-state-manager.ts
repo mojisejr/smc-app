@@ -410,36 +410,102 @@ class ActivationStateManager extends EventEmitter {
   }
 
   /**
+   * Get comprehensive system status for diagnostics
+   */
+  getSystemStatus(): {
+    isActivated: boolean;
+    licenseType?: string;
+    organization?: string;
+    esp32Available: boolean;
+    validationMode: string;
+    isReady: boolean;
+    isInternal: boolean;
+    bypassMode: boolean;
+    buildType: string | undefined;
+    internalBuildMode: boolean;
+    environmentBypass: {
+      esp32: boolean;
+      wifi: boolean;
+      hardware: boolean;
+      license: string;
+    };
+  } {
+    const { isInternal, bypassMode, validationMode } = this.getLicenseInfo();
+    
+    return {
+      isActivated: this.currentState.isActivated,
+      licenseType: this.currentState.licenseType,
+      organization: this.currentState.organization,
+      esp32Available: this.currentState.esp32Available,
+      validationMode,
+      isReady: this.isSystemReady(),
+      isInternal,
+      bypassMode,
+      buildType: process.env.BUILD_TYPE,
+      internalBuildMode: process.env.INTERNAL_BUILD_MODE === 'true',
+      environmentBypass: {
+        esp32: process.env.ESP32_VALIDATION_BYPASS === 'true',
+        wifi: process.env.WIFI_VALIDATION_BYPASS === 'true',
+        hardware: process.env.HARDWARE_VALIDATION_BYPASS === 'true',
+        license: process.env.LICENSE_VALIDATION_MODE || 'production'
+      }
+    };
+  }
+
+  /**
    * Get license type information
    */
   getLicenseInfo(): {
     licenseType?: string;
     organization?: string;
     isInternal: boolean;
+    bypassMode: boolean;
+    validationMode: string;
   } {
+    const validationMode = getValidationMode();
+    const buildType = process.env.BUILD_TYPE;
+    const internalBuildMode = process.env.INTERNAL_BUILD_MODE === 'true';
+    const esp32Bypass = process.env.ESP32_VALIDATION_BYPASS === 'true';
+    
+    // Enhanced internal detection logic
+    const isInternal = this.currentState.licenseType === "internal" ||
+                      this.currentState.licenseType === "development" ||
+                      buildType === 'internal' ||
+                      buildType === 'development' ||
+                      internalBuildMode;
+    
+    const bypassMode = validationMode === 'bypass' || 
+                      isInternal || 
+                      esp32Bypass ||
+                      process.env.NODE_ENV === 'development';
+    
     return {
       licenseType: this.currentState.licenseType,
       organization: this.currentState.organization,
-      isInternal:
-        this.currentState.licenseType === "internal" ||
-        this.currentState.licenseType === "development",
+      isInternal,
+      bypassMode,
+      validationMode
     };
   }
 
   /**
-   * Check if system is ready for operations
+   * Check if system is ready for operations with enhanced bypass detection
    */
   isSystemReady(): boolean {
+    const { isInternal, bypassMode } = this.getLicenseInfo();
+    
     // System is ready if activated and either:
-    // 1. In bypass mode
+    // 1. In bypass mode (any type)
     // 2. Has ESP32 available (for production licenses)
     // 3. Is an internal/development license (ESP32 not required)
+    // 4. Internal build mode is enabled
     return (
       this.currentState.isActivated &&
-      (this.currentState.validationMode === "bypass" ||
+      (bypassMode ||
+        this.currentState.validationMode === "bypass" ||
         this.currentState.esp32Available ||
-        this.currentState.licenseType === "internal" ||
-        this.currentState.licenseType === "development")
+        isInternal ||
+        process.env.INTERNAL_BUILD_MODE === 'true')
     );
   }
 
@@ -462,6 +528,16 @@ class ActivationStateManager extends EventEmitter {
       return this.isSystemReady();
     });
 
+    // Get comprehensive system status
+    ipcMain.handle("activation-state:get-system-status", () => {
+      return this.getSystemStatus();
+    });
+
+    // Get license information
+    ipcMain.handle("activation-state:get-license-info", () => {
+      return this.getLicenseInfo();
+    });
+
     console.log("info: Activation State Manager IPC handlers registered");
   }
 
@@ -480,6 +556,7 @@ class ActivationStateManager extends EventEmitter {
     ipcMain.removeHandler("activation-state:validate");
     ipcMain.removeHandler("activation-state:is-ready");
     ipcMain.removeHandler("activation-state:get-license-info");
+    ipcMain.removeHandler("activation-state:get-system-status");
 
     console.log("info: Activation State Manager cleanup completed");
   }

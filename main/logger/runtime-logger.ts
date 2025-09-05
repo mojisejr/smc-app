@@ -190,33 +190,42 @@ export const logDebug = (
  */
 export class PerformanceTimer {
   private startTime: number;
-  private component: string;
-  private operation: string;
+  private component?: string;
+  private operation?: string;
 
-  constructor(component: string, operation: string) {
+  constructor(component?: string, operation?: string) {
     this.component = component;
     this.operation = operation;
     this.startTime = Date.now();
 
-    logDebug(component, `Starting ${operation}`, {
-      timestamp: this.startTime,
-      operation,
-    });
+    if (component && operation) {
+      logDebug(component, `Starting ${operation}`, {
+        timestamp: this.startTime,
+        operation,
+      });
+    }
   }
 
   end(additionalMetadata?: Record<string, any>) {
     const endTime = Date.now();
     const duration = endTime - this.startTime;
 
-    logSystemInfo(this.component, `Completed ${this.operation}`, {
-      duration: `${duration}ms`,
-      startTime: this.startTime,
-      endTime,
-      operation: this.operation,
-      ...additionalMetadata,
-    });
+    if (this.component && this.operation) {
+      logSystemInfo(this.component, `Completed ${this.operation}`, {
+        duration: `${duration}ms`,
+        startTime: this.startTime,
+        endTime,
+        operation: this.operation,
+        ...additionalMetadata,
+      });
+    }
 
     return duration;
+  }
+
+  // Alias method for backward compatibility
+  stop(additionalMetadata?: Record<string, any>) {
+    return this.end(additionalMetadata);
   }
 
   checkpoint(checkpointName: string, additionalMetadata?: Record<string, any>) {

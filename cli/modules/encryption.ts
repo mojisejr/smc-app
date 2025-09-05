@@ -59,6 +59,7 @@ export function createKDFContext(licenseData: LicenseData): KDFContext {
     licenseData.applicationId,
     licenseData.customerId,
     licenseData.expiryDate,
+    licenseData.license_type || "production", // Include license type for internal license detection
     licenseData.version || "1.0.0",
     // Phase 9: ลบ wifiSsid ออกเพื่อแก้ Chicken-Egg Problem
   ];
