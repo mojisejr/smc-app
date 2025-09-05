@@ -32,6 +32,58 @@ import { runtimeLogger } from "../main/logger/runtime-logger";
 // Load environment variables
 dotenv.config();
 
+// Database lock detection and retry utility
+async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's a database lock error
+      const isLockError = 
+        error.message?.includes('database is locked') ||
+        error.message?.includes('SQLITE_BUSY') ||
+        error.code === 'SQLITE_BUSY';
+      
+      if (isLockError && attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        console.warn(`warn: Database lock detected in ${operationName}, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+        
+        await runtimeLogger({
+          user: "system",
+          message: `Database lock detected during ${operationName}, retrying`,
+          logType: "warning",
+          component: "build-prep",
+          level: "warn",
+          metadata: {
+            operation: operationName,
+            attempt,
+            maxRetries,
+            delay,
+            error: error.message
+          }
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      // If it's not a lock error or we've exhausted retries, throw the error
+      throw error;
+    }
+  }
+  
+  throw lastError!;
+}
+
 const execAsync = promisify(exec);
 
 interface BuildConfig {
@@ -499,24 +551,32 @@ async function cleanDatabase(): Promise<void> {
     "database.db"
   );
 
-  // Backup existing databases if they exist
+  // Remove existing databases if they exist
   for (const currentDbPath of [dbPath, resourceDbPath]) {
     if (fs.existsSync(currentDbPath)) {
-      const backupPath = `${currentDbPath}.backup.${Date.now()}`;
-      fs.copyFileSync(currentDbPath, backupPath);
-      console.log(`info: Database backed up: ${backupPath}`);
-
-      // Remove existing database
       fs.unlinkSync(currentDbPath);
       console.log(`info: Removed existing database: ${currentDbPath}`);
     }
   }
 
-  // Initialize Sequelize for database setup
+  // Initialize Sequelize for database setup with connection pooling
   const sequelize = new Sequelize({
     dialect: "sqlite",
     storage: resourceDbPath,
     logging: false,
+    pool: {
+      max: 1,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    retry: {
+      match: [
+        /SQLITE_BUSY/,
+        /database is locked/
+      ],
+      max: 3
+    }
   });
 
   try {
@@ -527,73 +587,86 @@ async function cleanDatabase(): Promise<void> {
       console.log(`info: Created directory: ${resourceDbDir}`);
     }
 
-    // Create tables using raw SQL (matching Sequelize models)
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS User (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name VARCHAR(255),
-        role VARCHAR(50) DEFAULT 'user',
-        passkey TEXT
-      );
-    `);
+    // Create tables using raw SQL (matching Sequelize models) with retry logic
+    await executeWithRetry(async () => {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS User (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name VARCHAR(255),
+          role VARCHAR(50) DEFAULT 'user',
+          passkey TEXT
+        );
+      `);
+    }, "create User table");
 
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS Setting (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ku_port VARCHAR(255),
-        ku_baudrate INTEGER,
-        available_slots INTEGER,
-        max_user INTEGER,
-        service_code VARCHAR(255),
-        max_log_counts INTEGER,
-        organization VARCHAR(255),
-        customer_name VARCHAR(255),
-        activated_key VARCHAR(255),
-        indi_port VARCHAR(255),
-        indi_baudrate INTEGER,
-        device_type VARCHAR(50) DEFAULT 'DS12'
-      );
-    `);
+    await executeWithRetry(async () => {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS Setting (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ku_port VARCHAR(255),
+          ku_baudrate INTEGER,
+          available_slots INTEGER,
+          max_user INTEGER,
+          service_code VARCHAR(255),
+          max_log_counts INTEGER,
+          organization VARCHAR(255),
+          customer_name VARCHAR(255),
+          activated_key VARCHAR(255),
+          indi_port VARCHAR(255),
+          indi_baudrate INTEGER,
+          device_type VARCHAR(50) DEFAULT 'DS12'
+        );
+      `);
+    }, "create Setting table");
 
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS Slot (
-        slotId INTEGER PRIMARY KEY,
-        hn TEXT,
-        timestamp INTEGER,
-        occupied BOOLEAN DEFAULT false,
-        opening BOOLEAN DEFAULT false,
-        isActive BOOLEAN DEFAULT true
-      );
-    `);
+    await executeWithRetry(async () => {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS Slot (
+          slotId INTEGER PRIMARY KEY,
+          hn TEXT,
+          timestamp INTEGER,
+          occupied BOOLEAN DEFAULT false,
+          opening BOOLEAN DEFAULT false,
+          isActive BOOLEAN DEFAULT true
+        );
+      `);
+    }, "create Slot table");
 
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS Log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user VARCHAR(255),
-        message TEXT,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+    await executeWithRetry(async () => {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS Log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user VARCHAR(255),
+          message TEXT,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    }, "create Log table");
 
-    await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS DispensingLog (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp INTEGER,
-        userId INTEGER,
-        slotId INTEGER,
-        hn TEXT,
-        process TEXT,
-        message TEXT,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+    await executeWithRetry(async () => {
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS DispensingLog (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          timestamp INTEGER,
+          userId INTEGER,
+          slotId INTEGER,
+          hn TEXT,
+          process TEXT,
+          message TEXT,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    }, "create DispensingLog table");
 
     console.log("info: Database schema initialized");
   } catch (error) {
     console.error("error: Database initialization failed:", error);
     throw error;
   } finally {
-    await sequelize.close();
+    await executeWithRetry(
+      () => sequelize.close(),
+      "close database connection"
+    );
   }
 
   await runtimeLogger({
@@ -638,11 +711,24 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
     "database.db"
   );
 
-  // Initialize database connection
+  // Initialize database connection with connection pooling
   const sequelize = new Sequelize({
     dialect: "sqlite",
     storage: resourceDbPath,
     logging: false,
+    pool: {
+      max: 1,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    retry: {
+      match: [
+        /SQLITE_BUSY/,
+        /database is locked/
+      ],
+      max: 3
+    }
   });
 
   try {
@@ -948,6 +1034,19 @@ async function validateBuildReadiness(): Promise<void> {
     dialect: "sqlite",
     storage: resourceDbPath,
     logging: false,
+    pool: {
+      max: 1,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    },
+    retry: {
+      match: [
+        /SQLITE_BUSY/,
+        /database is locked/
+      ],
+      max: 3
+    }
   });
 
   try {

@@ -1,23 +1,7 @@
 # Current Focus
 
-ใน folder `/d:/dev/smc/smc-app/main/license/` และ `/d:/dev/smc/smc-app/scripts/` มี error เกิดขึ้นหลายจุดจากการแก้ไขครั้งก่อนหน้าครับ และพอ run npm run build แล้วจะขึ้น error ตามนี้ครับ Terminal#1-139
-
-**ต้องการแก้ไข error ให้สามารถ build ผ่านได้ ครับ เพื่อจะได้ลอง test debug log กันได้ครับ**
-
-## Error Details
-
-จากการ run `npm run build:internal:ds12` พบ TypeScript errors ใน `scripts/build-prep.ts`:
-
-- Property 'info' does not exist on type '(data: RuntimeLogData) => Promise<void>'
-- Property 'error' does not exist on type '(data: RuntimeLogData) => Promise<void>'
-
-ปัญหาเกิดจากการใช้ `runtimeLogger.info()` และ `runtimeLogger.error()` ที่ไม่ตรงกับ interface ที่คาดหวัง
-
-## Priority
-
-แก้ไข build errors เพื่อให้สามารถ build และ test debug logging ได้
-เชคจุดอื่นให้ครบทั้งหมด ว่ามีปัญหาคล้ายๆ กันอีกหรือไม่
+ตอนนี้มีปัญหาเรื่อง การ build โปรเจคแล้วติด database lock แบบนี้ Terminal#118-279  ผมได้ลอง restart and shut down แล้วลอง build ใหม่แล้วก็ยังเจอเหมือนเดิม ปัญหาเกิดจาสาเหตุอะไร ? อ่านะ `/d:/dev/smc/smc-app/docs/retrospective/` แล้วเชค ว่าเราทำไรลงไป ถึงได้เกิดปัญหานี้ ในส่วนของ build process ทั้งๆ ที่ก่อนหน้านี้ไม่เป็น 
+ **เชคให้ดี แล้วบอกสาเหตุด้วย แล้ว วางแผนแก้ไขปัญหาให้จบ ตรวจสอบจุดอื่นที่เกี่ยวข้้องทั้งหมดให้รอบคอบ**
 
 ---
-
-_Updated: 2025-01-27_
+*Updated: 2025-01-05*
