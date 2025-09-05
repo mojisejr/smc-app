@@ -58,6 +58,44 @@ import { isSystemActivated } from "./license/validator";
 import { getValidationMode } from "./utils/environment";
 import ActivationStateManager from "./license/activation-state-manager";
 import { IndicatorDevice } from "./indicator";
+
+// Database lock detection and retry utility
+async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's a database lock error
+      const isLockError = 
+        error.message?.includes('database is locked') ||
+        error.message?.includes('SQLITE_BUSY') ||
+        error.code === 'SQLITE_BUSY';
+      
+      if (isLockError && attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+        logDebug('background', `Database lock detected in ${operationName}, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      // If it's not a lock error or we've exhausted retries, throw the error
+      throw error;
+    }
+  }
+  
+  throw lastError!;
+}
+
 /**
  * Indicates whether the application is running in production mode.
  *
@@ -103,10 +141,13 @@ if (isProd) {
     
     logSystemInfo('background', 'Main window created successfully');
 
-    // Initialize database connection
+    // Initialize database connection with retry logic
     logDebug('background', 'Initializing database connection');
     // Use alter: true in development to update schema with new fields
-    const sql = await sequelize.sync({ alter: !isProd });
+    const sql = await executeWithRetry(
+      () => sequelize.sync({ alter: !isProd }),
+      'database synchronization'
+    );
     appTimer.checkpoint('database-sync');
     
     if (!isProd) {
