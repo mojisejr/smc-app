@@ -1,0 +1,509 @@
+id,user,message,createdAt,logType,component,level,metadata
+1,system,Production build preparation completed for ^SMC^ Internal^ (Customer: INTERNAL001) - License-based configuration,2025-09-04 00:43:32,system,unknown,info,
+2,system,[INFO] Starting SMC application initialization,2025-09-04 16:13:06.041 +00:00,system,background,info,
+3,system,[DEBUG] Waiting for app ready state,2025-09-04 16:13:06.041 +00:00,debug,background,debug,
+4,system,[DEBUG] Checkpoint: app-ready in application-startup,2025-09-04 16:13:06.100 +00:00,debug,background,debug,"{""checkpoint"":""app-ready"",""elapsed"":""60ms"",""timestamp"":1757002386099,""operation"":""application-startup""}"
+5,system,"[INFO] Electron app ready, proceeding with initialization",2025-09-04 16:13:06.100 +00:00,system,background,info,
+6,system,[DEBUG] Creating main window,2025-09-04 16:13:06.100 +00:00,debug,background,debug,
+7,system,[DEBUG] Checkpoint: window-created in application-startup,2025-09-04 16:13:06.178 +00:00,debug,background,debug,"{""checkpoint"":""window-created"",""elapsed"":""139ms"",""timestamp"":1757002386178,""operation"":""application-startup""}"
+8,system,[INFO] Main window created successfully,2025-09-04 16:13:06.178 +00:00,system,background,info,
+9,system,[DEBUG] Initializing database connection,2025-09-04 16:13:06.179 +00:00,debug,background,debug,
+10,system,[DEBUG] Starting application-startup,2025-09-04 16:13:06.041 +00:00,debug,background,debug,"{""timestamp"":1757002386039,""operation"":""application-startup""}"
+11,system,[DEBUG] Checkpoint: database-sync in application-startup,2025-09-04 16:13:06.905 +00:00,debug,background,debug,"{""checkpoint"":""database-sync"",""elapsed"":""1068ms"",""timestamp"":1757002386904,""operation"":""application-startup""}"
+12,system,[DEBUG] Development mode: Database schema updated with new fields,2025-09-04 16:13:06.905 +00:00,debug,background,debug,
+13,system,[INFO] Database synchronized successfully,2025-09-04 16:13:06.905 +00:00,system,background,info,
+14,system,[DEBUG] Loading application settings,2025-09-04 16:13:06.905 +00:00,debug,background,debug,
+15,system,[DEBUG] Checkpoint: settings-loaded in application-startup,2025-09-04 16:13:06.979 +00:00,debug,background,debug,"{""checkpoint"":""settings-loaded"",""elapsed"":""1143ms"",""timestamp"":1757002386979,""operation"":""application-startup""}"
+16,system,[INFO] Application settings loaded,2025-09-04 16:13:06.979 +00:00,system,background,info,"{""indicatorPort"":""auto"",""indicatorBaudrate"":115200}"
+17,system,[DEBUG] Initializing indicator device,2025-09-04 16:13:06.979 +00:00,debug,background,debug,"{""port"":""auto"",""baudrate"":115200}"
+18,system,[DEBUG] Checkpoint: indicator-initialized in application-startup,2025-09-04 16:13:06.981 +00:00,debug,background,debug,"{""checkpoint"":""indicator-initialized"",""elapsed"":""1144ms"",""timestamp"":1757002386980,""operation"":""application-startup""}"
+19,system,[INFO] Indicator device initialized,2025-09-04 16:13:06.981 +00:00,system,background,info,
+20,system,[DEBUG] Initializing authentication system,2025-09-04 16:13:06.981 +00:00,debug,background,debug,
+21,system,[DEBUG] Checkpoint: auth-initialized in application-startup,2025-09-04 16:13:06.981 +00:00,debug,background,debug,"{""checkpoint"":""auth-initialized"",""elapsed"":""1145ms"",""timestamp"":1757002386981,""operation"":""application-startup""}"
+22,system,[INFO] Authentication system initialized,2025-09-04 16:13:06.981 +00:00,system,background,info,
+23,system,[DEBUG] Starting indicator data reception,2025-09-04 16:13:06.981 +00:00,debug,background,debug,
+24,system,[DEBUG] Checkpoint: indicator-receiving in application-startup,2025-09-04 16:13:06.981 +00:00,debug,background,debug,"{""checkpoint"":""indicator-receiving"",""elapsed"":""1145ms"",""timestamp"":1757002386981,""operation"":""application-startup""}"
+25,system,[INFO] Indicator device started receiving data,2025-09-04 16:13:06.981 +00:00,system,background,info,
+26,system,[DEBUG] Initializing license system handlers,2025-09-04 16:13:06.981 +00:00,debug,background,debug,
+27,system,[DEBUG] Checkpoint: license-handlers-initialized in application-startup,2025-09-04 16:13:06.982 +00:00,debug,background,debug,"{""checkpoint"":""license-handlers-initialized"",""elapsed"":""1146ms"",""timestamp"":1757002386982,""operation"":""application-startup""}"
+28,system,[INFO] License system handlers initialized,2025-09-04 16:13:06.982 +00:00,system,background,info,
+29,system,[DEBUG] Loading production renderer file,2025-09-04 16:13:06.982 +00:00,debug,background,debug,
+30,system,[DEBUG] Checkpoint: renderer-loaded in application-startup,2025-09-04 16:13:06.999 +00:00,debug,background,debug,"{""checkpoint"":""renderer-loaded"",""elapsed"":""1163ms"",""timestamp"":1757002386999,""operation"":""application-startup""}"
+31,system,[INFO] Renderer loaded successfully,2025-09-04 16:13:06.999 +00:00,system,background,info,
+32,system,[DEBUG] Initializing activation state manager,2025-09-04 16:13:07.000 +00:00,debug,background,debug,
+33,system,[DEBUG] Starting undefined,2025-09-04 16:13:07.000 +00:00,debug,unknown,debug,"{""timestamp"":1757002387000}"
+34,system,[INFO] [object Object],2025-09-04 16:13:07.000 +00:00,license,Checking system activation status,info,
+35,system,License activation check: not activated by system,2025-09-04 16:13:07.129 +00:00,system,unknown,info,
+36,system,License activation check failed: timer.stop is not a function by system,2025-09-04 16:13:07.132 +00:00,system,unknown,info,
+37,system,Activation state changed: false -> false (Initialization error fallback) by system,2025-09-04 16:13:07.138 +00:00,system,unknown,info,
+38,system,[DEBUG] Checkpoint: activation-state-initialized in application-startup,2025-09-04 16:13:07.143 +00:00,debug,background,debug,"{""checkpoint"":""activation-state-initialized"",""elapsed"":""1306ms"",""timestamp"":1757002387142,""operation"":""application-startup""}"
+39,system,[INFO] Activation state manager initialized,2025-09-04 16:13:07.143 +00:00,system,background,info,"{""isActivated"":false,""ds12Available"":false,""initialPage"":""activate-key""}"
+40,system,[DEBUG] Registering IPC handlers,2025-09-04 16:13:07.143 +00:00,debug,background,debug,
+41,system,[DEBUG] Checkpoint: device-handlers-registered in application-startup,2025-09-04 16:13:07.144 +00:00,debug,background,debug,"{""checkpoint"":""device-handlers-registered"",""elapsed"":""1308ms"",""timestamp"":1757002387144,""operation"":""application-startup""}"
+42,system,[INFO] Device handlers registered,2025-09-04 16:13:07.144 +00:00,system,background,info,
+43,system,[DEBUG] Checkpoint: settings-handlers-registered in application-startup,2025-09-04 16:13:07.144 +00:00,debug,background,debug,"{""checkpoint"":""settings-handlers-registered"",""elapsed"":""1308ms"",""timestamp"":1757002387144,""operation"":""application-startup""}"
+44,system,[INFO] Settings handlers registered,2025-09-04 16:13:07.144 +00:00,system,background,info,
+45,system,[DEBUG] Checkpoint: auth-handlers-registered in application-startup,2025-09-04 16:13:07.144 +00:00,debug,background,debug,"{""checkpoint"":""auth-handlers-registered"",""elapsed"":""1308ms"",""timestamp"":1757002387144,""operation"":""application-startup""}"
+46,system,[INFO] Authentication handlers registered,2025-09-04 16:13:07.145 +00:00,system,background,info,
+47,system,[DEBUG] Checkpoint: logging-handlers-registered in application-startup,2025-09-04 16:13:07.145 +00:00,debug,background,debug,"{""checkpoint"":""logging-handlers-registered"",""elapsed"":""1309ms"",""timestamp"":1757002387145,""operation"":""application-startup""}"
+48,system,[INFO] Logging handlers registered,2025-09-04 16:13:07.145 +00:00,system,background,info,
+49,system,[DEBUG] Loading application UI,2025-09-04 16:13:07.145 +00:00,debug,background,debug,"{""environment"":""development"",""initialPage"":""activate-key""}"
+50,system,[DEBUG] Checkpoint: database-sync in application-startup,2025-09-04 16:13:07.632 +00:00,debug,background,debug,"{""checkpoint"":""database-sync"",""elapsed"":""1593ms"",""timestamp"":1757002387632,""operation"":""application-startup""}"
+51,system,[DEBUG] Development mode: Database schema updated with new fields,2025-09-04 16:13:07.633 +00:00,debug,background,debug,
+52,system,[INFO] Database synchronized successfully,2025-09-04 16:13:07.633 +00:00,system,background,info,
+53,system,[DEBUG] Loading application settings,2025-09-04 16:13:07.633 +00:00,debug,background,debug,
+54,system,[DEBUG] Checkpoint: settings-loaded in application-startup,2025-09-04 16:13:07.649 +00:00,debug,background,debug,"{""checkpoint"":""settings-loaded"",""elapsed"":""1610ms"",""timestamp"":1757002387649,""operation"":""application-startup""}"
+55,system,[INFO] Application settings loaded,2025-09-04 16:13:07.649 +00:00,system,background,info,"{""indicatorPort"":""auto"",""indicatorBaudrate"":115200}"
+56,system,[DEBUG] Initializing indicator device,2025-09-04 16:13:07.649 +00:00,debug,background,debug,"{""port"":""auto"",""baudrate"":115200}"
+57,system,[DEBUG] Checkpoint: indicator-initialized in application-startup,2025-09-04 16:13:07.650 +00:00,debug,background,debug,"{""checkpoint"":""indicator-initialized"",""elapsed"":""1611ms"",""timestamp"":1757002387650,""operation"":""application-startup""}"
+58,system,[INFO] Indicator device initialized,2025-09-04 16:13:07.650 +00:00,system,background,info,
+59,system,[DEBUG] Initializing authentication system,2025-09-04 16:13:07.650 +00:00,debug,background,debug,
+60,system,[DEBUG] Checkpoint: auth-initialized in application-startup,2025-09-04 16:13:07.650 +00:00,debug,background,debug,"{""checkpoint"":""auth-initialized"",""elapsed"":""1611ms"",""timestamp"":1757002387650,""operation"":""application-startup""}"
+61,system,[INFO] Authentication system initialized,2025-09-04 16:13:07.650 +00:00,system,background,info,
+62,system,[DEBUG] Starting indicator data reception,2025-09-04 16:13:07.650 +00:00,debug,background,debug,
+63,system,[DEBUG] Checkpoint: indicator-receiving in application-startup,2025-09-04 16:13:07.650 +00:00,debug,background,debug,"{""checkpoint"":""indicator-receiving"",""elapsed"":""1611ms"",""timestamp"":1757002387650,""operation"":""application-startup""}"
+64,system,[INFO] Indicator device started receiving data,2025-09-04 16:13:07.650 +00:00,system,background,info,
+65,system,[DEBUG] Initializing license system handlers,2025-09-04 16:13:07.650 +00:00,debug,background,debug,
+66,system,[DEBUG] Checkpoint: license-handlers-initialized in application-startup,2025-09-04 16:13:07.650 +00:00,debug,background,debug,"{""checkpoint"":""license-handlers-initialized"",""elapsed"":""1611ms"",""timestamp"":1757002387650,""operation"":""application-startup""}"
+67,system,[INFO] License system handlers initialized,2025-09-04 16:13:07.650 +00:00,system,background,info,
+68,system,[DEBUG] Loading production renderer file,2025-09-04 16:13:07.651 +00:00,debug,background,debug,
+69,system,[DEBUG] Checkpoint: renderer-loaded in application-startup,2025-09-04 16:13:07.662 +00:00,debug,background,debug,"{""checkpoint"":""renderer-loaded"",""elapsed"":""1622ms"",""timestamp"":1757002387661,""operation"":""application-startup""}"
+70,system,[INFO] Renderer loaded successfully,2025-09-04 16:13:07.662 +00:00,system,background,info,
+71,system,[DEBUG] Initializing activation state manager,2025-09-04 16:13:07.662 +00:00,debug,background,debug,
+72,system,[DEBUG] Starting undefined,2025-09-04 16:13:07.663 +00:00,debug,unknown,debug,"{""timestamp"":1757002387663}"
+73,system,[INFO] [object Object],2025-09-04 16:13:07.663 +00:00,license,Checking system activation status,info,
+74,system,License activation check: not activated by system,2025-09-04 16:13:07.753 +00:00,system,unknown,info,
+75,system,License activation check failed: timer.stop is not a function by system,2025-09-04 16:13:07.758 +00:00,system,unknown,info,
+76,system,Activation state changed: false -> false (Initialization error fallback) by system,2025-09-04 16:13:07.761 +00:00,system,unknown,info,
+77,system,[DEBUG] Checkpoint: activation-state-initialized in application-startup,2025-09-04 16:13:07.765 +00:00,debug,background,debug,"{""checkpoint"":""activation-state-initialized"",""elapsed"":""1726ms"",""timestamp"":1757002387765,""operation"":""application-startup""}"
+78,system,[INFO] Activation state manager initialized,2025-09-04 16:13:07.765 +00:00,system,background,info,"{""isActivated"":false,""ds12Available"":false,""initialPage"":""activate-key""}"
+79,system,[DEBUG] Registering IPC handlers,2025-09-04 16:13:07.765 +00:00,debug,background,debug,
+80,system,[DEBUG] Checkpoint: device-handlers-registered in application-startup,2025-09-04 16:13:07.766 +00:00,debug,background,debug,"{""checkpoint"":""device-handlers-registered"",""elapsed"":""1727ms"",""timestamp"":1757002387766,""operation"":""application-startup""}"
+81,system,[INFO] Device handlers registered,2025-09-04 16:13:07.766 +00:00,system,background,info,
+82,system,[DEBUG] Checkpoint: settings-handlers-registered in application-startup,2025-09-04 16:13:07.766 +00:00,debug,background,debug,"{""checkpoint"":""settings-handlers-registered"",""elapsed"":""1727ms"",""timestamp"":1757002387766,""operation"":""application-startup""}"
+83,system,[INFO] Settings handlers registered,2025-09-04 16:13:07.766 +00:00,system,background,info,
+84,system,[DEBUG] Checkpoint: auth-handlers-registered in application-startup,2025-09-04 16:13:07.766 +00:00,debug,background,debug,"{""checkpoint"":""auth-handlers-registered"",""elapsed"":""1727ms"",""timestamp"":1757002387766,""operation"":""application-startup""}"
+85,system,[INFO] Authentication handlers registered,2025-09-04 16:13:07.766 +00:00,system,background,info,
+86,system,[DEBUG] Checkpoint: logging-handlers-registered in application-startup,2025-09-04 16:13:07.766 +00:00,debug,background,debug,"{""checkpoint"":""logging-handlers-registered"",""elapsed"":""1727ms"",""timestamp"":1757002387766,""operation"":""application-startup""}"
+87,system,[INFO] Logging handlers registered,2025-09-04 16:13:07.766 +00:00,system,background,info,
+88,system,[DEBUG] Loading application UI,2025-09-04 16:13:07.766 +00:00,debug,background,debug,"{""environment"":""development"",""initialPage"":""activate-key""}"
+89,system,"[INFO] Renderer finished loading, navigating to initial page",2025-09-04 16:13:07.778 +00:00,system,background,info,"{""initialPage"":""activate-key""}"
+90,system,[INFO] Completed application-startup,2025-09-04 16:13:07.782 +00:00,system,background,info,"{""duration"":""1743ms"",""startTime"":1757002386039,""endTime"":1757002387782,""operation"":""application-startup"",""environment"":""development"",""initialPage"":""activate-key"",""success"":true}"
+91,system,[INFO] SMC application initialization completed successfully,2025-09-04 16:13:07.782 +00:00,system,background,info,"{""totalStartupTime"":""1743ms"",""environment"":""development""}"
+92,system,"[INFO] Renderer finished loading, navigating to initial page",2025-09-04 16:13:11.991 +00:00,system,background,info,"{""initialPage"":""activate-key""}"
+93,system,[INFO] Completed application-startup,2025-09-04 16:13:11.994 +00:00,system,background,info,"{""duration"":""6158ms"",""startTime"":1757002385836,""endTime"":1757002391994,""operation"":""application-startup"",""environment"":""development"",""initialPage"":""activate-key"",""success"":true}"
+94,system,[INFO] SMC application initialization completed successfully,2025-09-04 16:13:11.994 +00:00,system,background,info,"{""totalStartupTime"":""6158ms"",""environment"":""development""}"
+95,system,[INFO] Starting SMC application initialization,2025-09-04 16:13:24.789 +00:00,system,background,info,
+96,system,[DEBUG] Waiting for app ready state,2025-09-04 16:13:24.789 +00:00,debug,background,debug,
+97,system,[DEBUG] Checkpoint: app-ready in application-startup,2025-09-04 16:13:24.835 +00:00,debug,background,debug,"{""checkpoint"":""app-ready"",""elapsed"":""47ms"",""timestamp"":1757002404835,""operation"":""application-startup""}"
+98,system,"[INFO] Electron app ready, proceeding with initialization",2025-09-04 16:13:24.835 +00:00,system,background,info,
+99,system,[DEBUG] Creating main window,2025-09-04 16:13:24.835 +00:00,debug,background,debug,
+100,system,[DEBUG] Checkpoint: window-created in application-startup,2025-09-04 16:13:24.894 +00:00,debug,background,debug,"{""checkpoint"":""window-created"",""elapsed"":""106ms"",""timestamp"":1757002404894,""operation"":""application-startup""}"
+101,system,[INFO] Main window created successfully,2025-09-04 16:13:24.894 +00:00,system,background,info,
+102,system,[DEBUG] Initializing database connection,2025-09-04 16:13:24.894 +00:00,debug,background,debug,
+103,system,[DEBUG] Starting application-startup,2025-09-04 16:13:24.789 +00:00,debug,background,debug,"{""timestamp"":1757002404788,""operation"":""application-startup""}"
+104,system,[DEBUG] Checkpoint: database-sync in application-startup,2025-09-04 16:13:25.562 +00:00,debug,background,debug,"{""checkpoint"":""database-sync"",""elapsed"":""774ms"",""timestamp"":1757002405562,""operation"":""application-startup""}"
+105,system,[DEBUG] Development mode: Database schema updated with new fields,2025-09-04 16:13:25.562 +00:00,debug,background,debug,
+106,system,[INFO] Database synchronized successfully,2025-09-04 16:13:25.562 +00:00,system,background,info,
+107,system,[DEBUG] Loading application settings,2025-09-04 16:13:25.562 +00:00,debug,background,debug,
+108,system,[DEBUG] Checkpoint: settings-loaded in application-startup,2025-09-04 16:13:25.582 +00:00,debug,background,debug,"{""checkpoint"":""settings-loaded"",""elapsed"":""794ms"",""timestamp"":1757002405582,""operation"":""application-startup""}"
+109,system,[INFO] Application settings loaded,2025-09-04 16:13:25.582 +00:00,system,background,info,"{""indicatorPort"":""auto"",""indicatorBaudrate"":115200}"
+110,system,[DEBUG] Initializing indicator device,2025-09-04 16:13:25.582 +00:00,debug,background,debug,"{""port"":""auto"",""baudrate"":115200}"
+111,system,[DEBUG] Checkpoint: indicator-initialized in application-startup,2025-09-04 16:13:25.583 +00:00,debug,background,debug,"{""checkpoint"":""indicator-initialized"",""elapsed"":""795ms"",""timestamp"":1757002405583,""operation"":""application-startup""}"
+112,system,[INFO] Indicator device initialized,2025-09-04 16:13:25.583 +00:00,system,background,info,
+113,system,[DEBUG] Initializing authentication system,2025-09-04 16:13:25.583 +00:00,debug,background,debug,
+114,system,[DEBUG] Checkpoint: auth-initialized in application-startup,2025-09-04 16:13:25.583 +00:00,debug,background,debug,"{""checkpoint"":""auth-initialized"",""elapsed"":""795ms"",""timestamp"":1757002405583,""operation"":""application-startup""}"
+115,system,[INFO] Authentication system initialized,2025-09-04 16:13:25.583 +00:00,system,background,info,
+116,system,[DEBUG] Starting indicator data reception,2025-09-04 16:13:25.583 +00:00,debug,background,debug,
+117,system,[DEBUG] Checkpoint: indicator-receiving in application-startup,2025-09-04 16:13:25.583 +00:00,debug,background,debug,"{""checkpoint"":""indicator-receiving"",""elapsed"":""795ms"",""timestamp"":1757002405583,""operation"":""application-startup""}"
+118,system,[INFO] Indicator device started receiving data,2025-09-04 16:13:25.583 +00:00,system,background,info,
+119,system,[DEBUG] Initializing license system handlers,2025-09-04 16:13:25.583 +00:00,debug,background,debug,
+120,system,[DEBUG] Checkpoint: license-handlers-initialized in application-startup,2025-09-04 16:13:25.584 +00:00,debug,background,debug,"{""checkpoint"":""license-handlers-initialized"",""elapsed"":""796ms"",""timestamp"":1757002405584,""operation"":""application-startup""}"
+121,system,[INFO] License system handlers initialized,2025-09-04 16:13:25.584 +00:00,system,background,info,
+122,system,[DEBUG] Loading production renderer file,2025-09-04 16:13:25.584 +00:00,debug,background,debug,
+123,system,[DEBUG] Checkpoint: renderer-loaded in application-startup,2025-09-04 16:13:25.597 +00:00,debug,background,debug,"{""checkpoint"":""renderer-loaded"",""elapsed"":""808ms"",""timestamp"":1757002405596,""operation"":""application-startup""}"
+124,system,[INFO] Renderer loaded successfully,2025-09-04 16:13:25.597 +00:00,system,background,info,
+125,system,[DEBUG] Initializing activation state manager,2025-09-04 16:13:25.597 +00:00,debug,background,debug,
+126,system,[DEBUG] Starting undefined,2025-09-04 16:13:25.598 +00:00,debug,unknown,debug,"{""timestamp"":1757002405598}"
+127,system,[INFO] [object Object],2025-09-04 16:13:25.598 +00:00,license,Checking system activation status,info,
+128,system,License activation check: not activated by system,2025-09-04 16:13:25.692 +00:00,system,unknown,info,
+129,system,License activation check failed: timer.stop is not a function by system,2025-09-04 16:13:25.696 +00:00,system,unknown,info,
+130,system,Activation state changed: false -> false (Initialization error fallback) by system,2025-09-04 16:13:25.700 +00:00,system,unknown,info,
+131,system,[DEBUG] Checkpoint: activation-state-initialized in application-startup,2025-09-04 16:13:25.704 +00:00,debug,background,debug,"{""checkpoint"":""activation-state-initialized"",""elapsed"":""916ms"",""timestamp"":1757002405704,""operation"":""application-startup""}"
+132,system,[INFO] Activation state manager initialized,2025-09-04 16:13:25.704 +00:00,system,background,info,"{""isActivated"":false,""ds12Available"":false,""initialPage"":""activate-key""}"
+133,system,[DEBUG] Registering IPC handlers,2025-09-04 16:13:25.704 +00:00,debug,background,debug,
+134,system,[DEBUG] Checkpoint: device-handlers-registered in application-startup,2025-09-04 16:13:25.705 +00:00,debug,background,debug,"{""checkpoint"":""device-handlers-registered"",""elapsed"":""917ms"",""timestamp"":1757002405705,""operation"":""application-startup""}"
+135,system,[INFO] Device handlers registered,2025-09-04 16:13:25.705 +00:00,system,background,info,
+136,system,[DEBUG] Checkpoint: settings-handlers-registered in application-startup,2025-09-04 16:13:25.705 +00:00,debug,background,debug,"{""checkpoint"":""settings-handlers-registered"",""elapsed"":""917ms"",""timestamp"":1757002405705,""operation"":""application-startup""}"
+137,system,[INFO] Settings handlers registered,2025-09-04 16:13:25.705 +00:00,system,background,info,
+138,system,[DEBUG] Checkpoint: auth-handlers-registered in application-startup,2025-09-04 16:13:25.705 +00:00,debug,background,debug,"{""checkpoint"":""auth-handlers-registered"",""elapsed"":""917ms"",""timestamp"":1757002405705,""operation"":""application-startup""}"
+139,system,[INFO] Authentication handlers registered,2025-09-04 16:13:25.705 +00:00,system,background,info,
+140,system,[DEBUG] Checkpoint: logging-handlers-registered in application-startup,2025-09-04 16:13:25.705 +00:00,debug,background,debug,"{""checkpoint"":""logging-handlers-registered"",""elapsed"":""917ms"",""timestamp"":1757002405705,""operation"":""application-startup""}"
+141,system,[INFO] Logging handlers registered,2025-09-04 16:13:25.706 +00:00,system,background,info,
+142,system,[DEBUG] Loading application UI,2025-09-04 16:13:25.706 +00:00,debug,background,debug,"{""environment"":""development"",""initialPage"":""activate-key""}"
+143,system,"[INFO] Renderer finished loading, navigating to initial page",2025-09-04 16:13:25.718 +00:00,system,background,info,"{""initialPage"":""activate-key""}"
+144,system,[INFO] Completed application-startup,2025-09-04 16:13:25.722 +00:00,system,background,info,"{""duration"":""934ms"",""startTime"":1757002404788,""endTime"":1757002405722,""operation"":""application-startup"",""environment"":""development"",""initialPage"":""activate-key"",""success"":true}"
+145,system,[INFO] SMC application initialization completed successfully,2025-09-04 16:13:25.722 +00:00,system,background,info,"{""totalStartupTime"":""934ms"",""environment"":""development""}"
+146,system,[INFO] Application shutdown initiated - cleaning up controllers,2025-09-04 16:14:53.317 +00:00,system,background,info,
+147,system,[INFO] Application shutdown initiated - cleaning up controllers,2025-09-04 16:14:54.304 +00:00,system,background,info,
+148,system,[INFO] Application shutdown initiated - cleaning up controllers,2025-09-04 16:14:55.541 +00:00,system,background,info,
+149,system,[INFO] Starting SMC application initialization,2025-09-04 17:16:53.948 +00:00,system,background,info,
+150,system,[DEBUG] Waiting for app ready state,2025-09-04 17:16:53.948 +00:00,debug,background,debug,
+151,system,[DEBUG] Checkpoint: app-ready in application-startup,2025-09-04 17:16:54.000 +00:00,debug,background,debug,"{""checkpoint"":""app-ready"",""elapsed"":""53ms"",""timestamp"":1757006214000,""operation"":""application-startup""}"
+152,system,"[INFO] Electron app ready, proceeding with initialization",2025-09-04 17:16:54.000 +00:00,system,background,info,
+153,system,[DEBUG] Creating main window,2025-09-04 17:16:54.000 +00:00,debug,background,debug,
+154,system,[DEBUG] Checkpoint: window-created in application-startup,2025-09-04 17:16:54.061 +00:00,debug,background,debug,"{""checkpoint"":""window-created"",""elapsed"":""114ms"",""timestamp"":1757006214061,""operation"":""application-startup""}"
+155,system,[INFO] Main window created successfully,2025-09-04 17:16:54.061 +00:00,system,background,info,
+156,system,[DEBUG] Initializing database connection,2025-09-04 17:16:54.061 +00:00,debug,background,debug,
+157,system,[DEBUG] Starting application-startup,2025-09-04 17:16:53.948 +00:00,debug,background,debug,"{""timestamp"":1757006213947,""operation"":""application-startup""}"
+158,system,[ERROR] Critical error during application initialization,2025-09-04 17:16:54.718 +00:00,error,background,error,"{""stage"":""startup"",""environment"":""development"",""error"":{""name"":""Error"",""message"":""No description found for \""DispensingLog\"" table. Check the table name and schema; remember, they _are_ case sensitive."",""stack"":""Error: No description found for \""DispensingLog\"" table. Check the table name and schema; remember, they _are_ case sensitive.\n    at SQLiteQueryInterface.describeTable (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\dialects\\sqlite\\query-interface.js:145:15)\n    at async SQLiteQueryInterface.changeColumn (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\dialects\\sqlite\\query-interface.js:38:20)\n    at async DispensingLog.sync (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\model.js:984:11)\n    at async Sequelize.sync (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\sequelize.js:377:9)\n    at async D:\\dev\\smc\\smc-app\\app\\background.js:20978:17""}}"
+159,system,[ERROR] Critical error during application initialization,2025-09-04 17:16:54.733 +00:00,error,background,error,"{""stage"":""startup"",""environment"":""development"",""error"":{""name"":""SequelizeDatabaseError"",""message"":""SQLITE_ERROR: no such table: DispensingLog_backup"",""stack"":""Error\n    at Database.<anonymous> (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\dialects\\sqlite\\query.js:185:27)\n    at D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\dialects\\sqlite\\query.js:183:50\n    at new Promise (<anonymous>)\n    at Query.run (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\dialects\\sqlite\\query.js:183:12)\n    at D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\sequelize.js:315:28\n    at async SQLiteQueryInterface.changeColumn (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\dialects\\sqlite\\query-interface.js:43:7)\n    at async DispensingLog.sync (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\model.js:984:11)\n    at async Sequelize.sync (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\lib\\sequelize.js:377:9)\n    at async D:\\dev\\smc\\smc-app\\app\\background.js:20978:17""}}"
+160,system,[INFO] Application shutdown initiated - cleaning up controllers,2025-09-04 17:16:57.601 +00:00,system,background,info,
+161,system,[INFO] Application shutdown initiated - cleaning up controllers,2025-09-04 17:16:59.745 +00:00,system,background,info,
+162,system,[INFO] Starting SMC application initialization,2025-09-04 17:21:27.571 +00:00,system,background,info,
+163,system,[DEBUG] Waiting for app ready state,2025-09-04 17:21:27.572 +00:00,debug,background,debug,
+164,system,[DEBUG] Checkpoint: app-ready in application-startup,2025-09-04 17:21:27.697 +00:00,debug,background,debug,"{""checkpoint"":""app-ready"",""elapsed"":""128ms"",""timestamp"":1757006487696,""operation"":""application-startup""}"
+165,system,"[INFO] Electron app ready, proceeding with initialization",2025-09-04 17:21:27.697 +00:00,system,background,info,
+166,system,[DEBUG] Creating main window,2025-09-04 17:21:27.697 +00:00,debug,background,debug,
+167,system,[DEBUG] Checkpoint: window-created in application-startup,2025-09-04 17:21:27.810 +00:00,debug,background,debug,"{""checkpoint"":""window-created"",""elapsed"":""241ms"",""timestamp"":1757006487809,""operation"":""application-startup""}"
+168,system,[INFO] Main window created successfully,2025-09-04 17:21:27.810 +00:00,system,background,info,
+169,system,[DEBUG] Initializing database connection,2025-09-04 17:21:27.810 +00:00,debug,background,debug,
+170,system,[DEBUG] Starting application-startup,2025-09-04 17:21:27.571 +00:00,debug,background,debug,"{""timestamp"":1757006487568,""operation"":""application-startup""}"
+171,system,[DEBUG] Checkpoint: database-sync in application-startup,2025-09-04 17:21:28.735 +00:00,debug,background,debug,"{""checkpoint"":""database-sync"",""elapsed"":""1167ms"",""timestamp"":1757006488735,""operation"":""application-startup""}"
+172,system,[DEBUG] Development mode: Database schema updated with new fields,2025-09-04 17:21:28.736 +00:00,debug,background,debug,
+173,system,[INFO] Database synchronized successfully,2025-09-04 17:21:28.736 +00:00,system,background,info,
+174,system,[DEBUG] Loading application settings,2025-09-04 17:21:28.736 +00:00,debug,background,debug,
+175,system,[DEBUG] Checkpoint: settings-loaded in application-startup,2025-09-04 17:21:28.760 +00:00,debug,background,debug,"{""checkpoint"":""settings-loaded"",""elapsed"":""1192ms"",""timestamp"":1757006488760,""operation"":""application-startup""}"
+176,system,[INFO] Application settings loaded,2025-09-04 17:21:28.760 +00:00,system,background,info,"{""indicatorPort"":""auto"",""indicatorBaudrate"":115200}"
+177,system,[DEBUG] Initializing indicator device,2025-09-04 17:21:28.760 +00:00,debug,background,debug,"{""port"":""auto"",""baudrate"":115200}"
+178,system,[DEBUG] Checkpoint: indicator-initialized in application-startup,2025-09-04 17:21:28.762 +00:00,debug,background,debug,"{""checkpoint"":""indicator-initialized"",""elapsed"":""1194ms"",""timestamp"":1757006488762,""operation"":""application-startup""}"
+179,system,[INFO] Indicator device initialized,2025-09-04 17:21:28.763 +00:00,system,background,info,
+180,system,[DEBUG] Initializing authentication system,2025-09-04 17:21:28.763 +00:00,debug,background,debug,
+181,system,[DEBUG] Checkpoint: auth-initialized in application-startup,2025-09-04 17:21:28.763 +00:00,debug,background,debug,"{""checkpoint"":""auth-initialized"",""elapsed"":""1195ms"",""timestamp"":1757006488763,""operation"":""application-startup""}"
+182,system,[INFO] Authentication system initialized,2025-09-04 17:21:28.763 +00:00,system,background,info,
+183,system,[DEBUG] Starting indicator data reception,2025-09-04 17:21:28.763 +00:00,debug,background,debug,
+184,system,[DEBUG] Checkpoint: indicator-receiving in application-startup,2025-09-04 17:21:28.763 +00:00,debug,background,debug,"{""checkpoint"":""indicator-receiving"",""elapsed"":""1195ms"",""timestamp"":1757006488763,""operation"":""application-startup""}"
+185,system,[INFO] Indicator device started receiving data,2025-09-04 17:21:28.763 +00:00,system,background,info,
+186,system,[DEBUG] Initializing license system handlers,2025-09-04 17:21:28.763 +00:00,debug,background,debug,
+187,system,[DEBUG] Checkpoint: license-handlers-initialized in application-startup,2025-09-04 17:21:28.763 +00:00,debug,background,debug,"{""checkpoint"":""license-handlers-initialized"",""elapsed"":""1195ms"",""timestamp"":1757006488763,""operation"":""application-startup""}"
+188,system,[INFO] License system handlers initialized,2025-09-04 17:21:28.763 +00:00,system,background,info,
+189,system,[DEBUG] Loading production renderer file,2025-09-04 17:21:28.763 +00:00,debug,background,debug,
+190,system,[DEBUG] Checkpoint: renderer-loaded in application-startup,2025-09-04 17:21:28.787 +00:00,debug,background,debug,"{""checkpoint"":""renderer-loaded"",""elapsed"":""1219ms"",""timestamp"":1757006488787,""operation"":""application-startup""}"
+191,system,[INFO] Renderer loaded successfully,2025-09-04 17:21:28.787 +00:00,system,background,info,
+192,system,[DEBUG] Initializing activation state manager,2025-09-04 17:21:28.787 +00:00,debug,background,debug,
+193,system,[DEBUG] Starting undefined,2025-09-04 17:21:28.788 +00:00,debug,unknown,debug,"{""timestamp"":1757006488788}"
+194,system,[INFO] [object Object],2025-09-04 17:21:28.788 +00:00,license,Checking system activation status,info,
+195,system,License activation check: not activated by system,2025-09-04 17:21:28.890 +00:00,system,unknown,info,
+196,system,License activation check failed: timer.stop is not a function by system,2025-09-04 17:21:28.895 +00:00,system,unknown,info,
+197,system,Activation state changed: false -> false (Initialization error fallback) by system,2025-09-04 17:21:28.913 +00:00,system,unknown,info,
+198,system,[DEBUG] Checkpoint: activation-state-initialized in application-startup,2025-09-04 17:21:28.920 +00:00,debug,background,debug,"{""checkpoint"":""activation-state-initialized"",""elapsed"":""1352ms"",""timestamp"":1757006488920,""operation"":""application-startup""}"
+199,system,[INFO] Activation state manager initialized,2025-09-04 17:21:28.920 +00:00,system,background,info,"{""isActivated"":false,""ds12Available"":false,""initialPage"":""activate-key""}"
+200,system,[DEBUG] Registering IPC handlers,2025-09-04 17:21:28.920 +00:00,debug,background,debug,
+201,system,[DEBUG] Checkpoint: device-handlers-registered in application-startup,2025-09-04 17:21:28.922 +00:00,debug,background,debug,"{""checkpoint"":""device-handlers-registered"",""elapsed"":""1354ms"",""timestamp"":1757006488922,""operation"":""application-startup""}"
+202,system,[INFO] Device handlers registered,2025-09-04 17:21:28.922 +00:00,system,background,info,
+203,system,[DEBUG] Checkpoint: settings-handlers-registered in application-startup,2025-09-04 17:21:28.923 +00:00,debug,background,debug,"{""checkpoint"":""settings-handlers-registered"",""elapsed"":""1355ms"",""timestamp"":1757006488923,""operation"":""application-startup""}"
+204,system,[INFO] Settings handlers registered,2025-09-04 17:21:28.923 +00:00,system,background,info,
+205,system,[DEBUG] Checkpoint: auth-handlers-registered in application-startup,2025-09-04 17:21:28.923 +00:00,debug,background,debug,"{""checkpoint"":""auth-handlers-registered"",""elapsed"":""1355ms"",""timestamp"":1757006488923,""operation"":""application-startup""}"
+206,system,[INFO] Authentication handlers registered,2025-09-04 17:21:28.923 +00:00,system,background,info,
+207,system,[DEBUG] Checkpoint: logging-handlers-registered in application-startup,2025-09-04 17:21:28.923 +00:00,debug,background,debug,"{""checkpoint"":""logging-handlers-registered"",""elapsed"":""1355ms"",""timestamp"":1757006488923,""operation"":""application-startup""}"
+208,system,[INFO] Logging handlers registered,2025-09-04 17:21:28.923 +00:00,system,background,info,
+209,system,[DEBUG] Loading application UI,2025-09-04 17:21:28.923 +00:00,debug,background,debug,"{""environment"":""development"",""initialPage"":""activate-key""}"
+210,system,"[INFO] Renderer finished loading, navigating to initial page",2025-09-04 17:21:28.972 +00:00,system,background,info,"{""initialPage"":""activate-key""}"
+211,system,[INFO] Completed application-startup,2025-09-04 17:21:28.981 +00:00,system,background,info,"{""duration"":""1413ms"",""startTime"":1757006487568,""endTime"":1757006488981,""operation"":""application-startup"",""environment"":""development"",""initialPage"":""activate-key"",""success"":true}"
+212,system,[INFO] SMC application initialization completed successfully,2025-09-04 17:21:28.982 +00:00,system,background,info,"{""totalStartupTime"":""1413ms"",""environment"":""development""}"
+213,system,[INFO] Application shutdown initiated - cleaning up controllers,2025-09-04 17:22:14.864 +00:00,system,background,info,
+214,system,[INFO] Graceful cleanup initiated,2025-09-04 17:22:14.864 +00:00,system,BuildTimeController,info,"{""operation"":""cleanup"",""hasInstance"":false,""isInitialized"":false,""deviceType"":""unknown""}"
+215,system,[INFO] Cleanup skipped - no instance to clean,2025-09-04 17:22:14.883 +00:00,system,BuildTimeController,info,"{""operation"":""cleanup"",""duration"":19}"
+216,system,[INFO] Controller cleanup completed successfully,2025-09-04 17:22:14.888 +00:00,system,background,info,
+217,system,[INFO] Build preparation started,2025-09-05 04:31:49.349 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T04:31:49.345Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+218,system,[INFO] Starting build configuration parsing,2025-09-05 04:31:49.415 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+219,system,[INFO] Build configuration parsed successfully,2025-09-05 04:31:49.422 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC Medical Center"",""deviceType"":""DS12"",""licenseType"":""internal"",""isInternalBuild"":true,""useLicenseData"":false}"
+220,system,[INFO] Starting build safety validation,2025-09-05 04:31:49.430 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":true,""licenseType"":""internal"",""bypassMode"":""false"",""realHardware"":""false""}"
+221,system,[INFO] Internal build safety validation passed,2025-09-05 04:31:49.436 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""internal"",""bypassMode"":""false""}"
+222,system,[INFO] Starting build environment validation,2025-09-05 04:31:49.442 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+223,system,[INFO] Build environment validation completed,2025-09-05 04:31:57.462 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+224,system,[INFO] Starting database cleanup,2025-09-05 04:31:57.491 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+225,system,[ERROR] Build preparation failed,2025-09-05 04:31:57.500 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:510:10)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:97:5)"",""duration"":""8154ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+226,system,[INFO] Build preparation started,2025-09-05 04:37:06.386 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T04:37:06.383Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+227,system,[INFO] Starting build configuration parsing,2025-09-05 04:37:06.488 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+228,system,[INFO] Build configuration parsed successfully,2025-09-05 04:37:06.529 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+229,system,[INFO] Starting build safety validation,2025-09-05 04:37:06.536 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+230,system,[INFO] Production build safety validation passed,2025-09-05 04:37:06.540 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+231,system,[INFO] Starting build environment validation,2025-09-05 04:37:06.546 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+232,system,[INFO] Build environment validation completed,2025-09-05 04:37:12.108 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+233,system,[INFO] Starting database cleanup,2025-09-05 04:37:12.137 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+234,system,[ERROR] Build preparation failed,2025-09-05 04:37:12.145 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:510:10)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:97:5)"",""duration"":""5762ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+235,system,[INFO] Build preparation started,2025-09-05 04:38:25.378 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T04:38:25.376Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+236,system,[INFO] Starting build configuration parsing,2025-09-05 04:38:25.457 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+237,system,[INFO] Build configuration parsed successfully,2025-09-05 04:38:25.494 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+238,system,[INFO] Starting build safety validation,2025-09-05 04:38:25.504 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+239,system,[INFO] Production build safety validation passed,2025-09-05 04:38:25.509 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+240,system,[INFO] Starting build environment validation,2025-09-05 04:38:25.514 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+241,system,[INFO] Build environment validation completed,2025-09-05 04:38:31.120 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+242,system,[INFO] Starting database cleanup,2025-09-05 04:38:31.136 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+243,system,[ERROR] Build preparation failed,2025-09-05 04:38:31.142 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:510:10)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:97:5)"",""duration"":""5766ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+244,system,[INFO] Build preparation started,2025-09-05 05:08:11.065 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T05:08:11.062Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+245,system,[INFO] Starting build configuration parsing,2025-09-05 05:08:11.137 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+246,system,[INFO] Build configuration parsed successfully,2025-09-05 05:08:11.153 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+247,system,[INFO] Starting build safety validation,2025-09-05 05:08:11.159 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+248,system,[INFO] Production build safety validation passed,2025-09-05 05:08:11.165 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+249,system,[INFO] Starting build environment validation,2025-09-05 05:08:11.170 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+250,system,[INFO] Build environment validation completed,2025-09-05 05:08:21.367 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+251,system,[INFO] Starting database cleanup,2025-09-05 05:08:21.379 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+252,system,[ERROR] Build preparation failed,2025-09-05 05:08:21.390 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:510:10)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:97:5)"",""duration"":""10327ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+253,system,[INFO] Build preparation started,2025-09-05 05:13:43.917 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T05:13:43.914Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+254,system,[INFO] Starting build configuration parsing,2025-09-05 05:13:43.982 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+255,system,[INFO] Build configuration parsed successfully,2025-09-05 05:13:44.000 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+256,system,[INFO] Starting build safety validation,2025-09-05 05:13:44.007 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+257,system,[INFO] Production build safety validation passed,2025-09-05 05:13:44.013 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+258,system,[INFO] Starting build environment validation,2025-09-05 05:13:44.022 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+259,system,[INFO] Build environment validation completed,2025-09-05 05:13:49.651 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+260,system,[INFO] Starting database cleanup,2025-09-05 05:13:49.677 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+261,system,[ERROR] Build preparation failed,2025-09-05 05:13:49.690 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:510:10)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:97:5)"",""duration"":""5776ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+262,system,[INFO] Starting SMC application initialization,2025-09-05 05:14:20.301 +00:00,system,background,info,
+263,system,[DEBUG] Waiting for app ready state,2025-09-05 05:14:20.301 +00:00,debug,background,debug,
+264,system,[DEBUG] Checkpoint: app-ready in application-startup,2025-09-05 05:14:20.426 +00:00,debug,background,debug,"{""checkpoint"":""app-ready"",""elapsed"":""126ms"",""timestamp"":1757049260425,""operation"":""application-startup""}"
+265,system,"[INFO] Electron app ready, proceeding with initialization",2025-09-05 05:14:20.426 +00:00,system,background,info,
+266,system,[DEBUG] Creating main window,2025-09-05 05:14:20.426 +00:00,debug,background,debug,
+267,system,[DEBUG] Checkpoint: window-created in application-startup,2025-09-05 05:14:20.558 +00:00,debug,background,debug,"{""checkpoint"":""window-created"",""elapsed"":""258ms"",""timestamp"":1757049260557,""operation"":""application-startup""}"
+268,system,[INFO] Main window created successfully,2025-09-05 05:14:20.558 +00:00,system,background,info,
+269,system,[DEBUG] Initializing database connection,2025-09-05 05:14:20.558 +00:00,debug,background,debug,
+270,system,[DEBUG] Starting application-startup,2025-09-05 05:14:20.300 +00:00,debug,background,debug,"{""timestamp"":1757049260299,""operation"":""application-startup""}"
+271,system,[DEBUG] Checkpoint: database-sync in application-startup,2025-09-05 05:14:21.319 +00:00,debug,background,debug,"{""checkpoint"":""database-sync"",""elapsed"":""1020ms"",""timestamp"":1757049261319,""operation"":""application-startup""}"
+272,system,[DEBUG] Development mode: Database schema updated with new fields,2025-09-05 05:14:21.319 +00:00,debug,background,debug,
+273,system,[INFO] Database synchronized successfully,2025-09-05 05:14:21.320 +00:00,system,background,info,
+274,system,[DEBUG] Loading application settings,2025-09-05 05:14:21.320 +00:00,debug,background,debug,
+275,system,[DEBUG] Checkpoint: settings-loaded in application-startup,2025-09-05 05:14:21.339 +00:00,debug,background,debug,"{""checkpoint"":""settings-loaded"",""elapsed"":""1040ms"",""timestamp"":1757049261339,""operation"":""application-startup""}"
+276,system,[INFO] Application settings loaded,2025-09-05 05:14:21.340 +00:00,system,background,info,"{""indicatorPort"":""auto"",""indicatorBaudrate"":115200}"
+277,system,[DEBUG] Initializing indicator device,2025-09-05 05:14:21.340 +00:00,debug,background,debug,"{""port"":""auto"",""baudrate"":115200}"
+278,system,[DEBUG] Checkpoint: indicator-initialized in application-startup,2025-09-05 05:14:21.342 +00:00,debug,background,debug,"{""checkpoint"":""indicator-initialized"",""elapsed"":""1043ms"",""timestamp"":1757049261342,""operation"":""application-startup""}"
+279,system,[INFO] Indicator device initialized,2025-09-05 05:14:21.342 +00:00,system,background,info,
+280,system,[DEBUG] Initializing authentication system,2025-09-05 05:14:21.342 +00:00,debug,background,debug,
+281,system,[DEBUG] Checkpoint: auth-initialized in application-startup,2025-09-05 05:14:21.342 +00:00,debug,background,debug,"{""checkpoint"":""auth-initialized"",""elapsed"":""1043ms"",""timestamp"":1757049261342,""operation"":""application-startup""}"
+282,system,[INFO] Authentication system initialized,2025-09-05 05:14:21.342 +00:00,system,background,info,
+283,system,[DEBUG] Starting indicator data reception,2025-09-05 05:14:21.342 +00:00,debug,background,debug,
+284,system,[DEBUG] Checkpoint: indicator-receiving in application-startup,2025-09-05 05:14:21.342 +00:00,debug,background,debug,"{""checkpoint"":""indicator-receiving"",""elapsed"":""1043ms"",""timestamp"":1757049261342,""operation"":""application-startup""}"
+285,system,[INFO] Indicator device started receiving data,2025-09-05 05:14:21.342 +00:00,system,background,info,
+286,system,[DEBUG] Initializing license system handlers,2025-09-05 05:14:21.342 +00:00,debug,background,debug,
+287,system,[DEBUG] Checkpoint: license-handlers-initialized in application-startup,2025-09-05 05:14:21.342 +00:00,debug,background,debug,"{""checkpoint"":""license-handlers-initialized"",""elapsed"":""1043ms"",""timestamp"":1757049261342,""operation"":""application-startup""}"
+288,system,[INFO] License system handlers initialized,2025-09-05 05:14:21.343 +00:00,system,background,info,
+289,system,[DEBUG] Loading production renderer file,2025-09-05 05:14:21.343 +00:00,debug,background,debug,
+290,system,[DEBUG] Checkpoint: renderer-loaded in application-startup,2025-09-05 05:14:21.367 +00:00,debug,background,debug,"{""checkpoint"":""renderer-loaded"",""elapsed"":""1068ms"",""timestamp"":1757049261367,""operation"":""application-startup""}"
+291,system,[INFO] Renderer loaded successfully,2025-09-05 05:14:21.368 +00:00,system,background,info,
+292,system,[DEBUG] Initializing activation state manager,2025-09-05 05:14:21.368 +00:00,debug,background,debug,
+293,system,[DEBUG] Starting undefined,2025-09-05 05:14:21.369 +00:00,debug,unknown,debug,"{""timestamp"":1757049261369}"
+294,system,[INFO] [object Object],2025-09-05 05:14:21.369 +00:00,license,Checking system activation status,info,
+295,system,License activation check: not activated by system,2025-09-05 05:14:21.451 +00:00,system,unknown,info,
+296,system,License activation check failed: timer.stop is not a function by system,2025-09-05 05:14:21.456 +00:00,system,unknown,info,
+297,system,Activation state changed: false -> false (Initialization error fallback) by system,2025-09-05 05:14:21.460 +00:00,system,unknown,info,
+298,system,[DEBUG] Checkpoint: activation-state-initialized in application-startup,2025-09-05 05:14:21.464 +00:00,debug,background,debug,"{""checkpoint"":""activation-state-initialized"",""elapsed"":""1164ms"",""timestamp"":1757049261463,""operation"":""application-startup""}"
+299,system,[INFO] Activation state manager initialized,2025-09-05 05:14:21.464 +00:00,system,background,info,"{""isActivated"":false,""ds12Available"":false,""initialPage"":""activate-key""}"
+300,system,[DEBUG] Registering IPC handlers,2025-09-05 05:14:21.464 +00:00,debug,background,debug,
+301,system,[DEBUG] Checkpoint: device-handlers-registered in application-startup,2025-09-05 05:14:21.465 +00:00,debug,background,debug,"{""checkpoint"":""device-handlers-registered"",""elapsed"":""1166ms"",""timestamp"":1757049261465,""operation"":""application-startup""}"
+302,system,[INFO] Device handlers registered,2025-09-05 05:14:21.465 +00:00,system,background,info,
+303,system,[DEBUG] Checkpoint: settings-handlers-registered in application-startup,2025-09-05 05:14:21.465 +00:00,debug,background,debug,"{""checkpoint"":""settings-handlers-registered"",""elapsed"":""1166ms"",""timestamp"":1757049261465,""operation"":""application-startup""}"
+304,system,[INFO] Settings handlers registered,2025-09-05 05:14:21.466 +00:00,system,background,info,
+305,system,[DEBUG] Checkpoint: auth-handlers-registered in application-startup,2025-09-05 05:14:21.466 +00:00,debug,background,debug,"{""checkpoint"":""auth-handlers-registered"",""elapsed"":""1167ms"",""timestamp"":1757049261466,""operation"":""application-startup""}"
+306,system,[INFO] Authentication handlers registered,2025-09-05 05:14:21.466 +00:00,system,background,info,
+307,system,[DEBUG] Checkpoint: logging-handlers-registered in application-startup,2025-09-05 05:14:21.466 +00:00,debug,background,debug,"{""checkpoint"":""logging-handlers-registered"",""elapsed"":""1167ms"",""timestamp"":1757049261466,""operation"":""application-startup""}"
+308,system,[INFO] Logging handlers registered,2025-09-05 05:14:21.466 +00:00,system,background,info,
+309,system,[DEBUG] Loading application UI,2025-09-05 05:14:21.466 +00:00,debug,background,debug,"{""environment"":""development"",""initialPage"":""activate-key""}"
+310,system,"[INFO] Renderer finished loading, navigating to initial page",2025-09-05 05:14:22.311 +00:00,system,background,info,"{""initialPage"":""activate-key""}"
+311,system,[INFO] Completed application-startup,2025-09-05 05:14:22.324 +00:00,system,background,info,"{""duration"":""2025ms"",""startTime"":1757049260299,""endTime"":1757049262324,""operation"":""application-startup"",""environment"":""development"",""initialPage"":""activate-key"",""success"":true}"
+312,system,[INFO] SMC application initialization completed successfully,2025-09-05 05:14:22.324 +00:00,system,background,info,"{""totalStartupTime"":""2025ms"",""environment"":""development""}"
+313,system,[DEBUG] Starting undefined,2025-09-05 05:14:22.473 +00:00,debug,unknown,debug,"{""timestamp"":1757049262472}"
+314,system,ESP32 MAC address request - hardware binding required by system,2025-09-05 05:14:22.476 +00:00,system,unknown,info,
+315,system,[INFO] [object Object],2025-09-05 05:14:22.482 +00:00,hardware,Starting ESP32 MAC address retrieval,info,
+316,system,[DEBUG] Starting undefined,2025-09-05 05:14:22.486 +00:00,debug,unknown,debug,"{""timestamp"":1757049262486}"
+317,system,[INFO] [object Object],2025-09-05 05:14:22.487 +00:00,hardware,ESP32 MAC address attempt 1,info,
+318,system,License activation error: attemptTimer.stop is not a function by system,2025-09-05 05:14:32.509 +00:00,system,unknown,info,
+319,system,[INFO] Build preparation started,2025-09-05 05:33:37.606 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T05:33:37.603Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+320,system,[INFO] Starting build configuration parsing,2025-09-05 05:33:37.666 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+321,system,[INFO] Build configuration parsed successfully,2025-09-05 05:33:37.679 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+322,system,[INFO] Starting build safety validation,2025-09-05 05:33:37.688 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+323,system,[INFO] Production build safety validation passed,2025-09-05 05:33:37.693 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+324,system,[INFO] Starting build environment validation,2025-09-05 05:33:37.699 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+325,system,[INFO] Build environment validation completed,2025-09-05 05:33:43.646 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+326,system,[INFO] Starting database cleanup,2025-09-05 05:33:43.653 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+327,system,[ERROR] Build preparation failed,2025-09-05 05:33:43.662 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:510:10)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:97:5)"",""duration"":""6059ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+328,system,[INFO] Build preparation started,2025-09-05 06:15:34.878 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T06:15:34.875Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+329,system,[INFO] Starting build configuration parsing,2025-09-05 06:15:34.935 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+330,system,[INFO] Build configuration parsed successfully,2025-09-05 06:15:34.971 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+331,system,[INFO] Starting build safety validation,2025-09-05 06:15:34.977 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+332,system,[INFO] Production build safety validation passed,2025-09-05 06:15:34.984 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+333,system,[INFO] Starting build environment validation,2025-09-05 06:15:35.047 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+334,system,[INFO] Build environment validation completed,2025-09-05 06:15:42.054 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+335,system,[INFO] Starting database cleanup,2025-09-05 06:15:42.081 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+336,system,[ERROR] Build preparation failed,2025-09-05 06:15:42.088 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:557:10)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:149:5)"",""duration"":""7213ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+337,system,[INFO] Build preparation started,2025-09-05 07:57:00.179 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T07:57:00.177Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+338,system,[INFO] Starting build configuration parsing,2025-09-05 07:57:00.231 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+339,system,[INFO] Build configuration parsed successfully,2025-09-05 07:57:00.241 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+340,system,[INFO] Starting build safety validation,2025-09-05 07:57:00.248 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+341,system,[INFO] Production build safety validation passed,2025-09-05 07:57:00.253 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+342,system,[INFO] Starting build environment validation,2025-09-05 07:57:00.258 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+343,system,[INFO] Build environment validation completed,2025-09-05 07:57:04.949 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+344,system,[INFO] Starting database cleanup,2025-09-05 07:57:04.955 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+345,system,[ERROR] Build preparation failed,2025-09-05 07:57:04.961 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:572:14\n    at executeWithRetry (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:46:20)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:570:13)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:151:5)"",""duration"":""4783ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+346,system,[INFO] Build preparation started,2025-09-05 07:57:49.506 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T07:57:49.504Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+347,system,[INFO] Starting build configuration parsing,2025-09-05 07:57:49.546 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+348,system,[INFO] Build configuration parsed successfully,2025-09-05 07:57:49.557 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+349,system,[INFO] Starting build safety validation,2025-09-05 07:57:49.563 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+350,system,[INFO] Production build safety validation passed,2025-09-05 07:57:49.568 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+351,system,[INFO] Starting build environment validation,2025-09-05 07:57:49.573 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+352,system,[INFO] Build environment validation completed,2025-09-05 07:57:53.954 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+353,system,[INFO] Starting database cleanup,2025-09-05 07:57:53.959 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+354,system,[ERROR] Build preparation failed,2025-09-05 07:57:53.964 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:572:14\n    at executeWithRetry (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:46:20)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:570:13)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:151:5)"",""duration"":""4459ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+355,system,[INFO] Build preparation started,2025-09-05 07:59:21.155 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T07:59:21.153Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+356,system,[INFO] Starting build configuration parsing,2025-09-05 07:59:21.200 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+357,system,[INFO] Build configuration parsed successfully,2025-09-05 07:59:21.211 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+358,system,[INFO] Starting build safety validation,2025-09-05 07:59:21.218 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+359,system,[INFO] Production build safety validation passed,2025-09-05 07:59:21.223 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+360,system,[INFO] Starting build environment validation,2025-09-05 07:59:21.228 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+361,system,[INFO] Build environment validation completed,2025-09-05 07:59:25.777 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+362,system,[INFO] Starting database cleanup,2025-09-05 07:59:25.782 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+363,system,[ERROR] Build preparation failed,2025-09-05 07:59:25.788 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:572:14\n    at executeWithRetry (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:46:20)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:570:13)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:151:5)"",""duration"":""4634ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+364,system,[INFO] Build preparation started,2025-09-05 08:00:13.336 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T08:00:13.334Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+365,system,[INFO] Starting build configuration parsing,2025-09-05 08:00:13.382 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+366,system,[INFO] Build configuration parsed successfully,2025-09-05 08:00:13.392 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+367,system,[INFO] Starting build safety validation,2025-09-05 08:00:13.398 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+368,system,[INFO] Production build safety validation passed,2025-09-05 08:00:13.402 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+369,system,[INFO] Starting build environment validation,2025-09-05 08:00:13.407 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+370,system,[INFO] Build environment validation completed,2025-09-05 08:00:17.872 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+371,system,[INFO] Starting database cleanup,2025-09-05 08:00:17.876 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+372,system,[ERROR] Build preparation failed,2025-09-05 08:00:17.882 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:572:14\n    at executeWithRetry (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:46:20)\n    at cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:570:13)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:151:5)"",""duration"":""4547ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+373,system,[INFO] Build preparation started,2025-09-05 08:03:23.832 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T08:03:23.829Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+374,system,[INFO] Starting build configuration parsing,2025-09-05 08:03:23.879 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+375,system,[INFO] Build configuration parsed successfully,2025-09-05 08:03:23.890 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+376,system,[INFO] Starting build safety validation,2025-09-05 08:03:23.897 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+377,system,[INFO] Production build safety validation passed,2025-09-05 08:03:23.901 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+378,system,[INFO] Starting build environment validation,2025-09-05 08:03:23.906 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+379,system,[INFO] Build environment validation completed,2025-09-05 08:03:28.540 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+380,system,[INFO] Starting database cleanup,2025-09-05 08:03:28.545 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+381,system,[ERROR] Build preparation failed,2025-09-05 08:03:31.061 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:578:14\n    at async executeWithRetry (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:46:14)\n    at async cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:574:7)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:151:5)"",""duration"":""7231ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+382,system,[INFO] Build preparation started,2025-09-05 08:04:21.200 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T08:04:21.198Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+383,system,[INFO] Starting build configuration parsing,2025-09-05 08:04:21.247 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+384,system,[INFO] Build configuration parsed successfully,2025-09-05 08:04:21.258 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+385,system,[INFO] Starting build safety validation,2025-09-05 08:04:21.269 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+386,system,[INFO] Production build safety validation passed,2025-09-05 08:04:21.274 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+387,system,[INFO] Starting build environment validation,2025-09-05 08:04:21.279 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+388,system,[INFO] Build environment validation completed,2025-09-05 08:04:25.762 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+389,system,[INFO] Starting database cleanup,2025-09-05 08:04:25.768 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+390,system,[ERROR] Build preparation failed,2025-09-05 08:04:28.290 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:588:16\n    at async executeWithRetry (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:46:14)\n    at async cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:574:7)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:151:5)"",""duration"":""7092ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+391,system,[INFO] Build preparation started,2025-09-05 08:48:42.339 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T08:48:42.337Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+392,system,[INFO] Starting build configuration parsing,2025-09-05 08:48:42.382 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+393,system,[INFO] Build configuration parsed successfully,2025-09-05 08:48:42.392 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+394,system,[INFO] Starting build safety validation,2025-09-05 08:48:42.398 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+395,system,[INFO] Production build safety validation passed,2025-09-05 08:48:42.402 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+396,system,[INFO] Starting build environment validation,2025-09-05 08:48:42.407 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+397,system,[INFO] Build environment validation completed,2025-09-05 08:48:46.865 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+398,system,[INFO] Starting database cleanup,2025-09-05 08:48:46.869 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+399,system,[ERROR] Build preparation failed,2025-09-05 08:48:55.402 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'"",""stack"":""Error: EBUSY: resource busy or locked, unlink 'D:\\dev\\smc\\smc-app\\resources\\db\\database.db'\n    at Object.unlinkSync (node:fs:1877:11)\n    at D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:598:20\n    at async executeWithRetry (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:46:14)\n    at async cleanDatabase (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:574:7)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:151:5)"",""duration"":""13064ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+400,system,[INFO] Build preparation started,2025-09-05 08:49:36.668 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T08:49:36.666Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+401,system,[INFO] Starting build configuration parsing,2025-09-05 08:49:36.710 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+402,system,[INFO] Build configuration parsed successfully,2025-09-05 08:49:36.721 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+403,system,[INFO] Starting build safety validation,2025-09-05 08:49:36.726 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+404,system,[INFO] Production build safety validation passed,2025-09-05 08:49:36.732 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+405,system,[INFO] Starting build environment validation,2025-09-05 08:49:36.736 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+406,system,[INFO] Build environment validation completed,2025-09-05 08:49:41.415 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+407,system,[INFO] Starting database cleanup,2025-09-05 08:49:41.420 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+408,system,[INFO] Database cleanup completed,2025-09-05 08:49:50.976 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+409,system,[INFO] Starting organization data setup,2025-09-05 08:49:50.982 +00:00,build,build-prep,info,"{""operation"":""setupOrganizationData"",""organizationName"":""SMC_INTERNAL"",""customerName"":""SMC_INTERNAL"",""useLicenseData"":true}"
+410,system,[ERROR] Failed to setup organization data,2025-09-05 08:49:50.990 +00:00,error,build-prep,error,"{""operation"":""setupOrganizationData"",""error"":""Validation error"",""organizationName"":""SMC_INTERNAL""}"
+411,system,[ERROR] Build preparation failed,2025-09-05 08:49:52.007 +00:00,error,build-prep,error,"{""operation"":""main"",""error"":""Validation error"",""stack"":""Error\n    at Database.<anonymous> (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\src\\dialects\\sqlite\\query.js:236:27)\n    at D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\src\\dialects\\sqlite\\query.js:234:50\n    at new Promise (<anonymous>)\n    at Query.run (D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\src\\dialects\\sqlite\\query.js:234:12)\n    at D:\\dev\\smc\\smc-app\\node_modules\\sequelize\\src\\sequelize.js:650:28\n    at async setupOrganizationData (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:848:5)\n    at async main (D:\\dev\\smc\\smc-app\\scripts\\build-prep.ts:152:5)"",""duration"":""15341ms"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+412,system,[INFO] Build preparation started,2025-09-05 08:53:07.459 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T08:53:07.457Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+413,system,[INFO] Starting build configuration parsing,2025-09-05 08:53:07.503 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+414,system,[INFO] Build configuration parsed successfully,2025-09-05 08:53:07.514 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+415,system,[INFO] Starting build safety validation,2025-09-05 08:53:07.520 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+416,system,[INFO] Production build safety validation passed,2025-09-05 08:53:07.525 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+417,system,[INFO] Starting build environment validation,2025-09-05 08:53:07.530 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+418,system,[INFO] Build environment validation completed,2025-09-05 08:53:12.071 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+419,system,[INFO] Starting database cleanup,2025-09-05 08:53:12.076 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+420,system,[INFO] Database cleanup completed,2025-09-05 08:53:21.633 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+421,system,[INFO] Starting organization data setup,2025-09-05 08:53:21.637 +00:00,build,build-prep,info,"{""operation"":""setupOrganizationData"",""organizationName"":""SMC_INTERNAL"",""customerName"":""SMC_INTERNAL"",""useLicenseData"":true}"
+422,system,Production build preparation completed for SMC_INTERNAL (Customer: SMC_INTERNAL) - License-based configuration,2025-09-05 08:53:21,system,unknown,info,
+423,system,[INFO] Organization data setup completed,2025-09-05 08:53:22.722 +00:00,build,build-prep,info,"{""operation"":""setupOrganizationData"",""organizationName"":""SMC_INTERNAL""}"
+424,system,[INFO] Starting license file cleanup,2025-09-05 08:53:22.726 +00:00,build,build-prep,info,"{""operation"":""cleanLicenseFiles""}"
+425,system,[INFO] License file cleanup completed,2025-09-05 08:53:22.731 +00:00,build,build-prep,info,"{""operation"":""cleanLicenseFiles"",""removedCount"":1}"
+426,system,[INFO] Starting resources directory preparation,2025-09-05 08:53:22.736 +00:00,build,build-prep,info,"{""operation"":""prepareResourcesDirectory""}"
+427,system,[INFO] Resources directory preparation completed,2025-09-05 08:53:22.743 +00:00,build,build-prep,info,"{""operation"":""prepareResourcesDirectory""}"
+428,system,[INFO] Starting build readiness validation,2025-09-05 08:53:22.748 +00:00,build,build-prep,info,"{""operation"":""validateBuildReadiness""}"
+429,system,[INFO] Build readiness validation completed,2025-09-05 08:53:23.771 +00:00,build,build-prep,info,"{""operation"":""validateBuildReadiness""}"
+430,system,[INFO] Build preparation completed successfully,2025-09-05 08:53:23.776 +00:00,build,build-prep,info,"{""operation"":""main"",""duration"":""16319ms"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+431,system,[INFO] Build preparation started,2025-09-05 09:09:00.836 +00:00,build,build-prep,info,"{""operation"":""main"",""timestamp"":""2025-09-05T09:09:00.833Z"",""platform"":""win32"",""nodeVersion"":""v20.15.0""}"
+432,system,[INFO] Starting build configuration parsing,2025-09-05 09:09:00.877 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""args"":[]}"
+433,system,[INFO] Build configuration parsed successfully,2025-09-05 09:09:00.887 +00:00,build,build-prep,info,"{""operation"":""parseBuildConfiguration"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+434,system,[INFO] Starting build safety validation,2025-09-05 09:09:00.893 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""isInternalBuild"":false,""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+435,system,[INFO] Production build safety validation passed,2025-09-05 09:09:00.898 +00:00,build,build-prep,info,"{""operation"":""validateBuildSafety"",""licenseType"":""production"",""bypassMode"":""false"",""realHardware"":""false""}"
+436,system,[INFO] Starting build environment validation,2025-09-05 09:09:00.903 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""platform"":""win32""}"
+437,system,[INFO] Build environment validation completed,2025-09-05 09:09:05.220 +00:00,build,build-prep,info,"{""operation"":""validateBuildEnvironment"",""nodeVersion"":""v20.15.0"",""majorVersion"":20}"
+438,system,[INFO] Starting database cleanup,2025-09-05 09:09:05.225 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+439,system,[INFO] Database cleanup completed,2025-09-05 09:09:14.786 +00:00,build,build-prep,info,"{""operation"":""cleanDatabase""}"
+440,system,[INFO] Starting organization data setup,2025-09-05 09:09:14.790 +00:00,build,build-prep,info,"{""operation"":""setupOrganizationData"",""organizationName"":""SMC_INTERNAL"",""customerName"":""SMC_INTERNAL"",""useLicenseData"":true}"
+441,system,Production build preparation completed for SMC_INTERNAL (Customer: SMC_INTERNAL) - License-based configuration,2025-09-05 09:09:14,system,unknown,info,
+442,system,[INFO] Organization data setup completed,2025-09-05 09:09:15.856 +00:00,build,build-prep,info,"{""operation"":""setupOrganizationData"",""organizationName"":""SMC_INTERNAL""}"
+443,system,[INFO] Starting license file cleanup,2025-09-05 09:09:15.860 +00:00,build,build-prep,info,"{""operation"":""cleanLicenseFiles""}"
+444,system,[INFO] License file cleanup completed,2025-09-05 09:09:15.864 +00:00,build,build-prep,info,"{""operation"":""cleanLicenseFiles"",""removedCount"":1}"
+445,system,[INFO] Starting resources directory preparation,2025-09-05 09:09:15.870 +00:00,build,build-prep,info,"{""operation"":""prepareResourcesDirectory""}"
+446,system,[INFO] Resources directory preparation completed,2025-09-05 09:09:15.876 +00:00,build,build-prep,info,"{""operation"":""prepareResourcesDirectory""}"
+447,system,[INFO] Starting build readiness validation,2025-09-05 09:09:15.880 +00:00,build,build-prep,info,"{""operation"":""validateBuildReadiness""}"
+448,system,[INFO] Build readiness validation completed,2025-09-05 09:09:16.889 +00:00,build,build-prep,info,"{""operation"":""validateBuildReadiness""}"
+449,system,[INFO] Build preparation completed successfully,2025-09-05 09:09:16.894 +00:00,build,build-prep,info,"{""operation"":""main"",""duration"":""16061ms"",""organizationName"":""SMC_INTERNAL"",""deviceType"":""DS12"",""licenseType"":""production"",""isInternalBuild"":false,""useLicenseData"":true}"
+450,system,[INFO] Starting SMC application initialization,2025-09-05 12:41:57.363 +00:00,system,background,info,
+451,system,[DEBUG] Waiting for app ready state,2025-09-05 12:41:57.363 +00:00,debug,background,debug,
+452,system,[DEBUG] Checkpoint: app-ready in application-startup,2025-09-05 12:41:57.418 +00:00,debug,background,debug,"{""checkpoint"":""app-ready"",""elapsed"":""55ms"",""timestamp"":1757076117417,""operation"":""application-startup""}"
+453,system,"[INFO] Electron app ready, proceeding with initialization",2025-09-05 12:41:57.418 +00:00,system,background,info,
+454,system,[DEBUG] Creating main window,2025-09-05 12:41:57.418 +00:00,debug,background,debug,
+455,system,[DEBUG] Checkpoint: window-created in application-startup,2025-09-05 12:41:57.458 +00:00,debug,background,debug,"{""checkpoint"":""window-created"",""elapsed"":""96ms"",""timestamp"":1757076117458,""operation"":""application-startup""}"
+456,system,[INFO] Main window created successfully,2025-09-05 12:41:57.458 +00:00,system,background,info,
+457,system,[DEBUG] Initializing database connection,2025-09-05 12:41:57.458 +00:00,debug,background,debug,
+458,system,[DEBUG] Starting application-startup,2025-09-05 12:41:57.363 +00:00,debug,background,debug,"{""timestamp"":1757076117362,""operation"":""application-startup""}"
+459,system,[DEBUG] Checkpoint: database-sync in application-startup,2025-09-05 12:41:57.528 +00:00,debug,background,debug,"{""checkpoint"":""database-sync"",""elapsed"":""166ms"",""timestamp"":1757076117528,""operation"":""application-startup""}"
+460,system,[INFO] Database synchronized successfully,2025-09-05 12:41:57.528 +00:00,system,background,info,
+461,system,[DEBUG] Loading application settings,2025-09-05 12:41:57.529 +00:00,debug,background,debug,
+462,system,[DEBUG] Checkpoint: settings-loaded in application-startup,2025-09-05 12:41:57.541 +00:00,debug,background,debug,"{""checkpoint"":""settings-loaded"",""elapsed"":""179ms"",""timestamp"":1757076117541,""operation"":""application-startup""}"
+463,system,[INFO] Application settings loaded,2025-09-05 12:41:57.542 +00:00,system,background,info,"{""indicatorPort"":""auto"",""indicatorBaudrate"":115200}"
+464,system,[DEBUG] Initializing indicator device,2025-09-05 12:41:57.542 +00:00,debug,background,debug,"{""port"":""auto"",""baudrate"":115200}"
+465,system,[DEBUG] Checkpoint: indicator-initialized in application-startup,2025-09-05 12:41:57.542 +00:00,debug,background,debug,"{""checkpoint"":""indicator-initialized"",""elapsed"":""180ms"",""timestamp"":1757076117542,""operation"":""application-startup""}"
+466,system,[INFO] Indicator device initialized,2025-09-05 12:41:57.542 +00:00,system,background,info,
+467,system,[DEBUG] Initializing authentication system,2025-09-05 12:41:57.542 +00:00,debug,background,debug,
+468,system,[DEBUG] Checkpoint: auth-initialized in application-startup,2025-09-05 12:41:57.542 +00:00,debug,background,debug,"{""checkpoint"":""auth-initialized"",""elapsed"":""180ms"",""timestamp"":1757076117542,""operation"":""application-startup""}"
+469,system,[INFO] Authentication system initialized,2025-09-05 12:41:57.543 +00:00,system,background,info,
+470,system,[DEBUG] Starting indicator data reception,2025-09-05 12:41:57.543 +00:00,debug,background,debug,
+471,system,[DEBUG] Checkpoint: indicator-receiving in application-startup,2025-09-05 12:41:57.543 +00:00,debug,background,debug,"{""checkpoint"":""indicator-receiving"",""elapsed"":""181ms"",""timestamp"":1757076117543,""operation"":""application-startup""}"
+472,system,[INFO] Indicator device started receiving data,2025-09-05 12:41:57.543 +00:00,system,background,info,
+473,system,[DEBUG] Initializing license system handlers,2025-09-05 12:41:57.543 +00:00,debug,background,debug,
+474,system,[DEBUG] Checkpoint: license-handlers-initialized in application-startup,2025-09-05 12:41:57.543 +00:00,debug,background,debug,"{""checkpoint"":""license-handlers-initialized"",""elapsed"":""181ms"",""timestamp"":1757076117543,""operation"":""application-startup""}"
+475,system,[INFO] License system handlers initialized,2025-09-05 12:41:57.543 +00:00,system,background,info,
+476,system,[DEBUG] Loading production renderer file,2025-09-05 12:41:57.543 +00:00,debug,background,debug,
+477,system,[DEBUG] Checkpoint: renderer-loaded in application-startup,2025-09-05 12:41:57.552 +00:00,debug,background,debug,"{""checkpoint"":""renderer-loaded"",""elapsed"":""190ms"",""timestamp"":1757076117552,""operation"":""application-startup""}"
+478,system,[INFO] Renderer loaded successfully,2025-09-05 12:41:57.552 +00:00,system,background,info,
+479,system,[DEBUG] Initializing activation state manager,2025-09-05 12:41:57.552 +00:00,debug,background,debug,
+480,system,[DEBUG] Starting undefined,2025-09-05 12:41:57.553 +00:00,debug,unknown,debug,"{""timestamp"":1757076117553}"
+481,system,[INFO] [object Object],2025-09-05 12:41:57.553 +00:00,license,Checking system activation status,info,
+482,system,License activation check: not activated by system,2025-09-05 12:41:57.615 +00:00,system,unknown,info,
+483,system,License activation check failed: e.stop is not a function by system,2025-09-05 12:41:57.618 +00:00,system,unknown,info,
+484,system,Activation state changed: false -> false (Initialization error fallback) by system,2025-09-05 12:41:57.621 +00:00,system,unknown,info,
+485,system,[DEBUG] Checkpoint: activation-state-initialized in application-startup,2025-09-05 12:41:57.624 +00:00,debug,background,debug,"{""checkpoint"":""activation-state-initialized"",""elapsed"":""262ms"",""timestamp"":1757076117624,""operation"":""application-startup""}"
+486,system,[INFO] Activation state manager initialized,2025-09-05 12:41:57.624 +00:00,system,background,info,"{""isActivated"":false,""ds12Available"":false,""initialPage"":""activate-key""}"
+487,system,[DEBUG] Registering IPC handlers,2025-09-05 12:41:57.624 +00:00,debug,background,debug,
+488,system,[DEBUG] Checkpoint: device-handlers-registered in application-startup,2025-09-05 12:41:57.624 +00:00,debug,background,debug,"{""checkpoint"":""device-handlers-registered"",""elapsed"":""262ms"",""timestamp"":1757076117624,""operation"":""application-startup""}"
+489,system,[INFO] Device handlers registered,2025-09-05 12:41:57.624 +00:00,system,background,info,
+490,system,[DEBUG] Checkpoint: settings-handlers-registered in application-startup,2025-09-05 12:41:57.624 +00:00,debug,background,debug,"{""checkpoint"":""settings-handlers-registered"",""elapsed"":""262ms"",""timestamp"":1757076117624,""operation"":""application-startup""}"
+491,system,[INFO] Settings handlers registered,2025-09-05 12:41:57.624 +00:00,system,background,info,
+492,system,[DEBUG] Checkpoint: auth-handlers-registered in application-startup,2025-09-05 12:41:57.624 +00:00,debug,background,debug,"{""checkpoint"":""auth-handlers-registered"",""elapsed"":""262ms"",""timestamp"":1757076117624,""operation"":""application-startup""}"
+493,system,[INFO] Authentication handlers registered,2025-09-05 12:41:57.624 +00:00,system,background,info,
+494,system,[DEBUG] Checkpoint: logging-handlers-registered in application-startup,2025-09-05 12:41:57.624 +00:00,debug,background,debug,"{""checkpoint"":""logging-handlers-registered"",""elapsed"":""262ms"",""timestamp"":1757076117624,""operation"":""application-startup""}"
+495,system,[INFO] Logging handlers registered,2025-09-05 12:41:57.624 +00:00,system,background,info,
+496,system,[DEBUG] Loading application UI,2025-09-05 12:41:57.624 +00:00,debug,background,debug,"{""environment"":""production"",""initialPage"":""activate-key""}"
+497,system,[INFO] Completed application-startup,2025-09-05 12:41:59.003 +00:00,system,background,info,"{""duration"":""1640ms"",""startTime"":1757076117362,""endTime"":1757076119002,""operation"":""application-startup"",""environment"":""production"",""initialPage"":""activate-key"",""success"":true}"
+498,system,[INFO] SMC application initialization completed successfully,2025-09-05 12:41:59.003 +00:00,system,background,info,"{""totalStartupTime"":""1640ms"",""environment"":""production""}"
+499,system,"[INFO] Renderer finished loading, navigating to initial page",2025-09-05 12:41:59.055 +00:00,system,background,info,"{""initialPage"":""activate-key""}"
+500,system,[DEBUG] Starting undefined,2025-09-05 12:41:59.062 +00:00,debug,unknown,debug,"{""timestamp"":1757076119062}"
+501,system,ESP32 MAC address request - hardware binding required by system,2025-09-05 12:41:59.063 +00:00,system,unknown,info,
+502,system,[INFO] [object Object],2025-09-05 12:41:59.067 +00:00,hardware,Starting ESP32 MAC address retrieval,info,
+503,system,[DEBUG] Starting undefined,2025-09-05 12:41:59.070 +00:00,debug,unknown,debug,"{""timestamp"":1757076119070}"
+504,system,[INFO] [object Object],2025-09-05 12:41:59.070 +00:00,hardware,ESP32 MAC address attempt 1,info,
+505,system,License activation error: r.stop is not a function by system,2025-09-05 12:42:09.084 +00:00,system,unknown,info,
+506,system,[INFO] Application shutdown initiated - cleaning up controllers,2025-09-05 12:42:11.993 +00:00,system,background,info,
+507,system,[INFO] Graceful cleanup initiated,2025-09-05 12:42:11.993 +00:00,system,BuildTimeController,info,"{""operation"":""cleanup"",""hasInstance"":false,""isInitialized"":false,""deviceType"":""unknown""}"
+508,system,[INFO] Cleanup skipped - no instance to clean,2025-09-05 12:42:12.010 +00:00,system,BuildTimeController,info,"{""operation"":""cleanup"",""duration"":17}"

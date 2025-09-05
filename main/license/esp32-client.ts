@@ -1,7 +1,12 @@
 import * as http from "http";
 import { logger } from "../logger";
 import { getValidationMode } from "../utils/environment";
-import { runtimeLogger, logHardwareOperation, PerformanceTimer } from "../logger/runtime-logger";
+import {
+  runtimeLogger,
+  logHardwareOperation,
+  PerformanceTimer,
+} from "../logger/runtime-logger";
+import { createHash } from "crypto";
 
 /**
  * ESP32 Client
@@ -52,44 +57,45 @@ export class ESP32Client {
 
     try {
       console.log(`info: Testing ESP32 connection to ${targetIp}`);
-      
+
       await logHardwareOperation(`Testing ESP32 connection to ${targetIp}`, {
         operation: "esp32_connection_test",
         target_ip: targetIp,
-        endpoint: this.MAC_ENDPOINT
+        endpoint: this.MAC_ENDPOINT,
       });
 
       const response = await this.makeHttpRequest(targetIp, this.MAC_ENDPOINT);
 
       if (response.statusCode === 200) {
         console.log(`info: ESP32 connection test successful`);
-        
+
         await logHardwareOperation(`ESP32 connection test successful`, {
           operation: "esp32_connection_test_success",
           target_ip: targetIp,
           status_code: response.statusCode,
-          duration_ms: timer.stop()
+          duration_ms: timer ? timer.stop() : 0,
         });
-        
+
         return true;
       } else {
         console.log(
           `debug: ESP32 connection test failed with status ${response.statusCode}`
         );
-        
+
         await logHardwareOperation(`ESP32 connection test failed`, {
           operation: "esp32_connection_test_failed",
           target_ip: targetIp,
           status_code: response.statusCode,
-          duration_ms: timer.stop()
+          duration_ms: timer ? timer.stop() : 0,
         });
-        
+
         return false;
       }
     } catch (error) {
       console.error(`error: ESP32 connection test failed:`, error);
-      
+
       await runtimeLogger({
+        user: "system",
         logType: "hardware",
         component: "esp32-client",
         level: "error",
@@ -98,55 +104,69 @@ export class ESP32Client {
           operation: "esp32_connection_test_error",
           target_ip: targetIp,
           error: error.message,
-          duration_ms: timer.stop()
-        }
+          duration_ms: timer ? timer.stop() : 0,
+        },
       });
-      
+
       return false;
     }
   }
 
   /**
-   * ดึง MAC address จาก ESP32 (HKDF v2.0 + Internal License Support)
-   * 🔒 ตรวจสอบ license type ก่อน - bypass สำหรับ internal/development licenses
+   * ดึง MAC address จาก ESP32 (HKDF v2.0 + Enhanced Internal License Support)
+   * 🔒 ตรวจสอบ license type และ environment variables - bypass สำหรับ internal/development builds
    * พร้อม retry logic และ error handling
    */
   static async getMacAddress(ip?: string): Promise<string | null> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
     const timer = new PerformanceTimer();
+    const validationMode = getValidationMode();
+    const buildType = process.env.BUILD_TYPE;
+    const esp32Bypass = process.env.ESP32_VALIDATION_BYPASS === 'true';
 
-    // ตรวจสอบ license type ก่อนเรียก ESP32 hardware
+    // Enhanced bypass logic for internal builds
     try {
       const { LicenseFileManager } = await import("./file-manager");
       const licenseData = await LicenseFileManager.parseLicenseFile();
+      const licenseType = licenseData?.license_type;
 
+      // Multiple bypass conditions
       if (
-        licenseData &&
-        (licenseData.license_type === "internal" ||
-          licenseData.license_type === "development")
+        (licenseData && (licenseType === "internal" || licenseType === "development")) ||
+        validationMode === 'bypass' ||
+        buildType === 'internal' ||
+        buildType === 'development' ||
+        esp32Bypass
       ) {
+        const bypassReason = this.getBypassReason(licenseType, validationMode, buildType, esp32Bypass);
+        
         console.log(
-          `info: ${licenseData.license_type.toUpperCase()} license detected - bypassing ESP32 hardware validation`
+          `info: ESP32 bypass activated - ${bypassReason}`
         );
         await logger({
           user: "system",
-          message: `${licenseData.license_type.toUpperCase()} license bypass - ESP32 hardware validation skipped for organization: ${
-            licenseData.organization
-          }`,
+          message: `ESP32 hardware validation bypassed: ${bypassReason}`,
         });
 
-        await logHardwareOperation(`Bypassing ESP32 MAC address check for ${licenseData.license_type} license`, {
-          operation: "esp32_mac_bypass",
-          license_type: licenseData.license_type,
-          organization: licenseData.organization,
-          target_ip: targetIp,
-          mock_mac: "AA:BB:CC:DD:EE:FF"
-        });
+        const mockMacAddress = this.generateMockMacAddress(bypassReason);
 
-        // Return mock MAC address for internal/development licenses
-        const mockMacAddress = "AA:BB:CC:DD:EE:FF"; // Standard format mock MAC
+        await logHardwareOperation(
+          `Bypassing ESP32 MAC address check: ${bypassReason}`,
+          {
+            operation: "esp32_mac_bypass",
+            license_type: licenseType,
+            validation_mode: validationMode,
+            build_type: buildType,
+            esp32_bypass: esp32Bypass,
+            organization: licenseData?.organization,
+            target_ip: targetIp,
+            mock_mac: mockMacAddress,
+            bypass_reason: bypassReason,
+          }
+        );
+
         console.log(
-          `info: Using mock MAC address for ${licenseData.license_type} license: ${mockMacAddress}`
+          `info: Using mock MAC address: ${mockMacAddress} (reason: ${bypassReason})`
         );
         return mockMacAddress;
       }
@@ -168,7 +188,7 @@ export class ESP32Client {
       operation: "esp32_get_mac_start",
       target_ip: targetIp,
       endpoint: this.MAC_ENDPOINT,
-      max_retries: this.DEFAULT_CONFIG.max_retries
+      max_retries: this.DEFAULT_CONFIG.max_retries,
     });
 
     let lastError: Error | null = null;
@@ -188,7 +208,7 @@ export class ESP32Client {
           operation: "esp32_get_mac_attempt",
           target_ip: targetIp,
           attempt: attempt,
-          max_retries: this.DEFAULT_CONFIG.max_retries
+          max_retries: this.DEFAULT_CONFIG.max_retries,
         });
 
         const response = await this.makeHttpRequest(
@@ -233,15 +253,18 @@ export class ESP32Client {
           message: "ESP32 MAC address validated successfully",
         });
 
-        await logHardwareOperation(`Successfully retrieved MAC address: ${macAddress}`, {
-          operation: "esp32_get_mac_success",
-          target_ip: targetIp,
-          mac_address: macAddress,
-          attempt: attempt,
-          status_code: response.statusCode,
-          attempt_duration_ms: attemptTimer.stop(),
-          total_duration_ms: timer.stop()
-        });
+        await logHardwareOperation(
+          `Successfully retrieved MAC address: ${macAddress}`,
+          {
+            operation: "esp32_get_mac_success",
+            target_ip: targetIp,
+            mac_address: macAddress,
+            attempt: attempt,
+            status_code: response.statusCode,
+            attempt_duration_ms: attemptTimer ? attemptTimer.stop() : 0,
+            total_duration_ms: timer ? timer.stop() : 0,
+          }
+        );
 
         return macAddress;
       } catch (error: any) {
@@ -252,6 +275,7 @@ export class ESP32Client {
         );
 
         await runtimeLogger({
+          user: "system",
           logType: "hardware",
           component: "esp32-client",
           level: "error",
@@ -262,8 +286,8 @@ export class ESP32Client {
             attempt: attempt,
             max_retries: this.DEFAULT_CONFIG.max_retries,
             error: error.message,
-            attempt_duration_ms: attemptTimer.stop()
-          }
+            attempt_duration_ms: attemptTimer ? attemptTimer.stop() : 0,
+          },
         });
 
         // รอก่อน retry (เว้นแต่เป็น attempt สุดท้าย)
@@ -286,6 +310,7 @@ export class ESP32Client {
     });
 
     await runtimeLogger({
+      user: "system",
       logType: "hardware",
       component: "esp32-client",
       level: "error",
@@ -295,8 +320,8 @@ export class ESP32Client {
         target_ip: targetIp,
         max_retries: this.DEFAULT_CONFIG.max_retries,
         error: lastError?.message,
-        total_duration_ms: timer.stop()
-      }
+        total_duration_ms: timer ? timer.stop() : 0,
+      },
     });
 
     return null;
@@ -449,6 +474,41 @@ export class ESP32Client {
    */
   private static delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Determine the reason for ESP32 bypass activation
+   */
+  private static getBypassReason(licenseType: string | undefined, validationMode: string, buildType: string | undefined, esp32Bypass: boolean): string {
+    const reasons = [];
+    
+    if (licenseType === 'internal' || licenseType === 'development') {
+      reasons.push(`license type: ${licenseType}`);
+    }
+    if (validationMode === 'bypass') {
+      reasons.push('validation mode: bypass');
+    }
+    if (buildType === 'internal' || buildType === 'development') {
+      reasons.push(`build type: ${buildType}`);
+    }
+    if (esp32Bypass) {
+      reasons.push('ESP32_VALIDATION_BYPASS enabled');
+    }
+    
+    return reasons.length > 0 ? reasons.join(', ') : 'unknown bypass condition';
+  }
+
+  /**
+   * Generate a deterministic mock MAC address based on bypass reason
+   * This helps with debugging and audit trails
+   */
+  private static generateMockMacAddress(bypassReason: string): string {
+    // Create a deterministic MAC based on bypass reason for consistency
+    const hash = createHash('md5').update(bypassReason).digest('hex');
+    const mac = hash.substring(0, 12).match(/.{2}/g)?.join(':').toUpperCase();
+    
+    // Ensure it starts with AA:BB to identify as mock
+    return `AA:BB:${mac?.substring(6) || 'CC:DD:EE:FF'}`;
   }
 
   /**

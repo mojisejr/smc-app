@@ -70,7 +70,7 @@ export const activateKeyHandler = async () => {
       // Validate KDF context structure (dynamic based on version)
       const kdfInfo = licenseFileStructure.kdf_context.info;
       const infoParts = kdfInfo.split('|');
-      const expectedParts = isWiFiFree ? 5 : 6; // v2.1.x = 5 parts, v2.0.x = 6 parts
+      const expectedParts = isWiFiFree ? 6 : 7; // v2.1.x = 6 parts (with license_type), v2.0.x = 7 parts
       
       if (infoParts.length < expectedParts) {
         return {
@@ -84,6 +84,7 @@ export const activateKeyHandler = async () => {
       event.sender.send('activation-progress', { step: 'license-type-check', progress: 25 });
       
       // ตรวจสอบ license type จาก KDF context info (ไม่ต้อง decrypt)
+      // License type is at position 4 in both v2.0.x and v2.1.x formats
       const licenseType = infoParts.length >= 5 ? infoParts[4] : 'production'; // Default to production
       
       console.log(`info: License type detected: ${licenseType}`);

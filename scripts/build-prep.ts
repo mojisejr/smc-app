@@ -21,6 +21,7 @@ import * as path from "path";
 import { Sequelize } from "sequelize";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { createHash } from "crypto";
 import * as dotenv from "dotenv";
 import {
   LicenseParser,
@@ -99,6 +100,69 @@ interface BuildConfig {
   useLicenseData: boolean;
   licenseType?: "production" | "internal" | "development";
   isInternalBuild: boolean;
+}
+
+/**
+ * Check for internal license files in the system
+ */
+async function checkForInternalLicense(): Promise<boolean> {
+  const licensePaths = [
+    path.join(process.cwd(), 'license.lic'),
+    path.join(process.cwd(), 'resources', 'license.lic'),
+    path.join(process.cwd(), 'cli', 'internal-license_test.lic'),
+    path.join(process.cwd(), 'cli', 'test-internal_test.lic')
+  ];
+  
+  for (const licensePath of licensePaths) {
+    try {
+      if (fs.existsSync(licensePath)) {
+        const licenseContent = fs.readFileSync(licensePath, 'utf8');
+        // Check if license contains internal/development indicators
+        if (licenseContent.includes('internal') || 
+            licenseContent.includes('development') ||
+            licensePath.includes('internal') ||
+            licensePath.includes('test')) {
+          console.log(`🔍 Internal license detected: ${licensePath}`);
+          return true;
+        }
+      }
+    } catch (error) {
+      // Ignore file read errors, continue checking
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Log bypass configuration for audit trail
+ */
+async function logBypassConfiguration(reason: string): Promise<void> {
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    event: 'internal_build_bypass_configured',
+    reason,
+    build_type: process.env.BUILD_TYPE,
+    node_env: process.env.NODE_ENV,
+    bypass_hash: createHash('md5').update(reason + timestamp).digest('hex').substring(0, 8)
+  };
+  
+  const logPath = path.join(process.cwd(), 'logs', 'build-prep.log');
+  
+  try {
+    // Ensure logs directory exists
+    const logsDir = path.dirname(logPath);
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+    
+    // Append log entry
+    fs.appendFileSync(logPath, JSON.stringify(logEntry) + '\n');
+    console.log(`📝 Bypass configuration logged: ${logEntry.bypass_hash}`);
+  } catch (error) {
+    console.warn('⚠️ Failed to log bypass configuration:', error);
+  }
 }
 
 /**
@@ -400,14 +464,47 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
       console.log(
         "info: No license file specified or auto-detected, using environment variables"
       );
-      // Check for internal build flag from environment
+      // Enhanced internal build detection with multiple validation layers
       const buildType = process.env.BUILD_TYPE;
-      if (buildType === "internal" || buildType === "development") {
-        licenseType = buildType as "internal" | "development";
+      const isDevelopmentEnv = process.env.NODE_ENV === 'development';
+      const hasInternalLicense = await checkForInternalLicense();
+      const forceBypass = process.env.FORCE_INTERNAL_BYPASS === 'true';
+      
+      const shouldConfigureBypass = buildType === "internal" || buildType === "development" || isDevelopmentEnv || hasInternalLicense || forceBypass;
+      
+      if (shouldConfigureBypass) {
+        const bypassReasons = [];
+        if (buildType === "internal" || buildType === "development") bypassReasons.push(`build type: ${buildType}`);
+        if (isDevelopmentEnv) bypassReasons.push('development environment');
+        if (hasInternalLicense) bypassReasons.push('internal license detected');
+        if (forceBypass) bypassReasons.push('force bypass enabled');
+        
+        console.log(`🔧 Internal build bypass activated: ${bypassReasons.join(', ')}`);
+        
+        // Set comprehensive bypass environment variables
+        process.env.ESP32_VALIDATION_BYPASS = 'true';
+        process.env.WIFI_VALIDATION_BYPASS = 'true';
+        process.env.LICENSE_VALIDATION_MODE = 'bypass';
+        process.env.HARDWARE_VALIDATION_BYPASS = 'true';
+        process.env.INTERNAL_BUILD_MODE = 'true';
+        
+        // Log bypass configuration for audit trail
+        await logBypassConfiguration(bypassReasons.join(', '));
+        
+        console.log('✅ Comprehensive bypass modes configured for internal build');
+        
+        licenseType = buildType as "internal" | "development" || "internal";
         isInternalBuild = true;
-        console.log(
-          `info: Internal build mode detected from BUILD_TYPE=${buildType}`
-        );
+      } else {
+        console.log('🔒 Production build detected - strict validation enabled');
+        
+        // Ensure bypass modes are disabled for production
+        delete process.env.ESP32_VALIDATION_BYPASS;
+        delete process.env.WIFI_VALIDATION_BYPASS;
+        delete process.env.HARDWARE_VALIDATION_BYPASS;
+        delete process.env.FORCE_INTERNAL_BYPASS;
+        process.env.LICENSE_VALIDATION_MODE = 'production';
+        process.env.INTERNAL_BUILD_MODE = 'false';
       }
     }
   }
