@@ -5,6 +5,7 @@ node_modules
 .next
 app/
 dist
+docs/
 
 *.env
 

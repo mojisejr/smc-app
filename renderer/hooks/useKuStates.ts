@@ -9,11 +9,14 @@ interface IPayload {
 }
 
 export const useKuStates = () => {
+  console.log('[useKuStates] Hook initialized at', new Date().toISOString());
   const [slots, setSlots] = useState<IPayload[]>([]);
 
   const [canDispense, setCanDispense] = useState<boolean>(false);
 
   const get = () => {
+    console.log('[useKuStates] get() called - invoking init at', new Date().toISOString());
+    console.log('[useKuStates] Getting KU states via init call');
     ipcRenderer.invoke("init", { init: true });
   };
 

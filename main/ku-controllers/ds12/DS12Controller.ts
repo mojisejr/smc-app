@@ -95,6 +95,10 @@ export class DS12Controller extends KuControllerBase {
     timestamp?: number;
   } = {};
 
+  // INSTRUMENTATION: Track packet processing frequency for debugging rapid CSV flushing
+  private lastPacketTime?: number;
+  private packetCount: number = 0;
+
   /**
    * Initialize DS12Controller with BrowserWindow for IPC communication
    *
@@ -403,6 +407,9 @@ export class DS12Controller extends KuControllerBase {
    */
   async sendCheckState(): Promise<SlotState[]> {
     try {
+      // INSTRUMENTATION: Track sendCheckState call frequency
+      console.log(`[MAIN PROCESS] sendCheckState() called at ${new Date().toISOString()}`);
+      
       // CONNECTION VALIDATION: Ensure device is ready
       if (!this.isConnected()) {
         await this.logOperation("check-state-error", {
@@ -479,6 +486,9 @@ export class DS12Controller extends KuControllerBase {
     passkey: string;
   }): Promise<void> {
     try {
+      // INSTRUMENTATION: Track unlock method calls
+      console.log(`[INSTRUMENTATION] sendUnlock called for slot ${inputSlot.slotId}, HN: ${inputSlot.hn}`);
+      const unlockStartTime = Date.now();
       // SECURITY VALIDATION: Authenticate user before hardware operation
       const user = await User.findOne({
         where: { passkey: inputSlot.passkey },
@@ -595,6 +605,9 @@ export class DS12Controller extends KuControllerBase {
     passkey: string;
   }): Promise<void> {
     try {
+      // INSTRUMENTATION: Track dispense method calls
+      console.log(`[INSTRUMENTATION] dispense called for slot ${inputSlot.slotId}, HN: ${inputSlot.hn}`);
+      const dispenseStartTime = Date.now();
       // SECURITY VALIDATION: Authenticate user (identical to KU16 pattern)
       const user = await User.findOne({
         where: { passkey: inputSlot.passkey },
@@ -1343,6 +1356,25 @@ export class DS12Controller extends KuControllerBase {
    */
   private async processCompletePacket(completePacket: number[]): Promise<void> {
     try {
+      // INSTRUMENTATION: Track packet processing frequency
+      const currentTime = Date.now();
+      if (!this.lastPacketTime) {
+        this.lastPacketTime = currentTime;
+        this.packetCount = 1;
+      } else {
+        this.packetCount++;
+        const timeDiff = currentTime - this.lastPacketTime;
+        if (timeDiff >= 1000) { // Check every second
+          const packetsPerSecond = this.packetCount / (timeDiff / 1000);
+          if (packetsPerSecond > 10) { // Threshold: more than 10 packets/sec
+            console.warn(`[INSTRUMENTATION] HIGH PACKET FREQUENCY: ${packetsPerSecond.toFixed(1)} packets/sec in DS12Controller`);
+            console.warn(`[INSTRUMENTATION] This may be causing excessive logging and CSV flushing`);
+          }
+          this.lastPacketTime = currentTime;
+          this.packetCount = 0;
+        }
+      }
+
       // COMMAND TYPE EXTRACTION: Get command from complete packet (position 3)
       const command = completePacket[3];
 

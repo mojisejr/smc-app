@@ -10,7 +10,7 @@ import Modal from "../components/Modals";
 import LockWait from "../components/Dialogs/lockWait";
 import DispensingWait from "../components/Dialogs/dispensingWait";
 
-import { useKuStates } from "../hooks/useKuStates";
+import { useKuStatesContext } from "../contexts/kuStatesContext";
 import Loading from "../components/Shared/Loading";
 import { useDispense } from "../hooks/useDispense";
 import { useUnlock } from "../hooks/useUnlock";
@@ -21,7 +21,7 @@ import { useApp } from "../contexts/appContext";
 import { generateSlotArray, getResponsiveGridConfig, debugSlotConfiguration, loadDisplaySlotConfigAsync } from "../utils/getDisplaySlotConfig";
 
 function Home() {
-  const { slots, get: refreshSlots } = useKuStates();
+  const { slots, refreshSlots } = useKuStatesContext();
   const { unlocking } = useUnlock();
   const { dispensing } = useDispense();
   const { indicator } = useIndicator();
