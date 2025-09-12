@@ -1,6 +1,13 @@
 import { Log } from "../../db/model/logs.model";
 import { logger } from "./index";
 
+// INSTRUMENTATION: Track logging frequency for debugging excessive logging
+let logCallCount = 0;
+let lastLogTime = Date.now();
+let logFrequencyWarningShown = false;
+const LOG_FREQUENCY_THRESHOLD = 10; // logs per second
+const LOG_FREQUENCY_WINDOW = 1000; // 1 second
+
 /**
  * Enhanced runtime logging interface for debugging build hang issues
  * Provides type-safe logging with categorization and metadata support
@@ -29,6 +36,26 @@ export interface RuntimeLogData {
  */
 export const runtimeLogger = async (data: RuntimeLogData): Promise<void> => {
   try {
+    // INSTRUMENTATION: Track logging frequency
+    logCallCount++;
+    const currentTime = Date.now();
+    const timeSinceLastLog = currentTime - lastLogTime;
+    
+    // Check for excessive logging (more than threshold per second)
+    if (timeSinceLastLog < LOG_FREQUENCY_WINDOW) {
+      const logsPerSecond = logCallCount / (timeSinceLastLog / 1000);
+      if (logsPerSecond > LOG_FREQUENCY_THRESHOLD && !logFrequencyWarningShown) {
+        console.warn(`[INSTRUMENTATION] EXCESSIVE LOGGING DETECTED: ${logsPerSecond.toFixed(1)} logs/sec from component: ${data.component}`);
+        console.warn(`[INSTRUMENTATION] Message: ${data.message}`);
+        console.warn(`[INSTRUMENTATION] This may be causing rapid CSV flushing`);
+        logFrequencyWarningShown = true;
+      }
+    } else {
+      // Reset counter after time window
+      logCallCount = 1;
+      lastLogTime = currentTime;
+      logFrequencyWarningShown = false;
+    }
     // Prepare metadata as JSON string if provided
     const metadataString = data.metadata ? JSON.stringify(data.metadata) : null;
 
