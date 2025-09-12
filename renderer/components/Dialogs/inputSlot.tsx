@@ -1,6 +1,6 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import { useUnlock } from "../../hooks/useUnlock";
-import { useKuStates } from "../../hooks/useKuStates";
+import { useKuStatesContext } from "../../contexts/kuStatesContext";
 import { toast } from "react-toastify";
 import {
   DialogBase,
@@ -20,7 +20,7 @@ interface InputSlotProps {
 }
 
 const InputSlot = ({ slotNo, onClose }: InputSlotProps) => {
-  const { slots } = useKuStates();
+  const { slots } = useKuStatesContext();
   const { unlock } = useUnlock();
   const {
     register,

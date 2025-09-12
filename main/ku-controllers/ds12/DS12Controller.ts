@@ -407,6 +407,9 @@ export class DS12Controller extends KuControllerBase {
    */
   async sendCheckState(): Promise<SlotState[]> {
     try {
+      // INSTRUMENTATION: Track sendCheckState call frequency
+      console.log(`[MAIN PROCESS] sendCheckState() called at ${new Date().toISOString()}`);
+      
       // CONNECTION VALIDATION: Ensure device is ready
       if (!this.isConnected()) {
         await this.logOperation("check-state-error", {

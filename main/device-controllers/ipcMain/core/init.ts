@@ -4,6 +4,9 @@ import { BuildTimeController } from "../../../ku-controllers/BuildTimeController
 
 export const initHandler = () => {
   ipcMain.handle("init", async (event: IpcMainEvent) => {
+    // INSTRUMENTATION: Track init call frequency
+    console.log(`[MAIN PROCESS] init() called at ${new Date().toISOString()}`);
+    
     // Get BrowserWindow from IPC event instead of using KU16 reference
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) {

@@ -17,12 +17,21 @@ const is = {
   dev: process.env.NODE_ENV !== "production"
 };
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Promise Rejection at:', promise, 'reason:', reason);
+  logError('background', 'Unhandled Promise Rejection', reason as Error, {
+    promise: promise.toString()
+  });
+});
+
 // Load environment variables from .env file
 import * as dotenv from "dotenv";
 dotenv.config();
 
 // Import database and DS12 controller modules
 import { sequelize } from "../db/sequelize";
+import { Setting } from "../db/model/setting.model";
 import { BuildTimeController } from "./ku-controllers/BuildTimeController";
 
 // Import IPC handlers for various functionalities
@@ -143,17 +152,43 @@ if (isProd) {
 
     // Initialize database connection with retry logic
     logDebug('background', 'Initializing database connection');
-    // Use alter: true in development to update schema with new fields
-    const sql = await executeWithRetry(
-      () => sequelize.sync({ alter: !isProd }),
-      'database synchronization'
-    );
-    appTimer.checkpoint('database-sync');
     
-    if (!isProd) {
-      logDebug('background', 'Development mode: Database schema updated with new fields');
+    let sql;
+    try {
+      // Try alter first in development mode
+      if (!isProd) {
+        sql = await executeWithRetry(
+          () => sequelize.sync({ alter: true }),
+          'database synchronization with alter'
+        );
+        logDebug('background', 'Development mode: Database schema updated with alter');
+      } else {
+        sql = await executeWithRetry(
+          () => sequelize.sync(),
+          'database synchronization'
+        );
+      }
+    } catch (alterError: any) {
+      logError('background', 'Database alter failed, trying force sync', alterError);
+      
+      // If alter fails, try force sync in development
+      if (!isProd) {
+        try {
+          sql = await executeWithRetry(
+            () => sequelize.sync({ force: true }),
+            'database force synchronization'
+          );
+          logDebug('background', 'Development mode: Database recreated with force sync');
+        } catch (forceError: any) {
+          logError('background', 'Database force sync also failed', forceError);
+          throw forceError;
+        }
+      } else {
+        throw alterError;
+      }
     }
     
+    appTimer.checkpoint('database-sync');
     logSystemInfo('background', 'Database synchronized successfully');
 
     // Get application settings
@@ -161,29 +196,63 @@ if (isProd) {
     const settings = await getSetting();
     appTimer.checkpoint('settings-loaded');
     
-    logSystemInfo('background', 'Application settings loaded', {
-      indicatorPort: settings?.indi_port,
-      indicatorBaudrate: settings?.indi_baudrate
-    });
+    if (!settings) {
+      logError('background', 'No settings found in database - creating default settings', undefined, {
+        databaseSynced: !!sql,
+        settingsTable: 'empty'
+      });
+      
+      // Create default settings if none exist
+      const defaultSettings = {
+        id: 1,
+        indi_port: 'COM3',
+        indi_baudrate: 9600,
+        // Add other default settings as needed
+      };
+      
+      try {
+        await Setting.create(defaultSettings);
+        const newSettings = await getSetting();
+        if (newSettings) {
+          logSystemInfo('background', 'Default settings created and loaded', {
+            indicatorPort: newSettings.indi_port,
+            indicatorBaudrate: newSettings.indi_baudrate
+          });
+        }
+      } catch (createError: any) {
+        logError('background', 'Failed to create default settings', createError);
+        throw new Error('Failed to initialize application settings');
+      }
+    } else {
+      logSystemInfo('background', 'Application settings loaded', {
+        indicatorPort: settings.indi_port,
+        indicatorBaudrate: settings.indi_baudrate
+      });
+    }
 
-    if (!settings || !sql) {
-      const errorMsg = "Failed to initialize database or load settings";
+    if (!sql) {
+      const errorMsg = "Failed to initialize database";
       logError('background', errorMsg, undefined, {
-        settingsLoaded: !!settings,
         databaseSynced: !!sql
       });
       throw new Error(errorMsg);
     }
+    
+    // Get settings again to ensure we have valid settings
+    const finalSettings = await getSetting();
+    if (!finalSettings) {
+      throw new Error('Failed to load settings after initialization');
+    }
 
     // Initialize Indicator device with settings
     logDebug('background', 'Initializing indicator device', {
-      port: settings.indi_port,
-      baudrate: settings.indi_baudrate
+      port: finalSettings.indi_port,
+      baudrate: finalSettings.indi_baudrate
     });
     
     const indicator = new IndicatorDevice(
-      settings.indi_port,
-      settings.indi_baudrate,
+      finalSettings.indi_port,
+      finalSettings.indi_baudrate,
       mainWindow
     );
     appTimer.checkpoint('indicator-initialized');
