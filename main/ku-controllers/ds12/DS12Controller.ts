@@ -496,7 +496,7 @@ export class DS12Controller extends KuControllerBase {
 
       if (!user) {
         await this.logOperation("unlock-error", {
-          userId: "unknown",
+          userId: 1, // Admin user ID for system operations when user authentication fails
           slotId: inputSlot.slotId,
           hn: inputSlot.hn,
           error: "Invalid passkey",
@@ -615,7 +615,7 @@ export class DS12Controller extends KuControllerBase {
 
       if (!user) {
         await this.logOperation("dispense-error", {
-          userId: "unknown",
+          userId: 1, // Admin user ID for system operations when user authentication fails
           slotId: inputSlot.slotId,
           hn: inputSlot.hn,
           error: "Invalid passkey",
@@ -742,7 +742,7 @@ export class DS12Controller extends KuControllerBase {
 
       if (!user) {
         await this.logOperation("reset-slot-error", {
-          userId: "unknown",
+          userId: 1, // Admin user ID for system operations when user authentication fails
           slotId: slotId,
           error: "Invalid passkey",
           message: "DS12 reset slot failed: user authentication failed",
@@ -810,7 +810,7 @@ export class DS12Controller extends KuControllerBase {
 
       if (!user) {
         await this.logOperation("deactivate-error", {
-          userId: "unknown",
+          userId: 1, // Admin user ID for system operations when user authentication fails
           slotId: slotId,
           error: "Invalid passkey",
           message: "DS12 deactivate failed: user authentication failed",
@@ -904,7 +904,7 @@ export class DS12Controller extends KuControllerBase {
 
       if (!user) {
         await this.logOperation("reactivate-error", {
-          userId: "unknown",
+          userId: 1, // Admin user ID for system operations when user authentication fails
           slotId: slotId,
           error: "Invalid passkey",
           message: "DS12 reactivate failed: user authentication failed",
@@ -1823,7 +1823,7 @@ export class DS12Controller extends KuControllerBase {
 
       // USER AUTHENTICATION: Get user information for audit trail
       // Note: passkey is not available in openingSlot, need to get from original dispense call
-      const userId = "system"; // Will be enhanced when passkey is properly passed through
+      const userId = 1; // Use admin user ID for system operations (foreign key constraint)
 
       // STATE UPDATE: Set wait flag for dispense locked back detection
       this.setWaitForDispenseLockedBack(true);
@@ -1980,7 +1980,7 @@ export class DS12Controller extends KuControllerBase {
 
       // PRESERVE SLOT DATA: Store for logging and UI updates before clearing
       const completedSlot = { ...currentSlot };
-      const userId = "system"; // Will be enhanced when passkey tracking is added
+      const userId = 1; // Use admin user ID for system operations (foreign key constraint)
 
       // NOTE: Slot data reset moved to user decision in clearOrContinue dialog
       // The slot will be cleared only when user chooses "ไม่มียาแล้ว" (reset)
