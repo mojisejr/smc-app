@@ -798,7 +798,12 @@ async function cleanDatabase(): Promise<void> {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           user VARCHAR(255),
           message TEXT,
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+          logType VARCHAR(255) NOT NULL DEFAULT 'system',
+          component VARCHAR(255) NOT NULL DEFAULT 'unknown',
+          level VARCHAR(255) NOT NULL DEFAULT 'info',
+          metadata TEXT,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updatedAt DATETIME
         );
       `);
     }, "create Log table");
@@ -813,7 +818,9 @@ async function cleanDatabase(): Promise<void> {
           hn TEXT,
           process TEXT,
           message TEXT,
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updatedAt DATETIME,
+          FOREIGN KEY (userId) REFERENCES User(id)
         );
       `);
     }, "create DispensingLog table");
@@ -893,6 +900,9 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
   });
 
   try {
+    // Disable foreign key constraints temporarily for data setup
+    await sequelize.query('PRAGMA foreign_keys = OFF');
+    
     // Get environment variables for configuration
     const maxLogCounts = parseInt(process.env.MAX_LOG_COUNTS || "500");
     const maxUser = parseInt(process.env.MAX_USER || "20");
@@ -1009,9 +1019,9 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
     await sequelize.query(
       `
       INSERT INTO Log (
-        user, message, createdAt
+        user, message, logType, component, level, createdAt
       ) VALUES (
-        'system', ?, datetime('now')
+        'system', ?, 'build', 'build-prep', 'info', datetime('now')
       )
     `,
       {
@@ -1019,6 +1029,9 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
       }
     );
 
+    // Re-enable foreign key constraints
+    await sequelize.query('PRAGMA foreign_keys = ON');
+    
     console.log(
       `info: Organization data setup completed (${availableSlots} slots initialized)`
     );

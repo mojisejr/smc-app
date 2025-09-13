@@ -1,31 +1,25 @@
-# Current Focus - 2025-09-12 23:12:05 (Thailand Time)
+# Current Focus - SMC App Development
 
-## Context: Slot Toggle Error in Management Page
+**Last Updated**: 2025-09-13 14:27:21 (Thailand Time)
 
-In the management page, on the "จัดการช่องยา" (Slot Management) page, there's an error when clicking to toggle active/deactive slot from the panel:
+## Current Context
 
-**Error Details:**
-- Error: `WHERE parameter "passkey" has invalid "undefined" value`
-- Location: DS12 reactivate operation
-- Impact: Slot activation/deactivation functionality is broken
-- Component: Management page slot toggle functionality
+มีปัญหาตอน complie อีกครั้ง น่าจะเกี่ยวกับตัว database.db อีก console.log ตอน build ตามนี้ Terminal#206-410 คุณอาจจะต้อง check retrospective ดูว่า เคยแก้อะไรไปบ้างหรือยัง แล้วทำไมถึงกลับมามีปัญหาอีก ทั้งๆ ที่ไม่ได้แก้ในส่วนนี้เลยหลังจากนั้น พร้อมกับวางแผน และแก้ไข
 
-**Error Log Context:**
-```
-[2025-09-12T15:57:45.724Z] reactivate-error: {
-  slotId: 1,
-  error: 'WHERE parameter "passkey" has invalid "undefined" value',
-  message: 'DS12 reactivate exception: Error: WHERE parameter "passkey" has invalid "undefined" value'
-}
-```
+## Medical Device Context
 
-**Medical Device Impact:**
-- Critical functionality for slot management is compromised
-- Affects medical staff ability to configure medication dispensing slots
-- Requires immediate fix for medical device compliance
+- **Project**: Smart Medication Cart (SMC)
+- **Device Type**: DS12 Hardware Integration
+- **Compliance**: Medical device safety protocols
+- **Critical Area**: Database integrity and build process
 
-**Next Steps:**
-- Investigate passkey validation in slot toggle operations
-- Check authentication flow in management page
-- Ensure proper user context is passed to DS12 operations
-- Maintain audit trail integrity during fix
+## Technical Focus
+
+- **Issue**: Build compilation failure related to database.db
+- **Error Type**: SQLITE_CONSTRAINT: FOREIGN KEY constraint failed
+- **Build Command**: npm run build:internal:ds12
+- **Investigation Needed**: Review retrospective files for previous fixes
+- **Action Required**: Plan and implement solution
+
+---
+*This file is automatically managed by the Context Management Agent*
