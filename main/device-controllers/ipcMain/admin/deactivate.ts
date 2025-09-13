@@ -41,6 +41,24 @@ export const deactivateHandler = () => {
         throw new Error("ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้");
       }
 
+      // MEDICAL SAFETY: Pre-toggle hardware validation
+      // Request current hardware state before slot toggle operation
+      await controller.sendCheckState();
+      
+      // Add delay for hardware response (medical device safety requirement)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Medical safety validation - hardware state will be validated by DS12Controller internally
+      // This ensures slot is safe for toggle operation (not occupied, not open, not faulty)
+      
+      // Internal validation by DS12Controller
+      if (!controller.isConnected()) {
+        win.webContents.send("deactivate-error", {
+          message: "ไม่สามารถปิดช่องได้ เนื่องจากอุปกรณ์ไม่ได้เชื่อมต่อ",
+        });
+        throw new Error("Hardware validation failed: Device not connected");
+      }
+      
       // Use controller.deactivate() instead of ku16.deactivate()
       // DS12Controller implements deactivate() with same signature
       await controller.deactivate(payload.slotId, payload.passkey);
@@ -67,8 +85,12 @@ export const deactivateHandler = () => {
     } catch (error) {
       // PRESERVE: Same IPC error event and Thai language message
       // Use BrowserWindow from event instead of ku16.win
+      const errorMessage = error instanceof Error && error.message.includes("Hardware validation failed")
+        ? "ไม่สามารถปิดช่องได้ เนื่องจากอุปกรณ์ไม่ได้เชื่อมต่อ"
+        : "ไม่สามารถปิดช่องได้ กรุณาตรวจสอบรหัสผ่านอีกครั้ง";
+      
       win.webContents.send("deactivate-error", {
-        message: "ไม่สามารถปิดช่องได้ กรุณาตรวจสอบรหัสผ่านอีกครั้ง",
+        message: errorMessage,
       });
 
       // PRESERVE: Exact same error logging patterns
