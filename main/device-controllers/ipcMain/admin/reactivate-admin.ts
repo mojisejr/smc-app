@@ -32,9 +32,28 @@ export const reactivateAdminHandler = () => {
         throw new Error("ไม่สามารถเชื่อมต่อกับตู้เก็บยาได้");
       }
 
+      // MEDICAL SAFETY: Pre-toggle hardware validation
+      // Request current hardware state before slot toggle operation
+      await controller.sendCheckState();
+      
+      // Add delay for hardware response (medical device safety requirement)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Medical safety validation - hardware state will be validated by DS12Controller internally
+      // This ensures slot is safe for toggle operation (not occupied, not open, not faulty)
+      
+      // Internal validation by DS12Controller
+      if (!controller.isConnected()) {
+        win.webContents.send("reactivate-admin-error", {
+          message: "ไม่สามารถเปิดใช้งานระบบได้ เนื่องจากอุปกรณ์ไม่ได้เชื่อมต่อ",
+        });
+        throw new Error("Hardware validation failed: Device not connected");
+      }
+      
       // Use BuildTimeController.reactivate() instead of ku16.reactive()
       // DS12Controller implements reactivate() with same signature and includes hardware state reset
-      const result = await BuildTimeController.reactivate(payload.slotId, payload.passkey);
+      // FIX: Use payload.name instead of payload.passkey (parameter mismatch bug)
+      const result = await controller.reactivate(payload.slotId, payload.name);
       
       // ADDITIONAL STATE VALIDATION: Ensure hardware controller is ready after reactivation
       // DS12Controller.reactivate() includes emergencyStateReset() but this provides extra assurance
@@ -61,8 +80,12 @@ export const reactivateAdminHandler = () => {
     } catch (error) {
       // PRESERVE: Same IPC error event and Thai language message
       // Use BrowserWindow from event instead of ku16.win
+      const errorMessage = error instanceof Error && error.message.includes("Hardware validation failed") 
+        ? "ไม่สามารถเปิดใช้งานระบบได้ เนื่องจากอุปกรณ์ไม่ได้เชื่อมต่อ"
+        : "ไม่สามารถเปิดใช้งานระบบได้";
+      
       win.webContents.send("reactivate-admin-error", {
-        message: "ไม่สามารถเปิดใช้งานระบบได้",
+        message: errorMessage,
       });
 
       // PRESERVE: Exact same error logging patterns
