@@ -18,52 +18,45 @@
 
 ---
 
-## 🌏 Timezone & Date Configuration
+## Development Environment
 
-### Thailand Timezone Settings
+**Operating System**: Windows 11
+**Node.js Version**: 18.x
+**npm Version**: 9.x
+**React Version**: 18.x
+**Typescript Version**: 5.x
+**Electron Version**: 25.x
 
-**Primary Timezone**: Asia/Bangkok (UTC+7)
-**Date Format**: Christian Era (ค.ศ.) - YYYY-MM-DD
-**Time Format**: 24-hour format (HH:MM)
-**Locale**: th-TH with Christian Era calendar
+## Developer Descriptions [REQUIRED]
+
+- Solo Developer
+- Intermediate Typescript and Javascript Skill
+- Basic CICD Skill handle this with me carfully need your special help
+- Basic DevOps Skill handle this with me carfully need your special help
+- Basic Security Skill handle this with me carfully need your special help
+  **IMPORTANT ! : All code must be easy to read and understand comment on what the code is doing and why on the Hard part** .
+  **IMPORTANT ! : All code must be written in typescript and follow the My Coding Style**
+
+## Project Coding Style Requirement
+
+- **Don't use `any` type in typescript** (**REQUIRED**)
+- **Always use Explicit Return types when return from function (**REQUIRED**)**
+- **Always use Functional Components over Class Components**
+- **Reuse Components and Hooks when possible by extracting common logic into custom hooks**
+- **Interfaces and Type Must be in the `/interfaces` folder only**
+- **All React Component Must be in the `/src/app/components` folder only**
+- **All React Hook Must be in the `/src/app/hooks` folder only**
+- **All Input and Output and Return types from every function and component must be defined NEVER use `any` type**
+- **Don't use `any` type in typescript**
 
 ### Development Guidelines
 
-#### Date/Time Handling
-
-```javascript
-// Use this utility for consistent timezone handling
-const getThailandDateTime = () => {
-  return new Date().toLocaleString("th-TH", {
-    timeZone: "Asia/Bangkok",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    calendar: "gregory", // Christian Era
-  });
-};
-
-// For file naming (retrospectives, logs) - YYYY-MM-DD format
-const getThailandDateForFilename = () => {
-  const now = new Date();
-  return now.toLocaleDateString("en-CA", {
-    timeZone: "Asia/Bangkok",
-  }); // Returns YYYY-MM-DD format
-};
-
-// Example usage and validation
-// Current system time: 2025-09-04T14:34:39.167Z (UTC)
-// Thailand date: 2025-09-04 (Asia/Bangkok timezone)
-// Thailand datetime: 04/09/2025 21:34 (th-TH locale)
-```
-
 #### File Naming Conventions
- 
+
 - **Retrospective Files**: `session-YYYY-MM-DD-[description].md`
 - **Log Files**: `YYYY-MM-DD-[type].log`
 - **Backup Files**: `backup-YYYY-MM-DD-HHMM.sql`
+- **Frontend Component Files** `ComponentName.tsx`
 
 #### Important Notes
 
@@ -71,23 +64,6 @@ const getThailandDateForFilename = () => {
 - **Year format** must always be Christian Era (ค.ศ.) not Buddhist Era (พ.ศ.)
 - **Development sessions** should reference Thailand local time
 - **Retrospective files** must use correct Thailand date in filename
-
-#### Timezone Validation
-
-To verify timezone configuration is working correctly, run:
-
-```bash
-node -e "console.log('System UTC:', new Date().toISOString()); console.log('Thailand Date:', new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' })); console.log('Thailand DateTime:', new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', calendar: 'gregory' }));"
-```
-
-**Expected Output Format:**
-- System UTC: 2025-09-04T14:34:39.167Z
-- Thailand Date: 2025-09-04
-- Thailand DateTime: 04/09/2025 21:34
-
-**CRITICAL**: Always verify that dates in documentation files match the Thailand timezone output.
-
----
 
 ## Architecture Overview
 
@@ -243,6 +219,23 @@ This section lists common commands for this project.
 
 ## 🚀 Development Workflows
 
+⚠️ CRITICAL: Synchronize Time Before Any File Operations
+
+Before creating a new file or saving any timestamps, you MUST use the following command to retrieve the current date and time from the system:
+
+date +"%Y-%m-%d %H:%M:%S"
+This ensures accurate timestamp synchronization with the system clock and prevents time-related inconsistencies.
+
+### Logging Strategy
+
+**console.log will be 3 types **
+
+- **INFO**: For general information messages that logged on both production and development environments eg. `INFO: User XYZ has successfully logged in.`
+- **ERROR**: For error messages that logged on both production and development environments.
+  eg. `ERROR: Failed to connect to database.`
+- **DEBUG**: For debug messages that logged on development environments only.
+  eg. `DEBUG: Database connection established.`
+
 ### The Two-Issue Pattern
 
 This project uses a Two-Issue Pattern to separate work context from actionable plans, integrating local workflows with GitHub Issues for clarity and traceability.
@@ -257,20 +250,156 @@ This project uses a Two-Issue Pattern to separate work context from actionable p
 
 These commands are standard across all projects and streamline our communication with **AUTOMATED WORKFLOW INTEGRATION**.
 
+### Shortcut Commands
+
+... (ส่วนคำสั่งเดิมของคุณ)
+
+- **`=update-kb`**: **CRITICAL KNOWLEDGE BASE UPDATE WORKFLOW** - Instructs the agent to update the project's **Shared Knowledge Base** file (`project_status.md` or `project_state.json`) with the latest architectural, UI, and functionality details. This command ensures persistent context and prevents a loss of project memory.
+
+  1.  **Context Analysis**: Analyze the latest code changes, UI components, and system functionality.
+  2.  **File Update**: Overwrite the existing knowledge base file with the new, comprehensive snapshot of the project's state.
+  3.  **Synchronization**: Ensure the updated file is ready for all other agents and developers to read before any new implementation begins.
+      **MANDATORY RULE**: This command **MUST** be executed after every successful implementation (`=impl`) to ensure the project's state is always synchronized.
+
 - **`=fcs > [message]`**: Updates the `current-focus.md` file on the local machine and creates a **GitHub Context Issue** with the specified `[message]` as the title. **WARNING**: This command will only work if there are no open GitHub issues. If there are, the agent will alert you to clear the backlog before you can save a new context. To bypass this check, use the command `=fcs -f > [message]`.
 
-- **`=plan > [question/problem]`**: Creates a **GitHub Task Issue** with a detailed and comprehensive plan of action. The agent will use all the information from the `current-focus.md` file and previous conversations to create this Issue. If an open Task Issue already exists, the agent will **update** that Issue with the latest information instead of creating a new one.
+- **`=plan > [question/problem]`**: Creates a **GitHub Task Issue** with a detailed and comprehensive plan of action. **STAGING-FIRST WORKFLOW & CONFLICT PREVENTION** - The agent will:
 
-- **`=impl > [message]`**: **ENHANCED WITH AUTOMATED WORKFLOW** - Instructs the agent to execute the plan contained in the latest **GitHub Task Issue** with full automation:
+  1. **Pre-Planning Validation**:
 
-  1. **Auto-Branch Creation**: Creates feature branch with proper naming (`feature/[issue-number]-[description]`)
-  2. **Implementation**: Executes the planned work
-  3. **Auto-Commit & Push**: Commits changes with descriptive messages and pushes to remote
-  4. **Auto-PR Creation**: Creates Pull Request with proper description and issue references
-  5. **Issue Updates**: Updates the plan issue with PR link and completion status
-  6. **User Notification**: Provides PR link for review and approval
+     - **Auto-check**: Verify staging branch is up-to-date with remote
+     - **Warning**: Alert if staging is behind remote origin
+     - **Mandatory Sync**: Automatically sync staging before planning if needed
+     - **PR Status Check**: Verify no conflicting open PRs exist
+     - **Branch Status**: Check for existing feature branches and potential conflicts
+
+  2. **Codebase Analysis Phase**: For non-new feature implementations (fixes, refactors, modifications):
+
+     - Search and analyze all relevant code components and dependencies
+     - Identify side effects and interconnected systems
+     - Review existing patterns, conventions, and architectural decisions
+     - Map data flow and component relationships
+     - Assess impact on related functionality
+     - **File Coordination Check**: Identify high-risk files requiring team coordination
+
+  3. **Plan Creation Phase**: Use all gathered information including:
+     - Current focus context from `current-focus.md`
+     - Previous conversation history
+     - Comprehensive codebase analysis results
+     - Identified dependencies and side effects
+     - **Staging Context Creation**: Include `staging-context.md` creation in implementation plan
+
+  If an open Task Issue already exists, the agent will **update** that Issue with the latest information instead of creating a new one.
+
+- **`=impl > [message]`**: **STAGING-FIRST IMPLEMENTATION WORKFLOW** - Instructs the agent to execute the plan contained in the latest **GitHub Task Issue** with full automation:
+
+  1. **Pre-Implementation Validation**:
+
+     - **MANDATORY**: Ensure currently on staging branch (`git checkout staging`)
+     - **MANDATORY**: Sync staging with remote origin (`git pull origin staging`)
+     - **MANDATORY**: Verify no existing open PRs that could conflict
+     - **MANDATORY**: Ensure clean working directory before proceeding
+     - **Conflict Detection**: Check for potential conflicts before starting
+     - **Emergency Protocol**: Activate emergency resolution if conflicts detected
+
+  2. **Auto-Branch Creation**: Creates feature branch from staging with proper naming (`feature/[issue-number]-[description]`)
+  3. **Implementation**: Executes the planned work with continuous conflict monitoring
+  4. **Enhanced Commit & Push Flow**:
+
+     - **Pre-commit Validation**: Check for conflicts before each commit
+     - **Descriptive Commits**: Atomic commits with clear, descriptive messages
+     - **Safe Push Strategy**: Force push only when necessary with `--force-with-lease`
+     - **Conflict Resolution**: Automatic conflict detection and resolution protocols
+
+  5. **Staging Context Creation**: Creates `staging-context.md` with implementation details
+  6. **Auto-PR Creation**: Creates Pull Request **TO STAGING BRANCH ONLY** with proper description and issue references
+  7. **Issue Updates**: Updates the plan issue with PR link and completion status
+  8. **User Notification**: Provides PR link for review and approval - **USER HANDLES MAIN BRANCH MERGES MANUALLY**
+
+- **`=stage > [message]`**: **STAGING DEPLOYMENT WORKFLOW** - Deploys approved changes from feature branch to staging environment:
+
+  1. **Pre-Staging Validation**:
+
+     - **Feature Branch Validation**: Ensure feature branch is ready for staging
+     - **Conflict Resolution**: Resolve any conflicts with staging branch
+     - **Test Validation**: Run automated tests before staging deployment
+
+  2. **Staging Deployment**:
+
+     - **Merge to Staging**: Merge approved feature branch to staging
+     - **Staging Context Update**: Update `staging-context.md` with deployment details
+     - **Auto-Deploy**: Trigger staging environment deployment
+     - **Health Check**: Verify staging deployment health
+
+  3. **Staging Validation**:
+
+     - **Functional Testing**: Run staging environment tests
+     - **Performance Monitoring**: Monitor staging performance metrics
+     - **User Acceptance**: Prepare for user acceptance testing
+
+  4. **Production Readiness**:
+     - **Production Context**: Create production deployment context
+     - **Rollback Plan**: Prepare rollback procedures
+     - **Notification**: Alert team of staging deployment completion
+
+- **`=prod > [message]`**: **PRODUCTION DEPLOYMENT WORKFLOW** - Deploys validated changes from staging to production:
+
+  1. **Pre-Production Validation**:
+
+     - **Staging Validation**: Ensure staging tests pass completely
+     - **Security Review**: Complete security audit checklist
+     - **Performance Baseline**: Establish performance benchmarks
+
+  2. **Production Deployment**:
+
+     - **Merge to Main**: Merge staging branch to main/production
+     - **Production Deploy**: Execute production deployment pipeline
+     - **Health Monitoring**: Monitor production health metrics
+     - **Performance Tracking**: Track production performance
+
+  3. **Post-Deployment**:
+
+     - **Cleanup Operations**: Auto-cleanup `staging-context.md`
+     - **Monitoring Setup**: Establish production monitoring
+     - **Documentation**: Update production documentation
+     - **Team Notification**: Notify team of successful production deployment
+
+  4. **Rollback Readiness**:
+     - **Rollback Procedures**: Maintain rollback capabilities
+     - **Incident Response**: Prepare incident response protocols
 
 - **`=rrr > [message]`**: Creates a daily Retrospective file in the `docs/retrospective/` folder and creates a GitHub Issue containing a summary of the work, an AI Diary, and Honest Feedback, allowing you and the team to review the session accurately.
+
+### 📋 Staging Context File Management
+
+#### Auto-Cleanup Strategy for `staging-context.md`
+
+**File Creation & Location**:
+
+- **Created during**: `=impl` command execution
+- **Location**: Project root directory (`./staging-context.md`)
+- **Content**: Implementation details, deployment context, testing notes
+
+**Lifecycle Management**:
+
+- **Creation**: Automatically generated during feature implementation
+- **Updates**: Modified during `=stage` deployment process
+- **Cleanup**: Automatically removed during `=prod` deployment completion
+- **Backup**: Context preserved in PR descriptions and commit messages
+
+**File Management Benefits**:
+
+- **Deployment Tracking**: Clear visibility of staging deployment status
+- **Context Preservation**: Implementation details available during staging phase
+- **Automatic Cleanup**: No manual file management required
+- **Conflict Prevention**: Reduces repository clutter and merge conflicts
+
+**Cleanup Triggers**:
+
+- **Successful Production Deployment**: File automatically deleted after `=prod` completion
+- **Failed Deployments**: File retained for debugging and rollback procedures
+- **Manual Cleanup**: Available via `=prod --cleanup-only` command
+- **Branch Cleanup**: Removed when feature branch is deleted
 
 ### 🔄 Plan Issue Management Guidelines
 
@@ -279,12 +408,25 @@ These commands are standard across all projects and streamline our communication
 - **When completing phases**: Update the plan issue to reflect completed phases and mark them as ✅ COMPLETED
 - **Progress tracking**: Update the issue description with current status, next steps, and any blockers
 - **Phase completion**: When a phase is finished, update the plan issue immediately before moving to the next phase
-- **Never create new issues**: For ongoing multi-phase work, always update the existing plan issue
+- **Never create new issues**: For ongoing multi-phase work, always update the existing plan issue (#20 for current system refactor)
 - **Retrospective issues**: Only create retrospective issues for session summaries, not for plan updates
+
+### 🎯 Enhanced Implementation Workflows
+
+#### Branch Management Excellence
+
+- **ALWAYS** create feature branches: `feature/[issue-number]-[description]`
+- **NEVER** work directly on main branch
+- **Workflow**: Analysis → Branch → Implementation → Build → Commit → PR → Updates
+
+#### TodoWrite Integration Patterns
+
+**High-Impact Usage**: Complex refactoring (3+ files), multi-phase implementations, large system changes
+**Best Practices**: 5-8 specific todos, exactly ONE in_progress, complete immediately after finishing
 
 ### 🌿 Automated Workflow Implementation
 
-**ENHANCED AUTOMATION**: All development workflows now include full automation to ensure consistent adherence to medical device compliance and project guidelines.
+**ENHANCED AUTOMATION**: All development workflows now include full automation to ensure consistent adherence to project guidelines.
 
 #### Enhanced Command Behavior
 
@@ -304,36 +446,106 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 7. User Notification → Provide PR URL for review and approval
 ```
 
+##### TodoWrite Integration Enhancement
+
+**Performance Impact from Retrospectives**: 56% faster implementations when TodoWrite is integrated
+
+**Enhanced Implementation Flow with TodoWrite:**
+
+```
+1. Parse GitHub Task Issue → Extract requirements and scope
+2. Initialize TodoWrite → Create 5-8 specific, actionable todos
+3. Auto-Branch Creation → feature/[issue-number]-[sanitized-description]
+4. Implementation Phase → Execute with real-time todo tracking
+   ├─ Mark exactly ONE todo as 'in_progress' at a time
+   ├─ Complete todos immediately after finishing each step
+   ├─ Update progress visibility for stakeholders
+   └─ Ensure accountability for all implementation steps
+5. Auto-Commit & Push → Descriptive commits with proper formatting
+6. Auto-PR Creation → Comprehensive PR with issue linking
+7. Issue Updates → Update plan issue with PR link and completion status
+8. TodoWrite Completion → Mark all todos as completed
+9. User Notification → Provide PR URL for review and approval
+```
+
+**TodoWrite Performance Benefits:**
+
+- **Visibility**: Real-time progress tracking for stakeholders
+- **Accountability**: Prevents skipping critical implementation steps
+- **Focus**: Reduces context switching during complex implementations
+- **Efficiency**: Proven 15-minute implementations vs 34-minute baseline
+- **Documentation**: Creates audit trail of implementation progress
+
+**High-Impact TodoWrite Usage Patterns:**
+
+```markdown
+✅ Complex multi-component refactoring (3+ files)
+✅ Full-stack implementations (API + Frontend)
+✅ Multi-phase system changes (Database + Application)
+✅ Pattern replication following proven approaches
+✅ Large refactoring with dependency management
+
+❌ Single file edits or trivial changes
+❌ Simple documentation updates
+❌ Quick bug fixes without multiple steps
+```
+
 ##### Branch Naming Convention
 
 - **Format**: `feature/[issue-number]-[sanitized-description]`
-- **Example**: `feature/27-ds12-hardware-integration`
+- **Source**: All feature branches **MUST** be created from `staging` branch
+- **Flow**: `feature/[issue] → staging → main`
+- **Example**: `feature/27-deployment-production-implementation`
 - **Auto-sanitization**: Removes special characters, converts to kebab-case
-- **Medical Device Scope**: Includes device type prefixes (`ds12`, `ds16`, `esp32`, `license`)
 
 ##### Commit Message Standards
 
-- **Format**: `[type][scope]: [description] (#[issue-number])`
-- **Types**: `feat`, `fix`, `hardware`, `license`, `medical`, `audit`, `docs`, `test`
-- **Scopes**: `ds12`, `ds16`, `esp32`, `license`, `audit`, `auth`, `ui`, `db`
-- **Example**: `feat(ds12): implement slot validation system (#25)`
+- **Format**: `[type]: [description] (#[issue-number])`
+- **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+- **Example**: `feat: implement user authentication system (#25)`
 
 ##### Pull Request Automation
 
-- **Title**: Auto-generated from issue title with proper formatting
-- **Description**: Includes implementation summary, medical device compliance checklist, and testing notes
-- **Issue Linking**: Automatic `Closes #[issue-number]` for proper tracking
-- **Labels**: Auto-applied based on implementation type and medical device scope
+**Staging PRs** (Feature → Staging):
+
+- **Title**: `[STAGING] [Feature Title] (#[issue-number])`
+- **Description**: Implementation details, testing notes, staging deployment context
+- **Context File**: References `staging-context.md` for deployment details
+- **Issue Linking**: `Relates to #[issue-number]` (keeps issue open for production)
+
+**Production PRs** (Staging → Main):
+
+- **Title**: `[PRODUCTION] [Feature Title] (#[issue-number])`
+- **Description**: Production deployment summary, staging validation results
+- **Context File**: Includes staging validation and production readiness checklist
+- **Issue Linking**: `Closes #[issue-number]` (closes issue after production deployment)
 
 #### Workflow Safety Measures
 
-- **Medical Device Validation**: All automated workflows include medical device compliance checks
-- **Hardware Safety**: Automated testing of hardware communication before deployment
-- **License Verification**: ESP32 license system validation in all workflows
-- **Audit Trail Integrity**: Verification that audit logging remains intact
-- **Rollback Procedures**: Automated rollback capabilities for critical system components
+**Enhanced Branch Protection**:
 
-**CRITICAL**: **NEVER** work directly on main/master branch. **ALWAYS** create PRs for review.
+- **Main Branch**: Requires 2+ approvals, status checks, up-to-date branches
+- **Staging Branch**: Requires 1+ approval, automated testing, conflict resolution
+- **Feature Branches**: Standard protection, automated conflict detection
+
+**Staging Sync Protocol**:
+
+- **Pre-Implementation**: Always sync staging with main before creating feature branches
+- **Pre-Staging**: Ensure feature branch is up-to-date with staging before PR
+- **Pre-Production**: Validate staging branch is ready for main merge
+
+**Conflict Prevention**:
+
+- **Staging-First Rule**: All features go through staging before production
+- **Sync Validation**: Automated checks for branch synchronization
+- **Emergency Protocol**: Immediate conflict resolution for critical deployments
+
+**CRITICAL RULES**:
+
+- **NEVER** work directly on main/staging branches
+- **ALWAYS** create feature branches from staging
+- **ALWAYS** deploy to staging before production
+- **ALWAYS** validate staging deployment before main PR
 
 ### Implementation Guidelines for Automated Workflow
 
@@ -343,8 +555,6 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 - ✅ Ensure no conflicting branches exist
 - ✅ Confirm GitHub CLI is authenticated and functional
 - ✅ Validate repository permissions for branch creation and PR management
-- ✅ Check medical device compliance requirements
-- ✅ Verify hardware safety protocols
 
 #### Error Handling and Fallbacks
 
@@ -352,7 +562,24 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 - **Push Failure**: Provides manual push commands and troubleshooting steps
 - **PR Creation Failure**: Falls back to manual PR creation with pre-filled templates
 - **Issue Update Failure**: Logs error and provides manual update instructions
-- **Medical Compliance Check Failure**: Halts workflow until compliance is verified
+
+#### Quality Assurance
+
+**Staging PR Requirements**:
+
+- **Reviewers**: Minimum 1 reviewer approval required
+- **Automated Checks**: Build validation, type checking, linting
+- **Context File**: Must reference `staging-context.md` with deployment details
+- **Testing**: Feature testing in staging environment
+
+#### Monitoring and Feedback
+
+- **Progress Tracking**: Real-time updates during implementation phases
+- **Success Metrics**: PR creation success rate and review completion time
+- **User Feedback**: Continuous improvement based on workflow effectiveness
+- **Audit Trail**: Complete history of automated actions for debugging
+
+---
 
 #### Quality Assurance
 
@@ -501,67 +728,12 @@ This project uses a structured retrospective approach to track progress, learnin
 _Generated on [Date] at [Time] Thailand Time (UTC+7)_
 ```
 
-#### Original Thai Template (Alternative)
-
-```markdown
-# Retrospective วันที่ [วัน-เดือน-ปี]
-
-## 1. งานที่ทำไป
-
-- [Topic/Task 1]
-  - [รายละเอียดงานย่อย]
-  - [รายละเอียดงานย่อย]
-- [Topic/Task 2]
-  - [รายละเอียดงานย่อย]
-
-## 2. Bug/Error ที่เกิดขึ้นและการแก้ไข
-
-- [Bug/Error 1]
-  - สาเหตุ: [อธิบายสาเหตุ]
-  - วิธีแก้ไข: [อธิบายวิธีแก้ไข]
-- [Bug/Error 2]
-  - สาเหตุ: [อธิบายสาเหตุ]
-  - วิธีแก้ไข: [อธิบายวิธีแก้ไข]
-
-## 3. สิ่งที่ได้เรียนรู้ (Lesson Learned)
-
-- [Lesson 1]
-- [Lesson 2]
-- [Lesson 3]
-
-## 4. สิ่งสำคัญและข้อควรจำ
-
-- [ข้อควรระวัง 1]
-- [สิ่งที่ต้องจำ 2]
-- [ข้อสังเกตสำคัญ 3]
-
-## 5. หมายเหตุเพิ่มเติม (ถ้ามี)
-
-- [หมายเหตุ 1]
-- [หมายเหตุ 2]
-
-## 6. แผนของวันพรุ่งนี้ (ถ้ามี)
-
-- [แผนงาน 1]
-- [แผนงาน 2]
-- [แผนงาน 3]
-```
-
 #### Timezone Guidelines for Retrospectives
 
 - **ALL timestamps** must use Thailand timezone (UTC+7)
 - **File naming** must use Thailand date: `session-YYYY-MM-DD-[description].md`
 - **Timeline entries** should reference Thailand local time
 - **Session duration** should be calculated in Thailand timezone
-
-#### Medical Device Retrospective Focus
-
-- **Compliance Tracking**: Document all medical device compliance considerations
-- **Hardware Safety**: Record hardware communication tests and validations
-- **License System**: Track ESP32 license system integrity and updates
-- **Audit Trail**: Verify audit logging functionality and compliance
-- **Error Handling**: Document Thai language error message preservation
-- **Risk Assessment**: Evaluate medical device risks and mitigation strategies
 
 ### Maintenance & Review
 
@@ -593,14 +765,6 @@ npm run test:hardware
 # Verify device configuration
 echo $DEVICE_TYPE  # Should be DS12 or DS16
 ```
-
-**Common Solutions**:
-
-- Verify RS485 cable connections
-- Check device power supply (24V DC)
-- Validate `DEVICE_TYPE` environment variable
-- Restart hardware controllers: `BuildTimeController.getInstance().restart()`
-- Check audit logs for hardware communication patterns
 
 #### License System Issues
 
@@ -818,122 +982,6 @@ const validatePerpetualLicense = async (licenseData) => {
   return validateStandardLicense(licenseData);
 };
 ```
-
----
-
-## 📊 Performance Monitoring
-
-### Medical Device Performance Metrics
-
-#### Hardware Communication Monitoring
-
-```javascript
-// Monitor hardware response times
-const monitorHardwarePerformance = () => {
-  const metrics = {
-    responseTime: [], // Track DS12/DS16 response times
-    errorRate: 0, // Track communication failures
-    throughput: 0, // Operations per minute
-    uptime: 0, // Hardware availability percentage
-  };
-
-  // Log metrics for medical device compliance
-  auditLogger.logPerformanceMetrics(metrics);
-};
-```
-
-#### License System Performance
-
-```javascript
-// Monitor ESP32 license validation performance
-const monitorLicensePerformance = () => {
-  const licenseMetrics = {
-    validationTime: [], // ESP32 response times
-    wifiConnectivity: 0, // WiFi connection stability
-    encryptionTime: [], // AES-256-CBC performance
-    bindingSuccess: 0, // Hardware binding success rate
-  };
-
-  // Track for compliance and system reliability
-  auditLogger.logLicenseMetrics(licenseMetrics);
-};
-```
-
-#### Database Performance Monitoring
-
-```javascript
-// Monitor SQLite performance for medical compliance
-const monitorDatabasePerformance = () => {
-  const dbMetrics = {
-    queryTime: [], // Query execution times
-    auditLogSize: 0, // Audit trail growth rate
-    backupTime: [], // Backup operation duration
-    integrityChecks: 0, // Database integrity validation
-  };
-
-  // Essential for medical device audit requirements
-  auditLogger.logDatabaseMetrics(dbMetrics);
-};
-```
-
-### System Health Monitoring
-
-#### Real-time Health Checks
-
-- **Hardware Status**: Continuous monitoring of DS12/DS16 device connectivity
-- **License Validation**: Regular ESP32 license system health checks
-- **Database Integrity**: Automated audit trail consistency verification
-- **Memory Usage**: Electron process memory monitoring and leak detection
-- **Network Connectivity**: WiFi stability for license system communication
-
-#### Performance Thresholds
-
-- **Hardware Response**: < 500ms for dispensing operations
-- **License Validation**: < 2 seconds for ESP32 communication
-- **Database Queries**: < 100ms for standard operations
-- **Audit Logging**: < 50ms for compliance record creation
-- **System Startup**: < 30 seconds for full system initialization
-
-#### Alerting & Notifications
-
-```javascript
-// Medical device performance alerting
-const performanceAlerting = {
-  hardwareTimeout: () => {
-    // Critical: Hardware not responding
-    auditLogger.logCriticalAlert("Hardware communication timeout");
-    notifyMedicalStaff("CRITICAL: Dispensing system offline");
-  },
-
-  licenseFailure: () => {
-    // Critical: License system failure
-    auditLogger.logCriticalAlert("License validation failure");
-    disableSystemOperations();
-  },
-
-  auditTrailIssue: () => {
-    // Critical: Audit logging failure
-    auditLogger.logCriticalAlert("Audit trail integrity compromised");
-    requireImmediateAttention();
-  },
-};
-```
-
-### Compliance Reporting
-
-#### Automated Performance Reports
-
-- **Daily Performance Summary**: Hardware, license, and database metrics
-- **Weekly Compliance Report**: Audit trail integrity and system reliability
-- **Monthly System Health**: Comprehensive performance analysis
-- **Incident Reports**: Automated generation for medical device compliance
-
-#### Performance Data Retention
-
-- **Real-time Metrics**: 24 hours of detailed performance data
-- **Daily Summaries**: 1 year of daily performance reports
-- **Incident Logs**: Permanent retention for medical device compliance
-- **Audit Trails**: Permanent retention as required by medical regulations
 
 ---
 
