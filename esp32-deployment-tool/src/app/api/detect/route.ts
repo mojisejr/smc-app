@@ -4,6 +4,15 @@ import { ESP32Device } from "@/types";
 import { promisify } from "util";
 import { exec } from "child_process";
 
+// Interface for Windows COM port information
+interface WindowsPortInfo {
+  DeviceID?: string;
+  Description?: string;
+  Manufacturer?: string;
+  Name?: string;
+  [key: string]: unknown;
+}
+
 export async function GET() {
   try {
     console.log("info: Starting ESP32 device detection...");
@@ -265,7 +274,7 @@ async function detectViaDirectUSBScan(): Promise<ESP32Device[]> {
               });
             }
           }
-        } catch (parseError) {
+        } catch {
           console.log(
             "info: Failed to parse Windows COM port data, trying alternative method"
           );
@@ -461,7 +470,7 @@ async function detectWindowsDevices(): Promise<ESP32Device[]> {
           }
         }
       }
-    } catch (powershellError) {
+    } catch {
       console.log(
         "info: PowerShell method failed, trying alternative approach"
       );
@@ -486,7 +495,7 @@ async function detectWindowsDevices(): Promise<ESP32Device[]> {
             }
           }
         }
-      } catch (regError) {
+      } catch {
         console.log(
           "info: Registry query failed, using mode command as final fallback"
         );
@@ -601,7 +610,7 @@ function isESP32Device(
 }
 
 // Windows-specific helper function to check if a device is likely an ESP32
-function isESP32DeviceWindows(portInfo: any): boolean {
+function isESP32DeviceWindows(portInfo: WindowsPortInfo): boolean {
   const esp32Keywords = [
     "cp210",
     "cp2102",

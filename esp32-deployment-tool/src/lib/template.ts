@@ -1,4 +1,5 @@
 import { CustomerInfo } from "@/types";
+import { getBoardConfig, getDefaultBoardConfig } from "./board-configs";
 import fs from "fs";
 import path from "path";
 
@@ -7,6 +8,9 @@ export interface TemplateConfig {
   wifiSSID: string;
   wifiPassword: string;
   generatedDate: string;
+  // Dynamic board configuration support
+  chipType?: string; // e.g., 'ESP32-S3', 'ESP32', 'ESP32-C3'
+  boardConfig?: string; // PlatformIO board configuration
 }
 
 export class TemplateProcessor {
@@ -72,12 +76,23 @@ export class TemplateProcessor {
       // Read platformio template file
       const template = await fs.promises.readFile(this.platformioTemplatePath, "utf8");
       
-      // Replace placeholders
+      // Determine board configuration based on chip type or use default
+      let boardConfig = config.boardConfig;
+      if (!boardConfig && config.chipType) {
+        boardConfig = getBoardConfig(config.chipType) ?? undefined;
+      }
+      if (!boardConfig) {
+        boardConfig = getDefaultBoardConfig(); // Fallback to esp32dev
+        console.warn(`INFO: Using default board config '${boardConfig}' for chip type '${config.chipType || 'unknown'}'`);
+      }
+      
+      // Replace placeholders including dynamic board configuration
       const platformioConfig = template
         .replace(/\{\{ORGANIZATION\}\}/g, config.customer.organization)
         .replace(/\{\{CUSTOMER_ID\}\}/g, config.customer.customerId)
         .replace(/\{\{APPLICATION_NAME\}\}/g, config.customer.applicationName)
-        .replace(/\{\{GENERATED_DATE\}\}/g, config.generatedDate);
+        .replace(/\{\{GENERATED_DATE\}\}/g, config.generatedDate)
+        .replace(/\{\{BOARD_TYPE\}\}/g, boardConfig);
         
       return platformioConfig;
     } catch (error) {
