@@ -199,7 +199,7 @@ export class CrossPlatformPlatformIO {
       return {
         success: true,
         chipType,
-        boardConfig,
+        boardConfig: boardConfig ?? undefined,
         isSupported,
         isMedicalDeviceCompatible: isMedicalCompatible,
         macAddress,

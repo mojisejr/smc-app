@@ -79,7 +79,7 @@ export class TemplateProcessor {
       // Determine board configuration based on chip type or use default
       let boardConfig = config.boardConfig;
       if (!boardConfig && config.chipType) {
-        boardConfig = getBoardConfig(config.chipType);
+        boardConfig = getBoardConfig(config.chipType) ?? undefined;
       }
       if (!boardConfig) {
         boardConfig = getDefaultBoardConfig(); // Fallback to esp32dev

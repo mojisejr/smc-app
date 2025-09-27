@@ -88,6 +88,14 @@ export function getBoardConfig(chipType: string): string | null {
 }
 
 /**
+ * Get default board configuration (ESP32)
+ * @returns Default PlatformIO board configuration string
+ */
+export function getDefaultBoardConfig(): string {
+  return BOARD_CONFIGS['ESP32'].boardConfig;
+}
+
+/**
  * Check if a chip type is supported for medical device licensing
  * @param chipType - ESP32 chip type
  * @returns True if chip is supported and medical device compatible
@@ -95,6 +103,16 @@ export function getBoardConfig(chipType: string): string | null {
 export function isMedicalDeviceCompatible(chipType: string): boolean {
   const chipInfo = BOARD_CONFIGS[chipType.toUpperCase()];
   return chipInfo?.isSupported && chipInfo?.medicalDeviceCompatible || false;
+}
+
+/**
+ * Check if a chip type is supported
+ * @param chipType - ESP32 chip type to check
+ * @returns true if the chip type is supported
+ */
+export function isChipSupported(chipType: string): boolean {
+  const chipInfo = BOARD_CONFIGS[chipType.toUpperCase()];
+  return chipInfo?.isSupported ?? false;
 }
 
 /**
