@@ -4,9 +4,9 @@
 ; Application: {{APPLICATION_NAME}}
 ; Generated: {{GENERATED_DATE}}
 
-[env:esp32dev]
+[env:{{BOARD_TYPE}}]
 platform = espressif32
-board = esp32dev
+board = {{BOARD_TYPE}}
 framework = arduino
 monitor_speed = 115200
 upload_speed = 115200 

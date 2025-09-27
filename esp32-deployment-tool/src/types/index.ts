@@ -7,11 +7,24 @@ export interface CustomerInfo {
   noExpiry?: boolean; // True for permanent licenses (no expiry)
 }
 
-// ESP32 device info
+// ESP32 device info with chip detection capabilities
 export interface ESP32Device {
   port: string;
   description: string;
   manufacturer?: string;
+  // Chip detection and compatibility fields
+  chipType?: string; // e.g., 'ESP32-S3', 'ESP32', 'ESP32-C3'
+  boardConfig?: string; // PlatformIO board configuration
+  isSupported?: boolean; // Whether chip is supported for deployment
+  isMedicalDeviceCompatible?: boolean; // Medical device licensing compatibility
+  macAddress?: string; // Device MAC address for license binding
+  chipDetails?: {
+    chipRevision?: string;
+    flashSize?: string;
+    crystalFreq?: string;
+  };
+  detectionStatus?: 'pending' | 'detecting' | 'detected' | 'failed';
+  detectionError?: string;
 }
 
 // Deployment state

@@ -7,6 +7,7 @@
 import { spawn } from 'child_process';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import { getBoardConfig, isChipSupported, isMedicalDeviceCompatible } from './board-configs';
 
 const execAsync = promisify(exec);
 
@@ -15,6 +16,21 @@ export interface PlatformIOResult {
   output?: string;
   error?: string;
   code?: number;
+}
+
+export interface ChipDetectionResult {
+  success: boolean;
+  chipType?: string;
+  boardConfig?: string;
+  isSupported?: boolean;
+  isMedicalDeviceCompatible?: boolean;
+  macAddress?: string;
+  chipDetails?: {
+    chipRevision?: string;
+    flashSize?: string;
+    crystalFreq?: string;
+  };
+  error?: string;
 }
 
 export class CrossPlatformPlatformIO {
@@ -129,10 +145,119 @@ export class CrossPlatformPlatformIO {
   }
 
   /**
-   * Build and upload firmware to ESP32 device
+   * Detect ESP32 chip information using esptool.py
    */
-  static async buildAndUpload(projectPath: string, devicePort: string): Promise<PlatformIOResult> {
-    console.log(`info: Building and uploading to ${devicePort} from ${projectPath}`);
+  static async detectChipInfo(devicePort: string): Promise<ChipDetectionResult> {
+    try {
+      console.log(`INFO: Detecting chip information for device on port ${devicePort}`);
+      
+      // Use esptool.py to detect chip information
+      const { stdout, stderr } = await execAsync(`python -m esptool --port ${devicePort} chip_id`);
+      
+      // Parse esptool output to extract chip information
+      const output = stdout + stderr;
+      console.log(`DEBUG: esptool output: ${output}`);
+      
+      // Extract chip type from output
+      let chipType = 'ESP32'; // Default fallback
+      const chipTypeMatch = output.match(/Chip is (ESP32[^\s]*)/i);
+      if (chipTypeMatch) {
+        chipType = chipTypeMatch[1].toUpperCase();
+      }
+      
+      // Extract MAC address
+      let macAddress: string | undefined;
+      const macMatch = output.match(/MAC: ([a-fA-F0-9:]{17})/);
+      if (macMatch) {
+        macAddress = macMatch[1];
+      }
+      
+      // Extract chip details
+      const chipDetails: ChipDetectionResult['chipDetails'] = {};
+      const revisionMatch = output.match(/Chip revision: (\d+)/);
+      if (revisionMatch) {
+        chipDetails.chipRevision = revisionMatch[1];
+      }
+      
+      const flashSizeMatch = output.match(/Flash size: ([^\s]+)/);
+      if (flashSizeMatch) {
+        chipDetails.flashSize = flashSizeMatch[1];
+      }
+      
+      const crystalMatch = output.match(/Crystal frequency: ([^\s]+)/);
+      if (crystalMatch) {
+        chipDetails.crystalFreq = crystalMatch[1];
+      }
+      
+      // Get board configuration and compatibility
+      const boardConfig = getBoardConfig(chipType);
+      const isSupported = isChipSupported(chipType);
+      const isMedicalCompatible = isMedicalDeviceCompatible(chipType);
+      
+      console.log(`INFO: Detected chip: ${chipType}, Board: ${boardConfig}, Supported: ${isSupported}, Medical Compatible: ${isMedicalCompatible}`);
+      
+      return {
+        success: true,
+        chipType,
+        boardConfig,
+        isSupported,
+        isMedicalDeviceCompatible: isMedicalCompatible,
+        macAddress,
+        chipDetails: Object.keys(chipDetails).length > 0 ? chipDetails : undefined
+      };
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during chip detection';
+      console.log(`ERROR: Chip detection failed: ${errorMessage}`);
+      
+      return {
+        success: false,
+        error: errorMessage
+      };
+    }
+  }
+
+  /**
+   * Build and upload firmware to ESP32 device with pre-deployment chip verification
+   */
+  static async buildAndUpload(projectPath: string, devicePort: string, expectedChipType?: string): Promise<PlatformIOResult> {
+    console.log(`INFO: Building and uploading to ${devicePort} from ${projectPath}`);
+    
+    // Pre-deployment chip verification for medical device compliance
+    if (expectedChipType) {
+      console.log(`INFO: Verifying chip type before deployment (expected: ${expectedChipType})`);
+      const chipDetection = await this.detectChipInfo(devicePort);
+      
+      if (!chipDetection.success) {
+        return {
+          success: false,
+          error: `Pre-deployment chip verification failed: ${chipDetection.error}`,
+          code: -3
+        };
+      }
+      
+      if (chipDetection.chipType !== expectedChipType) {
+        return {
+          success: false,
+          error: `Chip type mismatch: expected ${expectedChipType}, detected ${chipDetection.chipType}`,
+          code: -4
+        };
+      }
+      
+      if (!chipDetection.isSupported) {
+        return {
+          success: false,
+          error: `Unsupported chip type: ${chipDetection.chipType}`,
+          code: -5
+        };
+      }
+      
+      if (!chipDetection.isMedicalDeviceCompatible) {
+        console.log(`WARNING: Chip ${chipDetection.chipType} is not medical device compatible`);
+      }
+      
+      console.log(`INFO: Pre-deployment verification passed for ${chipDetection.chipType}`);
+    }
     
     return await this.executePlatformIO([
       'run',
@@ -195,7 +320,8 @@ export const getPlatformIOCommand = () => CrossPlatformPlatformIO.getPlatformIOC
 export const isPlatformIOAvailable = () => CrossPlatformPlatformIO.isPlatformIOAvailable();
 export const executePlatformIO = (args: string[], options?: { cwd?: string; timeout?: number }) => 
   CrossPlatformPlatformIO.executePlatformIO(args, options);
-export const buildAndUpload = (projectPath: string, devicePort: string) => 
-  CrossPlatformPlatformIO.buildAndUpload(projectPath, devicePort);
+export const buildAndUpload = (projectPath: string, devicePort: string, expectedChipType?: string) => 
+  CrossPlatformPlatformIO.buildAndUpload(projectPath, devicePort, expectedChipType);
 export const getDeviceList = () => CrossPlatformPlatformIO.getDeviceList();
 export const getEnvironmentInfo = () => CrossPlatformPlatformIO.getEnvironmentInfo();
+export const detectChipInfo = (devicePort: string) => CrossPlatformPlatformIO.detectChipInfo(devicePort);
