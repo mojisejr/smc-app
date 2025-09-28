@@ -1,10 +1,10 @@
 /**
  * ESP32 Board Configuration Mapping
- * 
+ *
  * This module provides board configuration mappings for different ESP32 chip variants
  * used in the medical device license system. Each chip type is mapped to its
  * corresponding PlatformIO board configuration for proper firmware deployment.
- * 
+ *
  * Medical Device Context: These configurations ensure proper hardware compatibility
  * for ESP32-based license validation in medical device environments.
  */
@@ -27,54 +27,54 @@ export interface BoardConfigMapping {
  * Maps chip types to their PlatformIO board configurations
  */
 export const BOARD_CONFIGS: BoardConfigMapping = {
-  'ESP32': {
-    chipType: 'ESP32',
-    boardConfig: 'esp32dev',
+  ESP32: {
+    chipType: "ESP32",
+    boardConfig: "esp32dev",
     isSupported: true,
-    description: 'Original ESP32 chip with dual-core Xtensa LX6',
-    features: ['WiFi', 'Bluetooth Classic', 'BLE', 'Dual Core'],
-    medicalDeviceCompatible: true
+    description: "Original ESP32 chip with dual-core Xtensa LX6",
+    features: ["WiFi", "Bluetooth Classic", "BLE", "Dual Core"],
+    medicalDeviceCompatible: true,
   },
-  'ESP32-S3': {
-    chipType: 'ESP32-S3',
-    boardConfig: 'esp32-s3-devkitc-1',
+  "ESP32-S3": {
+    chipType: "ESP32-S3",
+    boardConfig: "esp32-s3-devkitc-1",
     isSupported: true,
-    description: 'ESP32-S3 with dual-core Xtensa LX7 and AI acceleration',
-    features: ['WiFi', 'BLE', 'Dual Core', 'AI Acceleration', 'USB OTG'],
-    medicalDeviceCompatible: true
+    description: "ESP32-S3 with dual-core Xtensa LX7 and AI acceleration",
+    features: ["WiFi", "BLE", "Dual Core", "AI Acceleration", "USB OTG"],
+    medicalDeviceCompatible: true,
   },
-  'ESP32-C3': {
-    chipType: 'ESP32-C3',
-    boardConfig: 'esp32-c3-devkitm-1',
+  "ESP32-C3": {
+    chipType: "ESP32-C3",
+    boardConfig: "esp32-c3-devkitm-1",
     isSupported: true,
-    description: 'ESP32-C3 with single-core RISC-V processor',
-    features: ['WiFi', 'BLE', 'Single Core RISC-V', 'Low Power'],
-    medicalDeviceCompatible: true
+    description: "ESP32-C3 with single-core RISC-V processor",
+    features: ["WiFi", "BLE", "Single Core RISC-V", "Low Power"],
+    medicalDeviceCompatible: true,
   },
-  'ESP32-S2': {
-    chipType: 'ESP32-S2',
-    boardConfig: 'esp32-s2-devkitm-1',
+  "ESP32-S2": {
+    chipType: "ESP32-S2",
+    boardConfig: "esp32-s2-devkitm-1",
     isSupported: true,
-    description: 'ESP32-S2 with single-core Xtensa LX7 and USB OTG',
-    features: ['WiFi', 'Single Core', 'USB OTG', 'Touch Sensors'],
-    medicalDeviceCompatible: true
+    description: "ESP32-S2 with single-core Xtensa LX7 and USB OTG",
+    features: ["WiFi", "Single Core", "USB OTG", "Touch Sensors"],
+    medicalDeviceCompatible: true,
   },
-  'ESP32-C6': {
-    chipType: 'ESP32-C6',
-    boardConfig: 'esp32-c6-devkitc-1',
+  "ESP32-C6": {
+    chipType: "ESP32-C6",
+    boardConfig: "esp32-c6-devkitc-1",
     isSupported: true,
-    description: 'ESP32-C6 with dual-core RISC-V and 802.11ax support',
-    features: ['WiFi 6', 'BLE', 'Zigbee', 'Thread', 'Dual Core RISC-V'],
-    medicalDeviceCompatible: true
+    description: "ESP32-C6 with dual-core RISC-V and 802.11ax support",
+    features: ["WiFi 6", "BLE", "Zigbee", "Thread", "Dual Core RISC-V"],
+    medicalDeviceCompatible: true,
   },
-  'ESP32-H2': {
-    chipType: 'ESP32-H2',
-    boardConfig: 'esp32-h2-devkitm-1',
+  "ESP32-H2": {
+    chipType: "ESP32-H2",
+    boardConfig: "esp32-h2-devkitm-1",
     isSupported: false, // Limited support for medical device licensing
-    description: 'ESP32-H2 with single-core RISC-V for IoT connectivity',
-    features: ['BLE', 'Zigbee', 'Thread', 'Single Core RISC-V'],
-    medicalDeviceCompatible: false
-  }
+    description: "ESP32-H2 with single-core RISC-V for IoT connectivity",
+    features: ["BLE", "Zigbee", "Thread", "Single Core RISC-V"],
+    medicalDeviceCompatible: false,
+  },
 };
 
 /**
@@ -92,7 +92,7 @@ export function getBoardConfig(chipType: string): string | null {
  * @returns Default PlatformIO board configuration string
  */
 export function getDefaultBoardConfig(): string {
-  return BOARD_CONFIGS['ESP32'].boardConfig;
+  return BOARD_CONFIGS["ESP32-S3"].boardConfig;
 }
 
 /**
@@ -102,7 +102,7 @@ export function getDefaultBoardConfig(): string {
  */
 export function isMedicalDeviceCompatible(chipType: string): boolean {
   const chipInfo = BOARD_CONFIGS[chipType.toUpperCase()];
-  return chipInfo?.isSupported && chipInfo?.medicalDeviceCompatible || false;
+  return (chipInfo?.isSupported && chipInfo?.medicalDeviceCompatible) || false;
 }
 
 /**
@@ -121,7 +121,7 @@ export function isChipSupported(chipType: string): boolean {
  */
 export function getSupportedChipTypes(): string[] {
   return Object.keys(BOARD_CONFIGS).filter(
-    chipType => BOARD_CONFIGS[chipType].isSupported
+    (chipType) => BOARD_CONFIGS[chipType].isSupported
   );
 }
 
@@ -131,8 +131,9 @@ export function getSupportedChipTypes(): string[] {
  */
 export function getMedicalDeviceCompatibleChips(): string[] {
   return Object.keys(BOARD_CONFIGS).filter(
-    chipType => BOARD_CONFIGS[chipType].isSupported && 
-                BOARD_CONFIGS[chipType].medicalDeviceCompatible
+    (chipType) =>
+      BOARD_CONFIGS[chipType].isSupported &&
+      BOARD_CONFIGS[chipType].medicalDeviceCompatible
   );
 }
 
@@ -160,12 +161,12 @@ export interface ChipValidationResult {
 }
 
 export function validateChipType(chipType: string): ChipValidationResult {
-  if (!chipType || typeof chipType !== 'string') {
+  if (!chipType || typeof chipType !== "string") {
     return {
       isValid: false,
       isSupported: false,
       isMedicalDeviceCompatible: false,
-      error: 'Invalid chip type: must be a non-empty string'
+      error: "Invalid chip type: must be a non-empty string",
     };
   }
 
@@ -177,7 +178,9 @@ export function validateChipType(chipType: string): ChipValidationResult {
       isValid: false,
       isSupported: false,
       isMedicalDeviceCompatible: false,
-      error: `Unknown chip type: ${chipType}. Supported types: ${getSupportedChipTypes().join(', ')}`
+      error: `Unknown chip type: ${chipType}. Supported types: ${getSupportedChipTypes().join(
+        ", "
+      )}`,
     };
   }
 
@@ -186,7 +189,7 @@ export function validateChipType(chipType: string): ChipValidationResult {
     isSupported: chipInfo.isSupported,
     isMedicalDeviceCompatible: chipInfo.medicalDeviceCompatible,
     boardConfig: chipInfo.isSupported ? chipInfo.boardConfig : undefined,
-    chipInfo
+    chipInfo,
   };
 }
 
@@ -197,9 +200,15 @@ export function validateChipType(chipType: string): ChipValidationResult {
  */
 export function generatePlatformIOBoardConfig(chipType: string): string {
   const validation = validateChipType(chipType);
-  
-  if (!validation.isValid || !validation.isSupported || !validation.boardConfig) {
-    throw new Error(`Cannot generate board config for unsupported chip: ${chipType}`);
+
+  if (
+    !validation.isValid ||
+    !validation.isSupported ||
+    !validation.boardConfig
+  ) {
+    throw new Error(
+      `Cannot generate board config for unsupported chip: ${chipType}`
+    );
   }
 
   return `board = ${validation.boardConfig}`;
@@ -207,4 +216,5 @@ export function generatePlatformIOBoardConfig(chipType: string): string {
 
 // Export constants for external use
 export const SUPPORTED_CHIP_TYPES = getSupportedChipTypes();
-export const MEDICAL_DEVICE_COMPATIBLE_CHIPS = getMedicalDeviceCompatibleChips();
+export const MEDICAL_DEVICE_COMPATIBLE_CHIPS =
+  getMedicalDeviceCompatibleChips();
