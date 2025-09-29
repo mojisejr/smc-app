@@ -8,6 +8,9 @@ dist
 docs/
 notes/
 
+*.lic
+license.json
+
 *.env
 
 # Logs
