@@ -108,7 +108,9 @@ interface BuildConfig {
 async function checkForInternalLicense(): Promise<boolean> {
   const licensePaths = [
     path.join(process.cwd(), 'license.lic'),
+    path.join(process.cwd(), 'license.json'),
     path.join(process.cwd(), 'resources', 'license.lic'),
+    path.join(process.cwd(), 'resources', 'license.json'),
     path.join(process.cwd(), 'cli', 'internal-license_test.lic'),
     path.join(process.cwd(), 'cli', 'test-internal_test.lic')
   ];
@@ -401,55 +403,94 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
       );
     }
   } else {
-    // Auto-detect license file in resources folder
-    const resourcesLicenseFile = path.join(
+    // Auto-detect license file in resources folder if not specified
+    // Check for both license.lic and license.json files
+    const resourcesLicenseFileOld = path.join(
       process.cwd(),
       "resources",
       "license.lic"
     );
+    const resourcesLicenseFileNew = path.join(
+      process.cwd(),
+      "resources",
+      "license.json"
+    );
 
-    if (fs.existsSync(resourcesLicenseFile)) {
-      console.log("info: Auto-detected license file in resources folder");
-      licenseFile = resourcesLicenseFile;
+    // Prioritize license.json over license.lic for new format support
+    if (fs.existsSync(resourcesLicenseFileNew)) {
+      console.log("info: Auto-detected license.json file in resources folder");
+      licenseFile = resourcesLicenseFileNew;
+    } else if (fs.existsSync(resourcesLicenseFileOld)) {
+      console.log("info: Auto-detected license.lic file in resources folder");
+      licenseFile = resourcesLicenseFileOld;
+    }
 
+    // Parse license file if found (either .json or .lic)
+    if (licenseFile) {
       try {
         console.log(`info: Auto-detected license file: ${licenseFile}`);
 
-        const licenseParser = new LicenseParser({ verbose: true });
+        // Check if it's a .json file (ESP32 configuration format)
+        if (licenseFile.endsWith('.json')) {
+          console.log("info: Detected license.json format (ESP32 configuration)");
+          
+          const jsonContent = fs.readFileSync(licenseFile, 'utf8');
+          const licenseConfig = JSON.parse(jsonContent);
+          
+          // Extract organization and customer data from ESP32 configuration format
+          if (licenseConfig.customer && licenseConfig.customer.organization && licenseConfig.customer.customer_id) {
+            organizationName = licenseConfig.customer.organization;
+            customerName = licenseConfig.customer.customer_id;
+            licenseType = "internal"; // ESP32 config files are for internal builds
+            isInternalBuild = true;
+            useLicenseData = true;
 
-        // For HKDF v2.0 licenses, provide sensitive data matching CLI generation
-        const sensitiveDataForHKDF = {
-          macAddress: "AA:BB:CC:DD:EE:FF", // Match CLI test license
-          wifiSsid: "TestWiFi_HKDF", // Match CLI test license
-        };
+            console.log("info: Using organization data from license.json");
+            console.log(`info: License organization: ${organizationName}`);
+            console.log(`info: License customer: ${customerName}`);
+            console.log(`info: License type: ${licenseType}`);
+            console.log("info: Internal license detected - ESP32 validation will be bypassed");
+          } else {
+            throw new Error("Invalid license.json format: missing customer.organization or customer.customer_id");
+          }
+        } else {
+          // Handle .lic files with LicenseParser
+          const licenseParser = new LicenseParser({ verbose: true });
 
-        console.log(
-          "info: Parsing auto-detected license (using sensitive data for HKDF if needed)..."
-        );
-        const licenseData = await licenseParser.parseLicenseFile(
-          licenseFile,
-          sensitiveDataForHKDF
-        );
+          // For HKDF v2.0 licenses, provide sensitive data matching CLI generation
+          const sensitiveDataForHKDF = {
+            macAddress: "AA:BB:CC:DD:EE:FF", // Match CLI test license
+            wifiSsid: "TestWiFi_HKDF", // Match CLI test license
+          };
 
-        // ใช้ข้อมูลจาก license แทน environment variables
-        organizationName = licenseData.organization;
-        customerName = licenseData.customer;
-        licenseType = (licenseData as any).license_type || "production";
-        isInternalBuild =
-          licenseType === "internal" || licenseType === "development";
-        useLicenseData = true;
-
-        console.log(
-          "info: Using organization data from auto-detected license file"
-        );
-        console.log(`info: License organization: ${organizationName}`);
-        console.log(`info: License customer: ${customerName}`);
-        console.log(`info: License type: ${licenseType}`);
-
-        if (isInternalBuild) {
           console.log(
-            `info: Internal license detected - ESP32 validation will be bypassed`
+            "info: Parsing auto-detected license (using sensitive data for HKDF if needed)..."
           );
+          const licenseData = await licenseParser.parseLicenseFile(
+            licenseFile,
+            sensitiveDataForHKDF
+          );
+
+          // ใช้ข้อมูลจาก license แทน environment variables
+          organizationName = licenseData.organization;
+          customerName = licenseData.customer;
+          licenseType = (licenseData as any).license_type || "production";
+          isInternalBuild =
+            licenseType === "internal" || licenseType === "development";
+          useLicenseData = true;
+
+          console.log(
+            "info: Using organization data from auto-detected license file"
+          );
+          console.log(`info: License organization: ${organizationName}`);
+          console.log(`info: License customer: ${customerName}`);
+          console.log(`info: License type: ${licenseType}`);
+
+          if (isInternalBuild) {
+            console.log(
+              `info: Internal license detected - ESP32 validation will be bypassed`
+            );
+          }
         }
       } catch (error: any) {
         console.warn(
@@ -461,16 +502,33 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
     }
 
     if (!useLicenseData) {
-      console.log(
-        "info: No license file specified or auto-detected, using environment variables"
-      );
-      // Enhanced internal build detection with multiple validation layers
+      // Check if this is a production build that requires a license file
       const buildType = process.env.BUILD_TYPE;
       const isDevelopmentEnv = process.env.NODE_ENV === 'development';
       const hasInternalLicense = await checkForInternalLicense();
       const forceBypass = process.env.FORCE_INTERNAL_BYPASS === 'true';
       
       const shouldConfigureBypass = buildType === "internal" || buildType === "development" || isDevelopmentEnv || hasInternalLicense || forceBypass;
+      
+      // If this is not an internal/development build and no license file was found, throw an error
+      if (!shouldConfigureBypass) {
+        console.error("❌ Production build requires a license file");
+        console.error("   Expected license file locations:");
+        console.error("   - resources/license.json (ESP32 configuration format)");
+        console.error("   - resources/license.lic (encrypted license format)");
+        console.error("   - Or specify --license=<path> argument");
+        console.error("");
+        console.error("   For internal/development builds, use:");
+        console.error("   - BUILD_TYPE=internal or BUILD_TYPE=development");
+        console.error("   - NODE_ENV=development");
+        console.error("   - FORCE_INTERNAL_BYPASS=true");
+        throw new Error("License file required for production build. Build preparation aborted.");
+      }
+      
+      console.log(
+        "info: No license file specified or auto-detected, using environment variables for internal build"
+      );
+      // Enhanced internal build detection with multiple validation layers
       
       if (shouldConfigureBypass) {
         const bypassReasons = [];
@@ -952,6 +1010,9 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
     }
 
     // Clear existing data to prevent conflicts
+    // Clear tables in proper order to avoid foreign key constraint violations
+    await sequelize.query('DELETE FROM DispensingLog'); // Clear dependent table first
+    await sequelize.query('DELETE FROM Log'); // Clear system logs
     await sequelize.query('DELETE FROM Setting WHERE id = 1');
     await sequelize.query('DELETE FROM User WHERE id = 1');
     await sequelize.query('DELETE FROM Slot');
@@ -1447,10 +1508,15 @@ async function cleanLicenseFiles(): Promise<void> {
 
   const licenseFiles = [
     path.join(process.cwd(), "resources", "license.lic"),
+    path.join(process.cwd(), "resources", "license.json"),
     path.join(process.cwd(), "license.lic"),
+    path.join(process.cwd(), "license.json"),
     path.join(process.cwd(), "dist", "license.lic"),
+    path.join(process.cwd(), "dist", "license.json"),
     path.join(process.cwd(), "app", "license.lic"),
+    path.join(process.cwd(), "app", "license.json"),
     path.join(process.cwd(), "build", "license.lic"),
+    path.join(process.cwd(), "build", "license.json"),
   ];
 
   let removedCount = 0;
@@ -1491,7 +1557,7 @@ async function cleanLicenseFiles(): Promise<void> {
   });
 
   console.log("info: License file cleanup completed");
-  console.log("info: Production build will NOT include license.lic file");
+  console.log("info: Production build will NOT include license.lic or license.json files");
   console.log("info: License must be provided separately during deployment");
 }
 
