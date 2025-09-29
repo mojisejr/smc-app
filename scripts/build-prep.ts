@@ -423,7 +423,10 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
     } else if (fs.existsSync(resourcesLicenseFileOld)) {
       console.log("info: Auto-detected license.lic file in resources folder");
       licenseFile = resourcesLicenseFileOld;
+    }
 
+    // Parse license file if found (either .json or .lic)
+    if (licenseFile) {
       try {
         console.log(`info: Auto-detected license file: ${licenseFile}`);
 
