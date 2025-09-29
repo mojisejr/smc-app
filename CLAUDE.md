@@ -1,4 +1,9 @@
+# Smart Medication Cart (SMC) - Agent Development Guide
+
+**CRITICAL**: This is a **safety-critical medical device software** requiring strict compliance patterns for audit trails, error handling, and hardware communication protocols.
+
 ---
+
 ## Project Overview
 
 **Project Name**: Smart Medication Cart (SMC)
@@ -208,212 +213,76 @@ This section lists common commands for this project.
 
 ---
 
-## Development Guidelines
+## Agent-Driven Development Workflows
 
-- **Solo Developer Approach**: Use simple, maintainable code patterns.
-- **Implementation Approach**: Always start with the simplest solution (Minimum Viable Implementation) and iterate incrementally.
-- **Testing**: Primary method is **manual testing**, supplemented by Jest test suites.
-- **Logging**: Use clear prefixes: `debug`, `info`, and `error`.
+### Critical Time Synchronization for Medical Device Development
 
----
+**MANDATORY**: All development activities **MUST** use Thailand timezone (UTC+7) for medical device compliance and audit trail consistency.
 
-## 🚀 Development Workflows
+- **File Naming**: All retrospective files, logs, and documentation must use Thailand date format
+- **Timestamps**: All commit messages, PR descriptions, and issue updates must reference Thailand time
+- **Audit Compliance**: Medical device audit trails require consistent timezone for regulatory compliance
+- **Session Tracking**: Development sessions must be tracked in Thailand local time for compliance reporting
 
-⚠️ CRITICAL: Synchronize Time Before Any File Operations
+### Medical Device Logging Strategy
 
-Before creating a new file or saving any timestamps, you MUST use the following command to retrieve the current date and time from the system:
+All development activities **MUST** use standardized logging prefixes for medical device compliance:
 
-date +"%Y-%m-%d %H:%M:%S"
-This ensures accurate timestamp synchronization with the system clock and prevents time-related inconsistencies.
+- **`INFO:`**: General information (production and development environments)
+- **`ERROR:`**: Error messages requiring immediate attention (production and development)
+- **`DEBUG:`**: Debug messages (development environments only, never in production)
+- **`MEDICAL:`**: Medical device specific operations requiring audit trail
+- **`HARDWARE:`**: Hardware communication and controller operations
+- **`LICENSE:`**: ESP32 license system operations and validation
 
-### Logging Strategy
+### Two-Issue Pattern for Medical Device Development
 
-**console.log will be 3 types **
+The agent **MUST** maintain exactly **TWO GitHub Issues** at all times for medical device compliance and audit tracking:
 
-- **INFO**: For general information messages that logged on both production and development environments eg. `INFO: User XYZ has successfully logged in.`
-- **ERROR**: For error messages that logged on both production and development environments.
-  eg. `ERROR: Failed to connect to database.`
-- **DEBUG**: For debug messages that logged on development environments only.
-  eg. `DEBUG: Database connection established.`
+1. **Context Issue** (`=fcs`): Current medical device development focus and compliance context
+2. **Task Issue** (`=plan`): Specific medical device implementation plan with safety considerations
 
-### The Two-Issue Pattern
+**Medical Device Safety Protocol**: This pattern ensures medical device development maintains proper documentation and audit trails required for medical device compliance.
 
-This project uses a Two-Issue Pattern to separate work context from actionable plans, integrating local workflows with GitHub Issues for clarity and traceability.
+### Agent-Driven Shortcut Commands for Medical Device Development
 
-- **Context Issues (`=fcs`):** Used to record the current state and context of a session on GitHub.
+- **`=update-kb`**: **CRITICAL MEDICAL DEVICE KNOWLEDGE BASE UPDATE** - Updates project knowledge base with medical device compliance analysis:
 
-- **Task Issues (`=plan`):** Used to create a detailed and comprehensive plan of action on GitHub. The agent will use information from the latest Context Issue as a reference.
+  - **Medical Compliance Analysis**: Reviews all changes for medical device regulatory compliance
+  - **Hardware Integration Review**: Analyzes DS12/DS16 hardware controller modifications
+  - **License System Validation**: Validates ESP32 license system integrity and security
+  - **Audit Trail Synchronization**: Ensures all medical device operations are properly logged
+  - **Safety Pattern Documentation**: Documents new medical device safety patterns and procedures
+  - **Regulatory Compliance Check**: Verifies adherence to medical device development standards
 
----
+- **`=fcs > [message]`**: **MEDICAL DEVICE CONTEXT MANAGEMENT** - Updates `current-focus.md` and creates/updates GitHub Context Issue with medical device compliance focus:
 
-### Shortcut Commands
+  - **Medical Device Context**: Updates development focus with medical device safety considerations
+  - **Compliance Tracking**: Ensures all development activities align with medical device standards
+  - **Safety Documentation**: Documents current medical device development priorities
+  - **Audit Trail Creation**: Creates GitHub issue for medical device compliance tracking
 
-These commands are standard across all projects and streamline our communication with **AUTOMATED WORKFLOW INTEGRATION**.
+- **`=plan > [question/problem]`**: **MEDICAL DEVICE IMPLEMENTATION PLANNING** - Creates or updates GitHub Task Issue with detailed medical device implementation plan:
 
-### Shortcut Commands
+  - **Safety-First Planning**: Prioritizes medical device safety in all implementation plans
+  - **Hardware Integration Planning**: Plans DS12/DS16 hardware controller modifications
+  - **License System Planning**: Plans ESP32 license system modifications with security considerations
+  - **Audit Trail Planning**: Plans audit logging and compliance reporting requirements
+  - **Medical Device Validation**: Plans testing and validation procedures for medical device compliance
 
-... (ส่วนคำสั่งเดิมของคุณ)
+- **`=impl`**: **MEDICAL DEVICE IMPLEMENTATION EXECUTION** - Executes planned medical device implementation with safety protocols:
 
-- **`=update-kb`**: **CRITICAL KNOWLEDGE BASE UPDATE WORKFLOW** - Instructs the agent to update the project's **Shared Knowledge Base** file (`project_status.md` or `project_state.json`) with the latest architectural, UI, and functionality details. This command ensures persistent context and prevents a loss of project memory.
+  - **Safety-First Implementation**: Implements medical device features with safety as top priority
+  - **Hardware Safety Validation**: Validates all hardware controller modifications for safety
+  - **License System Security**: Implements ESP32 license system modifications with security validation
+  - **Audit Trail Implementation**: Implements comprehensive audit logging for medical device compliance
+  - **Medical Device Testing**: Executes thorough testing procedures for medical device validation
 
-  1.  **Context Analysis**: Analyze the latest code changes, UI components, and system functionality.
-  2.  **File Update**: Overwrite the existing knowledge base file with the new, comprehensive snapshot of the project's state.
-  3.  **Synchronization**: Ensure the updated file is ready for all other agents and developers to read before any new implementation begins.
-      **MANDATORY RULE**: This command **MUST** be executed after every successful implementation (`=impl`) to ensure the project's state is always synchronized.
+### 🌿 Enhanced Implementation Strategy
 
-- **`=fcs > [message]`**: Updates the `current-focus.md` file on the local machine and creates a **GitHub Context Issue** with the specified `[message]` as the title. **WARNING**: This command will only work if there are no open GitHub issues. If there are, the agent will alert you to clear the backlog before you can save a new context. To bypass this check, use the command `=fcs -f > [message]`.
+**ENHANCED AUTOMATION**: All development workflows now include full automation to ensure consistent adherence to medical device guidelines.
 
-- **`=plan > [question/problem]`**: Creates a **GitHub Task Issue** with a detailed and comprehensive plan of action. **STAGING-FIRST WORKFLOW & CONFLICT PREVENTION** - The agent will:
-
-  1. **Pre-Planning Validation**:
-
-     - **Auto-check**: Verify staging branch is up-to-date with remote
-     - **Warning**: Alert if staging is behind remote origin
-     - **Mandatory Sync**: Automatically sync staging before planning if needed
-     - **PR Status Check**: Verify no conflicting open PRs exist
-     - **Branch Status**: Check for existing feature branches and potential conflicts
-
-  2. **Codebase Analysis Phase**: For non-new feature implementations (fixes, refactors, modifications):
-
-     - Search and analyze all relevant code components and dependencies
-     - Identify side effects and interconnected systems
-     - Review existing patterns, conventions, and architectural decisions
-     - Map data flow and component relationships
-     - Assess impact on related functionality
-     - **File Coordination Check**: Identify high-risk files requiring team coordination
-
-  3. **Plan Creation Phase**: Use all gathered information including:
-     - Current focus context from `current-focus.md`
-     - Previous conversation history
-     - Comprehensive codebase analysis results
-     - Identified dependencies and side effects
-     - **Staging Context Creation**: Include `staging-context.md` creation in implementation plan
-
-  If an open Task Issue already exists, the agent will **update** that Issue with the latest information instead of creating a new one.
-
-- **`=impl > [message]`**: **STAGING-FIRST IMPLEMENTATION WORKFLOW** - Instructs the agent to execute the plan contained in the latest **GitHub Task Issue** with full automation:
-
-  1. **Pre-Implementation Validation**:
-
-     - **MANDATORY**: Ensure currently on staging branch (`git checkout staging`)
-     - **MANDATORY**: Sync staging with remote origin (`git pull origin staging`)
-     - **MANDATORY**: Verify no existing open PRs that could conflict
-     - **MANDATORY**: Ensure clean working directory before proceeding
-     - **Conflict Detection**: Check for potential conflicts before starting
-     - **Emergency Protocol**: Activate emergency resolution if conflicts detected
-
-  2. **Auto-Branch Creation**: Creates feature branch from staging with proper naming (`feature/[issue-number]-[description]`)
-  3. **Implementation**: Executes the planned work with continuous conflict monitoring
-  4. **Enhanced Commit & Push Flow**:
-
-     - **Pre-commit Validation**: Check for conflicts before each commit
-     - **Descriptive Commits**: Atomic commits with clear, descriptive messages
-     - **Safe Push Strategy**: Force push only when necessary with `--force-with-lease`
-     - **Conflict Resolution**: Automatic conflict detection and resolution protocols
-
-  5. **Staging Context Creation**: Creates `staging-context.md` with implementation details
-  6. **Auto-PR Creation**: Creates Pull Request **TO STAGING BRANCH ONLY** with proper description and issue references
-  7. **Issue Updates**: Updates the plan issue with PR link and completion status
-  8. **User Notification**: Provides PR link for review and approval - **USER HANDLES MAIN BRANCH MERGES MANUALLY**
-
-- **`=stage > [message]`**: **STAGING DEPLOYMENT WORKFLOW** - Deploys approved changes from feature branch to staging environment:
-
-  1. **Pre-Staging Validation**:
-
-     - **Feature Branch Validation**: Ensure feature branch is ready for staging
-     - **Conflict Resolution**: Resolve any conflicts with staging branch
-     - **Test Validation**: Run automated tests before staging deployment
-
-  2. **Staging Deployment**:
-
-     - **Merge to Staging**: Merge approved feature branch to staging
-     - **Staging Context Update**: Update `staging-context.md` with deployment details
-     - **Auto-Deploy**: Trigger staging environment deployment
-     - **Health Check**: Verify staging deployment health
-
-  3. **Staging Validation**:
-
-     - **Functional Testing**: Run staging environment tests
-     - **Performance Monitoring**: Monitor staging performance metrics
-     - **User Acceptance**: Prepare for user acceptance testing
-
-  4. **Production Readiness**:
-     - **Production Context**: Create production deployment context
-     - **Rollback Plan**: Prepare rollback procedures
-     - **Notification**: Alert team of staging deployment completion
-
-- **`=prod > [message]`**: **PRODUCTION DEPLOYMENT WORKFLOW** - Deploys validated changes from staging to production:
-
-  1. **Pre-Production Validation**:
-
-     - **Staging Validation**: Ensure staging tests pass completely
-     - **Security Review**: Complete security audit checklist
-     - **Performance Baseline**: Establish performance benchmarks
-
-  2. **Production Deployment**:
-
-     - **Merge to Main**: Merge staging branch to main/production
-     - **Production Deploy**: Execute production deployment pipeline
-     - **Health Monitoring**: Monitor production health metrics
-     - **Performance Tracking**: Track production performance
-
-  3. **Post-Deployment**:
-
-     - **Cleanup Operations**: Auto-cleanup `staging-context.md`
-     - **Monitoring Setup**: Establish production monitoring
-     - **Documentation**: Update production documentation
-     - **Team Notification**: Notify team of successful production deployment
-
-  4. **Rollback Readiness**:
-     - **Rollback Procedures**: Maintain rollback capabilities
-     - **Incident Response**: Prepare incident response protocols
-
-- **`=rrr > [message]`**: Creates a daily Retrospective file in the `docs/retrospective/` folder and creates a GitHub Issue containing a summary of the work, an AI Diary, and Honest Feedback, allowing you and the team to review the session accurately.
-
-### 📋 Staging Context File Management
-
-#### Auto-Cleanup Strategy for `staging-context.md`
-
-**File Creation & Location**:
-
-- **Created during**: `=impl` command execution
-- **Location**: Project root directory (`./staging-context.md`)
-- **Content**: Implementation details, deployment context, testing notes
-
-**Lifecycle Management**:
-
-- **Creation**: Automatically generated during feature implementation
-- **Updates**: Modified during `=stage` deployment process
-- **Cleanup**: Automatically removed during `=prod` deployment completion
-- **Backup**: Context preserved in PR descriptions and commit messages
-
-**File Management Benefits**:
-
-- **Deployment Tracking**: Clear visibility of staging deployment status
-- **Context Preservation**: Implementation details available during staging phase
-- **Automatic Cleanup**: No manual file management required
-- **Conflict Prevention**: Reduces repository clutter and merge conflicts
-
-**Cleanup Triggers**:
-
-- **Successful Production Deployment**: File automatically deleted after `=prod` completion
-- **Failed Deployments**: File retained for debugging and rollback procedures
-- **Manual Cleanup**: Available via `=prod --cleanup-only` command
-- **Branch Cleanup**: Removed when feature branch is deleted
-
-### 🔄 Plan Issue Management Guidelines
-
-**CRITICAL**: For large, multi-phase projects, the agent must **UPDATE** existing plan issues instead of creating new ones.
-
-- **When completing phases**: Update the plan issue to reflect completed phases and mark them as ✅ COMPLETED
-- **Progress tracking**: Update the issue description with current status, next steps, and any blockers
-- **Phase completion**: When a phase is finished, update the plan issue immediately before moving to the next phase
-- **Never create new issues**: For ongoing multi-phase work, always update the existing plan issue (#20 for current system refactor)
-- **Retrospective issues**: Only create retrospective issues for session summaries, not for plan updates
-
-### 🎯 Enhanced Implementation Workflows
-
-#### Branch Management Excellence
+#### Medical Device Branch Management
 
 - **ALWAYS** create feature branches: `feature/[issue-number]-[description]`
 - **NEVER** work directly on main branch
@@ -432,40 +301,37 @@ These commands are standard across all projects and streamline our communication
 
 The following commands now include **FULL WORKFLOW AUTOMATION**:
 
-##### `=impl` Command Enhancement
+##### `=impl` Command Enhancement (Iterative Focus)
 
 **Automated Execution Flow:**
 
 ```
 1. Parse GitHub Task Issue → Extract requirements and scope
-2. Auto-Branch Creation → feature/[issue-number]-[sanitized-description]
-3. Implementation Phase → Execute planned work with progress tracking
-4. Auto-Commit & Push → Descriptive commits with proper formatting
-5. Auto-PR Creation → Comprehensive PR with issue linking
-6. Issue Updates → Update plan issue with PR link and completion status
-7. User Notification → Provide PR URL for review and approval
+2. **Auto-Branch Creation** → feature/[issue-number]-[sanitized-description] (if needed)
+3. **Context Retrieval** → READ notes/iteration_[branch_name].md for To-Do list
+4. Implementation Phase → Execute planned work with progress tracking
+5. **Iteration Note Update** → Append Iteration X details and new Remaining Tasks
+6. **Auto-Commit & Push** → Commit updated code and Note file on current branch
+7. User Notification → Provide commit hash for review and continuation
 ```
 
 ##### TodoWrite Integration Enhancement
 
 **Performance Impact from Retrospectives**: 56% faster implementations when TodoWrite is integrated
 
-**Enhanced Implementation Flow with TodoWrite:**
+**Enhanced Implementation Flow with TodoWrite (Inside Impl Agent):**
 
 ```
 1. Parse GitHub Task Issue → Extract requirements and scope
-2. Initialize TodoWrite → Create 5-8 specific, actionable todos
-3. Auto-Branch Creation → feature/[issue-number]-[sanitized-description]
-4. Implementation Phase → Execute with real-time todo tracking
+2. Initialize TodoWrite → Create 5-8 specific, actionable todos (If starting Iteration 1)
+3. Implementation Phase → Execute with real-time todo tracking
    ├─ Mark exactly ONE todo as 'in_progress' at a time
    ├─ Complete todos immediately after finishing each step
    ├─ Update progress visibility for stakeholders
    └─ Ensure accountability for all implementation steps
+4. **Iteration Note Update** → Record TodoWrite completion status and Remaining Tasks
 5. Auto-Commit & Push → Descriptive commits with proper formatting
-6. Auto-PR Creation → Comprehensive PR with issue linking
-7. Issue Updates → Update plan issue with PR link and completion status
-8. TodoWrite Completion → Mark all todos as completed
-9. User Notification → Provide PR URL for review and approval
+6. User Notification → Provide commit hash
 ```
 
 **TodoWrite Performance Benefits:**
@@ -504,12 +370,12 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 - **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 - **Example**: `feat: implement user authentication system (#25)`
 
-##### Pull Request Automation
+##### Pull Request Automation (PR Agent Role)
 
 **Staging PRs** (Feature → Staging):
 
 - **Title**: `[STAGING] [Feature Title] (#[issue-number])`
-- **Description**: Implementation details, testing notes, staging deployment context
+- **Description**: Implementation details, testing notes, **Summary of Iteration Note (AI Diary)**
 - **Context File**: References `staging-context.md` for deployment details
 - **Issue Linking**: `Relates to #[issue-number]` (keeps issue open for production)
 
@@ -560,7 +426,7 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 
 - **Branch Creation Failure**: Falls back to manual branch creation with user guidance
 - **Push Failure**: Provides manual push commands and troubleshooting steps
-- **PR Creation Failure**: Falls back to manual PR creation with pre-filled templates
+- **PR Creation Failure**: Provides manual PR creation commands with pre-filled templates (for PR Agent)
 - **Issue Update Failure**: Logs error and provides manual update instructions
 
 #### Quality Assurance
@@ -571,6 +437,21 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 - **Automated Checks**: Build validation, type checking, linting
 - **Context File**: Must reference `staging-context.md` with deployment details
 - **Testing**: Feature testing in staging environment
+- **Documentation**: Implementation details and staging deployment notes
+
+**Production PR Requirements**:
+
+- **Reviewers**: Minimum 2 reviewer approvals required
+- **Automated Checks**: Full test suite, security scans, performance validation
+- **Context File**: Staging validation results and production readiness checklist
+- **Testing**: Comprehensive staging validation and production deployment testing
+- **Documentation**: Production deployment summary and rollback procedures
+
+**General Quality Standards**:
+
+- **Security Review**: All PRs undergo security validation for sensitive changes
+- **Rollback Readiness**: Clear instructions for reverting changes if needed
+- **Audit Trail**: Complete documentation of changes and approval process
 
 #### Monitoring and Feedback
 
@@ -581,411 +462,375 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 
 ---
 
-#### Quality Assurance
+## 🛡️ Security Implementation Methodology
 
-- **Code Review**: All PRs require manual review and approval
-- **Medical Device Testing**: Automated tests run on PR creation for hardware communication
-- **License System Validation**: ESP32 license system integrity checks
-- **Documentation**: Auto-generated PR descriptions include medical device implementation details
-- **Rollback**: Clear instructions for reverting changes if needed
+_Based on comprehensive security audit sessions documented in retrospectives_
 
-#### Monitoring and Feedback
+### Systematic Security Audit Approach
 
-- **Progress Tracking**: Real-time updates during implementation phases
-- **Success Metrics**: PR creation success rate and review completion time
-- **User Feedback**: Continuous improvement based on workflow effectiveness
-- **Audit Trail**: Complete history of automated actions for medical device compliance
+**8-Phase Security Audit Process** (31-minute comprehensive audits):
 
-### Retrospective Workflow
+1.  **Infrastructure Analysis** (2-3 min): Environment variables, database schema, authentication
+2.  **Core Endpoint Analysis** (5-8 min): Input validation, rate limiting, error handling, authorization
+3.  **Data Integrity Analysis** (3-5 min): Transaction security, data flow assessment, logging
+4.  **Compliance Assessment** (3-5 min): PCI DSS, GDPR, industry standards
+5.  **Vulnerability Testing** (5-8 min): Injection prevention, authentication bypass, authorization
+6.  **Security Implementation** (8-12 min): Rate limiting, input validation, error hardening
+7.  **Build Validation** (2-3 min): TypeScript compilation, dependency validation
+8.  **Documentation & Reporting** (3-5 min): Security audit report, compliance metrics
 
-This project uses a structured retrospective approach to track progress, learnings, and maintain project continuity.
+### Enterprise-Grade Security Measures
 
-#### File Structure
+#### Critical Security Implementations
 
-- **Location**: `/docs/retrospective/YYYY-MM-DD.md`
-- **Naming**: Use ISO date format (YYYY-MM-DD)
-- **Daily Files**: One file per working day
+- **Rate Limiting**: 15-minute windows, configurable limits per endpoint
+- **Input Validation**: Comprehensive Zod schemas for all API endpoints
+- **Secure Error Handling**: Generic error responses prevent information disclosure
+- **Webhook Security**: Signature validation with timestamp-based replay protection
 
-#### Timezone and Date Guidelines
+### Security Compliance Metrics
 
-- **Timezone**: Thailand (UTC+7)
-- **Date Format**: Christian Era (CE) - YYYY-MM-DD
-- **Working Days**: Monday to Friday (unless specified otherwise)
-- **File Creation**: Create new file for each working session
+**Measurable Improvements from Security Audits**:
+
+- **PCI DSS Compliance**: 65% → 85% improvement documented
+- **Critical Vulnerabilities**: 5 critical issues → 0 critical issues
+- **High-Priority Issues**: 8 high-priority → 2 high-priority resolved
+- **Security Score**: Significant improvement in enterprise security standards
+
+### Security Best Practices from Retrospectives
+
+**Key Security Areas**:
+
+- **Webhook Security**: Validate signatures, prevent replay attacks, never log secrets
+- **Payment System**: Server-side validation, discount verification, transaction integrity
+- **Error Handling**: Generic error responses, sanitized logging
+
+---
+
+## 🎨 UI/UX Design Integration Guidelines
+
+_Based on style refactoring and accessibility improvement sessions_
+
+### Visual Design Validation Requirements
+
+**CRITICAL**: Visual design quality is equally important as functional implementation, especially for customer-facing features.
+
+#### Pre-Implementation Design Checklist
 
 ```markdown
-# Development Session Retrospective - [Date]
+✅ Color contrast validation (WCAG 2.1 AA compliance)
+✅ Accessibility standards verification
+✅ Responsive design across device sizes
+✅ Typography hierarchy consistency
+✅ Animation performance optimization
+✅ Reduced motion preference support
+```
 
-## 📋 Session Summary
+#### Design Quality Assurance Process
 
-- **Duration**: [Start Time] - [End Time] (Thailand Time)
-- **Focus Area**: [Main area of work]
-- **Participants**: [Team members involved]
-- **Medical Device Context**: [Compliance considerations]
+**3-Phase Approach**:
 
-## ⏰ Timeline (Thailand Timezone: UTC+7)
+1.  **Design System Integration**: Follow component patterns, centralized utilities (60% duplication reduction)
+2.  **Accessibility Implementation**: WCAG 2.1 AA compliance (4.5:1 contrast), keyboard navigation, screen reader support, reduced motion
+3.  **Performance Optimization**: 60fps animations, bundle size monitoring, critical CSS, responsive images
 
-- **[HH:MM]** - [Activity description]
-- **[HH:MM]** - [Activity description]
-- **[HH:MM]** - [Activity description]
+### Centralized Styling Architecture
 
-## 🎯 What Was Accomplished
+- **Utility-Based System**: Centralized styling utilities in `src/utils/campaignStyles.ts`
+- **TypeScript Interfaces**: Proper typing for styling configurations
+- **Accessibility Integration**: Built-in WCAG compliance and reduced motion support
+- **60% Duplication Reduction**: Proven efficiency through centralized approach
 
-- [Specific achievements]
-- [Features implemented]
-- [Bugs fixed]
-- [Medical device compliance updates]
-- [Hardware integration progress]
+### Marketing Component Requirements
 
-## 🤖 AI Development Diary
+**Campaign Elements**: High visual impact, enhanced contrast for promotional text, clear visual hierarchy, A/B testing ready
 
-### Technical Decisions Made
+### Design Review Integration
 
-- [Architecture choices with medical device rationale]
-- [Hardware controller modifications]
-- [License system updates]
-- [Database schema changes]
+**Visual Review Steps**: Browser preview, contrast analysis, multi-device testing, accessibility testing, motion testing
 
-### Code Patterns Applied
-
-- [Medical device compliance patterns]
-- [Hardware communication patterns]
-- [Audit logging implementations]
-- [Error handling approaches]
-
-## 💭 Honest Feedback & Reflection
-
-### What Went Really Well
-
-- [Successful implementations]
-- [Effective problem-solving approaches]
-- [Good medical device compliance practices]
-- [Smooth hardware integration]
-
-### What Could Be Improved
-
-- [Areas for enhancement]
-- [Process improvements needed]
-- [Medical compliance gaps]
-- [Hardware communication issues]
-
-## 🚧 Blockers & Resolutions
-
-### Issues Encountered
-
-- **Issue**: [Description]
-  - **Impact**: [Medical device/hardware impact]
-  - **Resolution**: [How it was solved]
-  - **Prevention**: [How to avoid in future]
-
-### Outstanding Blockers
-
-- [Unresolved issues]
-- [Medical compliance concerns]
-- [Hardware integration challenges]
-
-## 📚 Lessons Learned
-
-### Technical Insights
-
-- [New understanding about medical device development]
-- [Hardware communication learnings]
-- [License system insights]
-- [Database optimization discoveries]
-
-### Process Improvements
-
-- [Workflow enhancements]
-- [Medical compliance process improvements]
-- [Testing strategy refinements]
-
-## 🎯 Next Session Focus
-
-### Immediate Priorities
-
-- [Critical medical device tasks]
-- [Hardware integration needs]
-- [License system requirements]
-- [Compliance updates]
-
-### Technical Debt
-
-- [Code refactoring needs]
-- [Medical compliance updates]
-- [Hardware controller improvements]
-- [Documentation updates]
-
-## 📊 Session Metrics
-
-- **Files Modified**: [Number and types]
-- **Medical Compliance**: [Compliance status]
-- **Hardware Tests**: [Test results]
-- **License System**: [Validation status]
-- **Code Quality**: [Assessment]
+**Common Pitfalls to Avoid**: Poor color choices, inconsistent spacing, animation overuse, desktop-only thinking, accessibility afterthoughts
 
 ---
 
-_Generated on [Date] at [Time] Thailand Time (UTC+7)_
-```
+## ⚡ Efficiency Patterns & Performance Optimization
 
-#### Timezone Guidelines for Retrospectives
+_Based on documented performance improvements from retrospective analysis_
 
-- **ALL timestamps** must use Thailand timezone (UTC+7)
-- **File naming** must use Thailand date: `session-YYYY-MM-DD-[description].md`
-- **Timeline entries** should reference Thailand local time
-- **Session duration** should be calculated in Thailand timezone
+### 🏃‍♂️ 15-Minute Implementation Strategy
 
-### Maintenance & Review
+**Results**: 15-minute implementations vs 34+ minute baseline
 
-- **`=check-md > [section]`**: Use this command when you think the core project architecture or tools have changed significantly. I will then review the project context and provide a summary of potential updates or missing information for the `claude.md` file. This command should be used sparingly.
-- **ตัวอย่างการใช้งาน**:
-  - `=check-md` (ตรวจสอบทั้งไฟล์)
-  - `=check-md > Architecture Overview` (ตรวจสอบเฉพาะส่วน `Architecture Overview` ว่ามีข้อมูลใดที่ล้าสมัยหรือไม่)
-  - `=check-md > Core Code Patterns` (ตรวจสอบเฉพาะส่วน `Core Code Patterns` ว่ามีรูปแบบโค้ดใหม่ๆ ที่ควรเพิ่มหรือไม่)
+**Prerequisites**: Reference pattern, TodoWrite initialized, component structure analyzed, integration points identified
 
----
+**Speed Optimization Techniques**:
 
-## 🔧 Troubleshooting
+1.  **Pattern Recognition**: 56% faster when following proven patterns from `/docs/retrospective/`
+2.  **MultiEdit**: Batch multiple edits instead of sequential single edits
+3.  **Systematic Analysis**: 2-3 minute analysis of target areas and integration points
+4.  **Build Validation**: `npm run build` after major changes, `npx tsc --noEmit` for type checking
 
-### Medical Device System Issues
+#### Efficiency Factor Analysis
 
-#### Hardware Communication Failures
+**High Efficiency Sessions** (15-20 minutes):
 
-**Symptoms**: DS12/DS16 devices not responding, serial communication errors
+- ✅ TodoWrite usage for progress tracking
+- ✅ Reference pattern available
+- ✅ Clear component structure understanding
+- ✅ Systematic 5-phase approach
+- ✅ Proactive build validation
 
-**Diagnosis Steps**:
+**Low Efficiency Sessions** (45+ minutes):
 
-```bash
-# Check serial port availability
-npm run dev:check-ports
+- ❌ No reference pattern
+- ❌ Schema assumptions without verification
+- ❌ Working directly on main branch
+- ❌ Build testing only at end
+- ❌ Complex dependency analysis needed
 
-# Test hardware connection
-npm run test:hardware
+### 🎯 High-Impact Optimization Areas
 
-# Verify device configuration
-echo $DEVICE_TYPE  # Should be DS12 or DS16
-```
+#### 1\. TodoWrite Integration ROI
 
-#### License System Issues
+- **Setup Time**: 2-3 minutes
+- **Visibility Benefit**: Real-time progress tracking
+- **Accountability**: Prevents skipping critical steps
+- **Stakeholder Communication**: Clear progress indicators
+- **Proven Results**: 56% faster implementations documented
 
-**Symptoms**: ESP32 license validation failures, hardware binding errors
+#### 2\. Reference Pattern Utilization
 
-**Diagnosis Steps**:
+- **Pattern Documentation**: Create detailed retrospectives
+- **Pattern Library**: Maintain `/docs/retrospective/` as reference
+- **Systematic Replication**: Follow proven approaches exactly
+- **Context Adaptation**: Modify only necessary elements
 
-```bash
-# Check ESP32 connectivity
-npm run license:check-esp32
+#### 3\. Tool Optimization
 
-# Validate license file integrity
-npm run license:validate
+- **Efficient Pattern**: Read (targeted) → MultiEdit (batch) → Build (validation)
+- **Avoid**: Multiple single Edits → Multiple Reads → Late build testing
 
-# Test WiFi connectivity
-npm run license:test-wifi
-```
+#### 4\. Workflow Adherence
 
-**Common Solutions**:
+- **Branch Management**: Always create feature branches
+- **Incremental Testing**: Build validation at each phase
+- **Documentation Standards**: Comprehensive PR descriptions
+- **Issue Tracking**: Real-time GitHub issue updates
 
-- Verify ESP32 device is powered and connected to WiFi
-- Check license file encryption integrity
-- Validate MAC address binding
-- Re-deploy ESP32 firmware if necessary
-- Check license expiration and renewal status
+### 🔄 Continuous Improvement Framework
 
-#### Database Issues
+**Session Performance Tracking**: Track implementation time, document efficiency factors, identify workflow violations, measure pattern success rates
 
-**Symptoms**: SQLite corruption, audit trail inconsistencies, migration failures
+**Pattern Development Lifecycle**: Novel Implementation → Pattern Recognition → Pattern Refinement → Pattern Maturation (sub-20-minute implementations)
 
-**Diagnosis Steps**:
+## 🛠️ Development Commands
 
-```bash
-# Check database integrity
-npm run db:check-integrity
-
-# Verify audit trail consistency
-npm run audit:verify
-
-# Test database connections
-npm run db:test-connection
-```
-
-**Common Solutions**:
-
-- Backup current database: `npm run db:backup`
-- Run database repair: `npm run db:repair`
-- Re-run migrations: `npm run db:migrate`
-- Restore from backup if corruption is severe
-- Verify audit logging is functioning correctly
-
-#### Authentication System Issues
-
-**Symptoms**: Passkey validation failures, user authentication errors
-
-**Diagnosis Steps**:
+### Core Development
 
 ```bash
-# Test authentication system
-npm run auth:test
+# Development server
+npm run dev
 
-# Check user database integrity
-npm run auth:check-users
+# Build for production
+npm run build
 
-# Verify passkey encryption
-npm run auth:verify-passkeys
+# Start production server
+npm start
+
+# Type checking
+npm run type-check
 ```
 
-**Common Solutions**:
-
-- Reset user passkeys through admin interface
-- Verify authentication database tables
-- Check audit trail for authentication attempts
-- Validate medical device access control patterns
-
-### Build & Development Issues
-
-#### Electron Build Failures
-
-**Symptoms**: Build process fails, packaging errors, missing dependencies
-
-**Diagnosis Steps**:
+### Database Management
 
 ```bash
-# Clean build cache
-npm run clean
+# Generate Prisma client
+npx prisma generate
 
-# Rebuild native modules
-npm run rebuild
+# Run database migrations
+npx prisma migrate dev
 
-# Check for missing dependencies
-npm audit
+# Reset database
+npx prisma migrate reset
+
+# Seed database
+npx prisma db seed
 ```
 
-**Common Solutions**:
-
-- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
-- Rebuild native dependencies: `npm run electron:rebuild`
-- Check electron-builder configuration in `electron-builder.yml`
-- Verify all required certificates for code signing
-
-#### Development Server Issues
-
-**Symptoms**: Hot reload not working, renderer process crashes, IPC communication failures
-
-**Diagnosis Steps**:
+### AI Prompt Management
 
 ```bash
-# Check development server status
-npm run dev:status
+# List all prompts
+npm run prompt:list
 
-# Test IPC communication
-npm run test:ipc
+# Update prompt
+npm run prompt:update
 
-# Verify renderer process
-npm run dev:renderer-only
-```
+# Test prompts
+npm run prompt:test
 
-**Common Solutions**:
-
-- Restart development server: `npm run dev`
-- Clear Next.js cache: `rm -rf .next`
-- Check for port conflicts (default: 3000, 3001)
-- Verify IPC channel configurations
-
-### Performance Issues
-
-#### Slow Hardware Response
-
-**Symptoms**: Delayed dispensing operations, timeout errors
-
-**Solutions**:
-
-- Check serial communication baud rate settings
-- Optimize hardware controller polling intervals
-- Verify RS485 network topology and termination
-- Monitor system resource usage during operations
-
-#### Database Performance
-
-**Symptoms**: Slow queries, audit trail delays
-
-**Solutions**:
-
-- Analyze query performance: `npm run db:analyze`
-- Optimize database indexes for audit tables
-- Archive old audit records: `npm run audit:archive`
-- Monitor SQLite WAL mode performance
-
-#### Memory Usage
-
-**Symptoms**: High memory consumption, application crashes
-
-**Solutions**:
-
-- Monitor Electron process memory usage
-- Check for memory leaks in hardware controllers
-- Optimize renderer process component lifecycle
-- Review audit logging buffer sizes
-
-### Emergency Procedures
-
-#### System Recovery
-
-1. **Stop all hardware operations** immediately
-2. **Backup current database** and audit logs
-3. **Document the incident** with timestamps and error messages
-4. **Contact medical device support** for critical issues
-5. **Follow medical device incident reporting** procedures
-
-#### Data Recovery
-
-1. **Locate latest backup**: Check `backups/` directory
-2. **Verify backup integrity**: `npm run backup:verify`
-3. **Restore database**: `npm run db:restore [backup-file]`
-4. **Validate audit trail**: Ensure all medical operations are logged
-5. **Test hardware communication** after restoration
-
----
-
-## Core Code Patterns
-
-### When Working with Hardware Controllers
-
-- **Always** use `BuildTimeController.getCurrentController()` to ensure a single instance and compliance.
-- Use controller methods that match the legacy KU16 API for compatibility.
-
-### When Working with Design System Components
-
-- Import components from the centralized `DesignSystem` directory.
-- Use consistent patterns like `<DialogBase>`, `<DialogHeader>`, and `<DialogButton>`.
-
-### When Working with Responsive Grid
-
-- Use the utility functions `getDisplaySlotConfig()` and `getResponsiveGridConfig()` to adapt the UI to the device type (DS12 or DS16).
-
-### When Working with CSV Batch Processing
-
-- Use `processBatchLicenses()` from `@/modules/batch-license-generator`.
-
-### When Working with No Expiry Licenses
-
-- Implement the `noExpiry` checkbox in the UI.
-- The CLI automatically handles the `2099-12-31` date.
-
-```javascript
-// License validation pattern for perpetual licenses
-const validatePerpetualLicense = async (licenseData) => {
-  // Skip expiry date validation for perpetual licenses
-  if (licenseData.type === "perpetual") {
-    return validateHardwareBinding(licenseData);
-  }
-
-  // Standard validation for time-limited licenses
-  return validateStandardLicense(licenseData);
-};
+# Analyze prompt performance
+npm run prompt:analyze
 ```
 
 ---
 
-_Last Updated: [Current Date] - Thailand Time (UTC+7)_
-_Medical Device Compliance Version: SMC-2024.1_
-_Hardware Support: DS12/DS16 Dispensing Systems_
-_License System: ESP32-based Hardware Binding_
+## 📈 Retrospective Workflow
+
+When you use the `=rrr` command, the agent will create a file and an Issue with the following sections and details:
+
+### Retrospective Structure
+
+**Required Sections**:
+
+- **Session Details**: Date (YYYY-MM-DD Thailand timezone), Duration, Focus, Issue/PR references
+- **Session Summary**: Overall work accomplished
+- **Timeline**: Key events with Thailand timestamps (Asia/Bangkok, UTC+7)
+- **📝 AI Diary** (MANDATORY): First-person reflection on approach and decisions
+- **💭 Honest Feedback** (MANDATORY): Performance assessment and improvement suggestions
+- **What Went Well**: Successes achieved
+- **What Could Improve**: Areas for enhancement
+- **Blockers & Resolutions**: Obstacles and solutions
+- **Lessons Learned**: Patterns, mistakes, and discoveries
+
+**File Naming**: `session-YYYY-MM-DD-[description].md` with Thailand date
+
+---
+
+## 📚 Best Practices from Retrospectives
+
+_Lessons from 10+ development sessions in `/docs/retrospective/`_
+
+### 🎯 TodoWrite Integration Best Practices
+
+**Results**: **15-minute implementations** vs 34+ minute sessions
+
+**When to Use**: Complex multi-step tasks (3+ phases), multi-component refactoring, full-stack implementations, large refactoring projects, security audits, campaign development, database migrations
+
+**Workflow Pattern**:
+
+1.  Break into 5-12 manageable todos
+2.  Mark exactly ONE todo in_progress → completed
+3.  Provides real-time visibility and accountability
+4.  Enables accurate time estimation
+
+**Proven Benefits**: 56% faster implementation, reduces context switching, prevents missing steps, ensures comprehensive testing
+
+#### Advanced TodoWrite Patterns
+
+- **Security Implementations**: 8-phase systematic approach (31-minute completion)
+
+  - Phases 1-2: Infrastructure & Core Endpoint Analysis
+  - Phases 3-4: Data Integrity & Compliance Assessment
+  - Phases 5-6: Vulnerability Testing & Security Implementation
+  - Phases 7-8: Build Validation & Documentation
+
+- **UI/UX Refactoring**: 4-phase centralized styling development
+
+  - WCAG compliance audit → Centralized utilities → Component integration → Performance optimization
+
+### 🔄 Pattern Replication Strategy
+
+#### Reference Implementation Approach
+
+1.  **Document Successful Patterns**: Create detailed retrospectives for reusable approaches
+2.  **Systematic Replication**: Use previous session files as implementation guides
+3.  **Adapt, Don't Recreate**: Modify proven patterns for new contexts
+4.  **Measure Efficiency**: Track implementation time improvements
+
+#### Proven Pattern Examples
+
+- **UI Consolidation**: Reward card → chip integration (achieved 56% speed improvement)
+- **Component Refactoring**: Systematic removal and integration approaches
+- **API Updates**: Phase-by-phase endpoint migration strategies
+
+### ⚡ Build Validation Checkpoints
+
+#### Critical Validation Points
+
+- **Schema Changes**: `npm run build && npx tsc --noEmit`
+- **API Modifications**: `npm run build 2>&1 | grep -A 5 "error"`
+- **Large Refactoring**: `npx prisma generate && npm run build`
+
+#### Proactive Testing Strategy
+
+- **Incremental Builds**: Test builds after each major change, not just at the end
+- **TypeScript Validation**: Run `npx tsc --noEmit` for pure type checking
+- **Dependency Verification**: Check imports and exports after file restructuring
+- **Database Sync**: Verify `npx prisma generate` after schema changes
+
+### 🗄️ Schema Investigation Protocol
+
+#### Before Implementation Checklist
+
+1.  **Verify Database Schema**: Always check actual Prisma schema definitions
+2.  **Trace Data Structures**: Follow interface definitions through the codebase
+3.  **Validate Field Names**: Don't assume field naming conventions
+4.  **Check Relationships**: Understand model relationships before querying
+
+#### Common Schema Pitfalls
+
+- **Assumption Errors**: Making assumptions about field names/structures
+- **Interface Misalignment**: Frontend interfaces not matching database schema
+- **Relationship Complexity**: Not understanding foreign key relationships
+- **Type Mismatches**: TypeScript interfaces not reflecting actual data structures
+
+### 🔧 Multi-Phase Implementation Approach
+
+#### Systematic Phase Breakdown
+
+- **Phase 1**: Analysis & Preparation (10-15%)
+- **Phase 2**: Core Implementation (40-50%)
+- **Phase 3**: Integration & Testing (25-30%)
+- **Phase 4**: Documentation & Cleanup (10-15%)
+
+#### Phase Management Best Practices
+
+- **Clear Phase Objectives**: Define specific deliverables for each phase
+- **Dependency Mapping**: Identify cross-phase dependencies upfront
+- **Progress Checkpoints**: Validate phase completion before proceeding
+- **Issue Tracking**: Update GitHub issues after each phase completion
+
+### 🛡️ Database Best Practices
+
+#### PostgreSQL Sequence Management
+
+- **Check Sequence**: `SELECT last_value FROM "TableName_id_seq";`
+- **Reset Sequence**: `SELECT setval('"TableName_id_seq"', COALESCE(MAX(id), 0) + 1) FROM "TableName";`
+- **Common Issue**: Auto-increment sequences become desynchronized after manual insertions
+
+#### Debugging Strategy
+
+1.  **Temporary Scripts**: Create debugging scripts instead of modifying main code
+2.  **Isolation Testing**: Test specific database operations in isolation
+3.  **Sequence Verification**: Check auto-increment sequences after data manipulation
+4.  **Transaction Safety**: Use transactions for multi-step database operations
+
+### 📝 Documentation Standards
+
+#### PR Description Requirements
+
+- **Implementation Summary**: Clear overview of changes made
+- **Technical Details**: Specific technical implementation notes
+- **Before/After Analysis**: Impact assessment and improvement metrics
+- **Testing Validation**: Build success and functionality verification
+- **Iteration Note Summary**: Key decisions and hurdles from the AI Diary
+
+#### Retrospective Documentation
+
+- **AI Diary**: First-person reflection on approach and decision-making
+- **Honest Feedback**: Critical assessment of session efficiency and quality
+- **Pattern Recognition**: Identification of reusable patterns and approaches
+- **Lessons Learned**: Specific insights for future implementation improvement
+
+---
+
+#### Security Implementation Issues
+
+_From comprehensive security audit retrospectives_
+
+**Rate Limiting Configuration Missing:**
+
+- Check patterns in `src/middleware/rate-limiter.ts`
+- API config: `{ windowMs: 15 * 60 * 1000, max: 100 }`
+- Admin config: `{ windowMs: 15 * 60 * 1000, max: 20 }`
