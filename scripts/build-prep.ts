@@ -108,7 +108,9 @@ interface BuildConfig {
 async function checkForInternalLicense(): Promise<boolean> {
   const licensePaths = [
     path.join(process.cwd(), 'license.lic'),
+    path.join(process.cwd(), 'license.json'),
     path.join(process.cwd(), 'resources', 'license.lic'),
+    path.join(process.cwd(), 'resources', 'license.json'),
     path.join(process.cwd(), 'cli', 'internal-license_test.lic'),
     path.join(process.cwd(), 'cli', 'test-internal_test.lic')
   ];
@@ -401,17 +403,30 @@ async function parseBuildConfiguration(): Promise<BuildConfig> {
       );
     }
   } else {
-    // Auto-detect license file in resources folder
-    const resourcesLicenseFile = path.join(
+    // Auto-detect license file in resources folder if not specified
+    // Check for both license.lic and license.json files
+    const resourcesLicenseFileOld = path.join(
       process.cwd(),
       "resources",
       "license.lic"
     );
+    const resourcesLicenseFileNew = path.join(
+      process.cwd(),
+      "resources",
+      "license.json"
+    );
 
-    if (fs.existsSync(resourcesLicenseFile)) {
-      console.log("info: Auto-detected license file in resources folder");
-      licenseFile = resourcesLicenseFile;
+    // Prioritize license.json over license.lic for new format support
+    if (fs.existsSync(resourcesLicenseFileNew)) {
+      console.log("info: Auto-detected license.json file in resources folder");
+      licenseFile = resourcesLicenseFileNew;
+    } else if (fs.existsSync(resourcesLicenseFileOld)) {
+      console.log("info: Auto-detected license.lic file in resources folder");
+      licenseFile = resourcesLicenseFileOld;
+    }
 
+    // Parse license file if found (either .json or .lic)
+    if (licenseFile) {
       try {
         console.log(`info: Auto-detected license file: ${licenseFile}`);
 
@@ -952,6 +967,8 @@ async function setupOrganizationData(config: BuildConfig): Promise<void> {
     }
 
     // Clear existing data to prevent conflicts
+    // Clear tables in proper order to avoid foreign key constraint violations
+    await sequelize.query('DELETE FROM DispensingLog'); // Clear dependent table first
     await sequelize.query('DELETE FROM Setting WHERE id = 1');
     await sequelize.query('DELETE FROM User WHERE id = 1');
     await sequelize.query('DELETE FROM Slot');
@@ -1447,10 +1464,15 @@ async function cleanLicenseFiles(): Promise<void> {
 
   const licenseFiles = [
     path.join(process.cwd(), "resources", "license.lic"),
+    path.join(process.cwd(), "resources", "license.json"),
     path.join(process.cwd(), "license.lic"),
+    path.join(process.cwd(), "license.json"),
     path.join(process.cwd(), "dist", "license.lic"),
+    path.join(process.cwd(), "dist", "license.json"),
     path.join(process.cwd(), "app", "license.lic"),
+    path.join(process.cwd(), "app", "license.json"),
     path.join(process.cwd(), "build", "license.lic"),
+    path.join(process.cwd(), "build", "license.json"),
   ];
 
   let removedCount = 0;
@@ -1491,7 +1513,7 @@ async function cleanLicenseFiles(): Promise<void> {
   });
 
   console.log("info: License file cleanup completed");
-  console.log("info: Production build will NOT include license.lic file");
+  console.log("info: Production build will NOT include license.lic or license.json files");
   console.log("info: License must be provided separately during deployment");
 }
 
