@@ -9,17 +9,18 @@
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
-#include <DHT.h>
+#include <Wire.h>
+#include <Adafruit_SHT4x.h>
 
 // Customer Configuration
 const char* CUSTOMER_ORG = "{{ORGANIZATION}}";
 const char* CUSTOMER_ID = "{{CUSTOMER_ID}}";  
 const char* APPLICATION_NAME = "{{APPLICATION_NAME}}";
 
-// AM2302 Sensor Configuration (Fixed GPIO for all devices)
-#define DHT_PIN 4          // GPIO 4 - FIXED สำหรับทุกชิ้น
-#define DHT_TYPE DHT22     // AM2302 = DHT22
-DHT dht(DHT_PIN, DHT_TYPE);
+// SHT30 I2C Sensor Configuration for ESP32-S3 (Fixed pins for all devices)
+#define I2C_SDA_PIN 8      // GPIO 8 - SDA pin for ESP32-S3
+#define I2C_SCL_PIN 9      // GPIO 9 - SCL pin for ESP32-S3
+Adafruit_SHT4x sht4 = Adafruit_SHT4x();
 
 // Sensor status tracking
 bool sensorAvailable = false;
@@ -54,27 +55,36 @@ void setup() {
   Serial.printf("AP IP Address: %s\n", WiFi.softAPIP().toString().c_str());
   Serial.printf("MAC Address: %s\n", WiFi.macAddress().c_str());
   
-  // Initialize AM2302 Sensor
-  Serial.println("Initializing AM2302 Temperature/Humidity Sensor...");
-  dht.begin();
-  Serial.printf("Sensor Pin: GPIO %d\n", DHT_PIN);
+  // Initialize I2C for SHT30 Sensor
+  Serial.println("Initializing SHT30 I2C Temperature/Humidity Sensor...");
+  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  Serial.printf("I2C Pins: SDA=GPIO%d, SCL=GPIO%d\n", I2C_SDA_PIN, I2C_SCL_PIN);
   
   // Test sensor availability
   Serial.println("Testing sensor connectivity...");
-  delay(2000); // Wait for sensor to stabilize
+  delay(1000); // Wait for I2C to stabilize
   
-  float testTemp = dht.readTemperature();
-  float testHumidity = dht.readHumidity();
-  
-  if (!isnan(testTemp) && !isnan(testHumidity) && testTemp > -40 && testTemp < 80) {
-    sensorAvailable = true;
-    sensorMode = "live";
-    Serial.println("✅ DHT22 sensor detected and working");
-    Serial.printf("Initial reading: %.1f°C, %.1f%%RH\n", testTemp, testHumidity);
+  if (sht4.begin()) {
+    // Test sensor reading
+    sensors_event_t humidity, temp;
+    sht4.getEvent(&humidity, &temp);
+    
+    if (!isnan(temp.temperature) && !isnan(humidity.relative_humidity) && 
+        temp.temperature > -40 && temp.temperature < 80) {
+      sensorAvailable = true;
+      sensorMode = "live";
+      Serial.println("✅ SHT30 sensor detected and working");
+      Serial.printf("Initial reading: %.1f°C, %.1f%%RH\n", temp.temperature, humidity.relative_humidity);
+    } else {
+      sensorAvailable = false;
+      sensorMode = "mock";
+      Serial.println("⚠️  SHT30 sensor reading invalid");
+      Serial.println("Using mock data mode for demonstration");
+    }
   } else {
     sensorAvailable = false;
     sensorMode = "mock";
-    Serial.println("⚠️  DHT22 sensor not detected or malfunction");
+    Serial.println("⚠️  SHT30 sensor not detected or I2C communication failed");
     Serial.println("Using mock data mode for demonstration");
   }
 
@@ -132,7 +142,7 @@ void setup() {
     request->send(200, "application/json", jsonString);
   });
 
-  // Sensor endpoint - AM2302 Temperature/Humidity
+  // Sensor endpoint - SHT30 I2C Temperature/Humidity 
   server.on("/sensor", HTTP_GET, [](AsyncWebServerRequest *request) {
     JsonDocument doc;
     
@@ -141,8 +151,11 @@ void setup() {
     
     if (sensorAvailable) {
       // Try to read from real sensor
-      temperature = dht.readTemperature();
-      humidity = dht.readHumidity();
+      sensors_event_t humidity_event, temp_event;
+      sht4.getEvent(&humidity_event, &temp_event);
+      
+      temperature = temp_event.temperature;
+      humidity = humidity_event.relative_humidity;
       
       // Validate sensor readings
       if (!isnan(temperature) && !isnan(humidity) && 
@@ -168,8 +181,7 @@ void setup() {
     // Build JSON response with enhanced status information
     doc["temp"] = round(temperature * 10) / 10.0; // Round to 1 decimal
     doc["humid"] = round(humidity * 10) / 10.0;   // Round to 1 decimal
-    doc["sensor"] = "AM2302";
-    doc["gpio"] = DHT_PIN;
+    doc["sensor"] = "SHT30";
     doc["mode"] = currentMode;
     doc["sensor_available"] = sensorAvailable;
     doc["timestamp"] = millis();
