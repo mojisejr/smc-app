@@ -55,37 +55,60 @@ void setup() {
   Serial.printf("AP IP Address: %s\n", WiFi.softAPIP().toString().c_str());
   Serial.printf("MAC Address: %s\n", WiFi.macAddress().c_str());
   
-  // Initialize I2C for SHT30 Sensor
-  Serial.println("Initializing SHT30 I2C Temperature/Humidity Sensor...");
+  // Initialize I2C for SHT30 Sensor - Medical Device Compliance
+  Serial.println("MEDICAL: Initializing SHT30 I2C Temperature/Humidity Sensor...");
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-  Serial.printf("I2C Pins: SDA=GPIO%d, SCL=GPIO%d\n", I2C_SDA_PIN, I2C_SCL_PIN);
+  Wire.setClock(100000); // Set I2C clock to 100kHz for stable communication
+  Serial.printf("HARDWARE: I2C Pins configured - SDA=GPIO%d, SCL=GPIO%d, Clock=100kHz\n", I2C_SDA_PIN, I2C_SCL_PIN);
   
-  // Test sensor availability
-  Serial.println("Testing sensor connectivity...");
+  // Medical Device Sensor Validation with Retry Logic
+  Serial.println("MEDICAL: Testing sensor connectivity with retry mechanism...");
   delay(1000); // Wait for I2C to stabilize
   
-  if (sht31.begin(0x44)) {
-    // Test sensor reading
-    float temp = sht31.readTemperature();
-    float humidity = sht31.readHumidity();
+  bool sensorInitialized = false;
+  int retryCount = 0;
+  const int maxRetries = 3;
+  
+  // Retry loop for medical device reliability
+  while (!sensorInitialized && retryCount < maxRetries) {
+    retryCount++;
+    Serial.printf("MEDICAL: Sensor initialization attempt %d/%d\n", retryCount, maxRetries);
     
-    if (!isnan(temp) && !isnan(humidity) && 
-        temp > -40 && temp < 80) {
-      sensorAvailable = true;
-      sensorMode = "live";
-      Serial.println("✅ SHT30 sensor detected and working");
-      Serial.printf("Initial reading: %.1f°C, %.1f%%RH\n", temp, humidity);
+    if (sht31.begin(0x44)) {
+      delay(500); // Allow sensor to stabilize after initialization
+      
+      // Perform comprehensive sensor validation
+      float temp = sht31.readTemperature();
+      float humidity = sht31.readHumidity();
+      
+      // Medical device range validation (extended for safety)
+      if (!isnan(temp) && !isnan(humidity) && 
+          temp >= -40.0 && temp <= 85.0 &&     // SHT30 operating range
+          humidity >= 0.0 && humidity <= 100.0) {
+        
+        sensorInitialized = true;
+        sensorAvailable = true;
+        sensorMode = "live";
+        Serial.println("MEDICAL: ✅ SHT30 sensor validated and operational");
+        Serial.printf("MEDICAL: Initial reading validated - Temp: %.2f°C, Humidity: %.2f%%RH\n", temp, humidity);
+        Serial.printf("MEDICAL: Sensor status - Address: 0x44, Mode: Live, Retry: %d\n", retryCount);
+      } else {
+        Serial.printf("ERROR: Sensor reading validation failed - Temp: %.2f, Humidity: %.2f\n", temp, humidity);
+        delay(1000); // Wait before retry
+      }
     } else {
-      sensorAvailable = false;
-      sensorMode = "mock";
-      Serial.println("⚠️  SHT30 sensor reading invalid");
-      Serial.println("Using mock data mode for demonstration");
+      Serial.printf("ERROR: I2C communication failed on attempt %d\n", retryCount);
+      delay(1000); // Wait before retry
     }
-  } else {
+  }
+  
+  // Final sensor status determination
+  if (!sensorInitialized) {
     sensorAvailable = false;
     sensorMode = "mock";
-    Serial.println("⚠️  SHT30 sensor not detected or I2C communication failed");
-    Serial.println("Using mock data mode for demonstration");
+    Serial.println("ERROR: SHT30 sensor initialization failed after all retry attempts");
+    Serial.println("MEDICAL: Switching to mock data mode for system demonstration");
+    Serial.println("MEDICAL: ⚠️  Hardware validation required before medical use");
   }
 
   // Configure CORS
