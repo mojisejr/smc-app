@@ -10,7 +10,7 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 #include <Wire.h>
-#include <Adafruit_SHT4x.h>
+#include <Adafruit_SHT31.h>
 
 // Customer Configuration
 const char* CUSTOMER_ORG = "{{ORGANIZATION}}";
@@ -20,7 +20,7 @@ const char* APPLICATION_NAME = "{{APPLICATION_NAME}}";
 // SHT30 I2C Sensor Configuration for ESP32-S3 (Fixed pins for all devices)
 #define I2C_SDA_PIN 8      // GPIO 8 - SDA pin for ESP32-S3
 #define I2C_SCL_PIN 9      // GPIO 9 - SCL pin for ESP32-S3
-Adafruit_SHT4x sht4 = Adafruit_SHT4x();
+Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 // Sensor status tracking
 bool sensorAvailable = false;
@@ -64,17 +64,17 @@ void setup() {
   Serial.println("Testing sensor connectivity...");
   delay(1000); // Wait for I2C to stabilize
   
-  if (sht4.begin()) {
+  if (sht31.begin(0x44)) {
     // Test sensor reading
-    sensors_event_t humidity, temp;
-    sht4.getEvent(&humidity, &temp);
+    float temp = sht31.readTemperature();
+    float humidity = sht31.readHumidity();
     
-    if (!isnan(temp.temperature) && !isnan(humidity.relative_humidity) && 
-        temp.temperature > -40 && temp.temperature < 80) {
+    if (!isnan(temp) && !isnan(humidity) && 
+        temp > -40 && temp < 80) {
       sensorAvailable = true;
       sensorMode = "live";
       Serial.println("✅ SHT30 sensor detected and working");
-      Serial.printf("Initial reading: %.1f°C, %.1f%%RH\n", temp.temperature, humidity.relative_humidity);
+      Serial.printf("Initial reading: %.1f°C, %.1f%%RH\n", temp, humidity);
     } else {
       sensorAvailable = false;
       sensorMode = "mock";
@@ -151,11 +151,8 @@ void setup() {
     
     if (sensorAvailable) {
       // Try to read from real sensor
-      sensors_event_t humidity_event, temp_event;
-      sht4.getEvent(&humidity_event, &temp_event);
-      
-      temperature = temp_event.temperature;
-      humidity = humidity_event.relative_humidity;
+      temperature = sht31.readTemperature();
+      humidity = sht31.readHumidity();
       
       // Validate sensor readings
       if (!isnan(temperature) && !isnan(humidity) && 
