@@ -408,8 +408,10 @@ export class DS12Controller extends KuControllerBase {
   async sendCheckState(): Promise<SlotState[]> {
     try {
       // INSTRUMENTATION: Track sendCheckState call frequency
-      console.log(`[MAIN PROCESS] sendCheckState() called at ${new Date().toISOString()}`);
-      
+      console.log(
+        `[MAIN PROCESS] sendCheckState() called at ${new Date().toISOString()}`
+      );
+
       // CONNECTION VALIDATION: Ensure device is ready
       if (!this.isConnected()) {
         await this.logOperation("check-state-error", {
@@ -487,7 +489,9 @@ export class DS12Controller extends KuControllerBase {
   }): Promise<void> {
     try {
       // INSTRUMENTATION: Track unlock method calls
-      console.log(`[INSTRUMENTATION] sendUnlock called for slot ${inputSlot.slotId}, HN: ${inputSlot.hn}`);
+      console.log(
+        `[INSTRUMENTATION] sendUnlock called for slot ${inputSlot.slotId}, HN: ${inputSlot.hn}`
+      );
       const unlockStartTime = Date.now();
       // SECURITY VALIDATION: Authenticate user before hardware operation
       const user = await User.findOne({
@@ -606,7 +610,9 @@ export class DS12Controller extends KuControllerBase {
   }): Promise<void> {
     try {
       // INSTRUMENTATION: Track dispense method calls
-      console.log(`[INSTRUMENTATION] dispense called for slot ${inputSlot.slotId}, HN: ${inputSlot.hn}`);
+      console.log(
+        `[INSTRUMENTATION] dispense called for slot ${inputSlot.slotId}, HN: ${inputSlot.hn}`
+      );
       const dispenseStartTime = Date.now();
       // SECURITY VALIDATION: Authenticate user (identical to KU16 pattern)
       const user = await User.findOne({
@@ -1257,9 +1263,13 @@ export class DS12Controller extends KuControllerBase {
 
       // EVENT LISTENER: Set up direct data reception from serial port
       this.serialPort.on("data", async (dataBuffer: Buffer) => {
+        console.log("RECEIVED: DATA BACK", dataBuffer);
         try {
           // ACCUMULATE RAW DATA: Buffer all incoming serial data
-          this.rawDataBuffer = Buffer.concat([this.rawDataBuffer, dataBuffer as Buffer]);
+          this.rawDataBuffer = Buffer.concat([
+            this.rawDataBuffer,
+            dataBuffer as Buffer,
+          ]);
 
           // PROCESS COMPLETE PACKETS: Extract packets starting with STX (0x02)
           while (this.rawDataBuffer.length >= 8) {
@@ -1364,11 +1374,19 @@ export class DS12Controller extends KuControllerBase {
       } else {
         this.packetCount++;
         const timeDiff = currentTime - this.lastPacketTime;
-        if (timeDiff >= 1000) { // Check every second
+        if (timeDiff >= 1000) {
+          // Check every second
           const packetsPerSecond = this.packetCount / (timeDiff / 1000);
-          if (packetsPerSecond > 10) { // Threshold: more than 10 packets/sec
-            console.warn(`[INSTRUMENTATION] HIGH PACKET FREQUENCY: ${packetsPerSecond.toFixed(1)} packets/sec in DS12Controller`);
-            console.warn(`[INSTRUMENTATION] This may be causing excessive logging and CSV flushing`);
+          if (packetsPerSecond > 10) {
+            // Threshold: more than 10 packets/sec
+            console.warn(
+              `[INSTRUMENTATION] HIGH PACKET FREQUENCY: ${packetsPerSecond.toFixed(
+                1
+              )} packets/sec in DS12Controller`
+            );
+            console.warn(
+              `[INSTRUMENTATION] This may be causing excessive logging and CSV flushing`
+            );
           }
           this.lastPacketTime = currentTime;
           this.packetCount = 0;
@@ -2450,9 +2468,9 @@ export class DS12Controller extends KuControllerBase {
     try {
       // Deactivate all slots from 1 to maxSlot
       for (let slotId = 1; slotId <= this.maxSlot; slotId++) {
-        await this.deactivate(slotId, passkey || '');
+        await this.deactivate(slotId, passkey || "");
       }
-      
+
       await this.logOperation("deactivate-all", {
         userId: "admin",
         message: `All DS12 slots deactivated successfully`,
@@ -2474,9 +2492,9 @@ export class DS12Controller extends KuControllerBase {
     try {
       // Reactivate all slots from 1 to maxSlot
       for (let slotId = 1; slotId <= this.maxSlot; slotId++) {
-        await this.reactivate(slotId, passkey || '');
+        await this.reactivate(slotId, passkey || "");
       }
-      
+
       await this.logOperation("reactivate-all", {
         userId: "admin",
         message: `All DS12 slots reactivated successfully`,
