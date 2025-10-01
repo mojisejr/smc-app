@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { ipcRenderer } from "electron";
 import { IndicatorParams } from "../interfaces/indicatorParams";
 
 /**
  * Smart Medication Cart (SMC) - ESP32 Indicator Hook
  * Medical Device Compliance: Hook for ESP32 sensor data management
- * 
+ *
  * Updated to use ESP32 HTTP API instead of Serial Port communication
  * Removes Battery field and uses simplified temp/humid structure
  */
@@ -32,11 +33,11 @@ export const useIndicator = () => {
      */
     const handleIndicatorData = (event: any, data: any) => {
       setLoading(false);
-      
+
       if (data.success && data.data) {
         // Update indicator data from ESP32
         setIndicator(data.data);
-        
+
         // Update connection status
         setConnectionStatus({
           connected: true,
@@ -44,13 +45,13 @@ export const useIndicator = () => {
         });
       } else {
         // Handle error state - preserve last known values but update error
-        setIndicator(prev => ({
+        setIndicator((prev) => ({
           ...prev,
           error: data.message || "ESP32 connection error",
         }));
-        
+
         // Update connection status to disconnected
-        setConnectionStatus(prev => ({
+        setConnectionStatus((prev) => ({
           ...prev,
           connected: false,
         }));
