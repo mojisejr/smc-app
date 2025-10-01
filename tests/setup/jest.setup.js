@@ -31,73 +31,8 @@ jest.mock('electron', () => ({
   }
 }));
 
-// Mock SerialPort for testing without hardware
-jest.mock('serialport', () => {
-  const EventEmitter = require('events');
-  
-  class MockSerialPort extends EventEmitter {
-    constructor(options) {
-      super();
-      this.path = options.path;
-      this.baudRate = options.baudRate;
-      this.isOpen = false;
-      this.options = options;
-    }
-    
-    open(callback) {
-      setTimeout(() => {
-        this.isOpen = true;
-        this.emit('open');
-        if (callback) callback();
-      }, 10);
-    }
-    
-    close(callback) {
-      setTimeout(() => {
-        this.isOpen = false;
-        this.emit('close');
-        if (callback) callback();
-      }, 10);
-    }
-    
-    write(data, callback) {
-      setTimeout(() => {
-        // Simulate hardware response for DS12 status check
-        if (Array.isArray(data) && data[2] === 0x80) {
-          const mockResponse = [0x02, 0x00, 0x80, 0x00, 0x00, 0x02, 0x03, 0x87, 0x00, 0x00];
-          this.emit('data', Buffer.from(mockResponse));
-        }
-        if (callback) callback();
-      }, 50);
-    }
-    
-    pipe(parser) {
-      // Return the parser for chaining
-      return parser;
-    }
-  }
-  
-  return {
-    SerialPort: MockSerialPort,
-    SerialPortMock: MockSerialPort
-  };
-});
-
-// Mock PacketLengthParser
-jest.mock('@serialport/parser-packet-length', () => {
-  const EventEmitter = require('events');
-  
-  class MockPacketLengthParser extends EventEmitter {
-    constructor(options) {
-      super();
-      this.options = options;
-    }
-  }
-  
-  return {
-    PacketLengthParser: MockPacketLengthParser
-  };
-});
+// NOTE: Serial Port mocks removed as we've migrated to ESP32 HTTP communication
+// ESP32 sensor communication now uses HTTP fetch API instead of Serial Port
 
 // Mock SQLite database for testing
 jest.mock('sqlite3', () => ({
