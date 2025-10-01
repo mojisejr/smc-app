@@ -69,6 +69,7 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({
       setIsLoading(true);
 
       try {
+        console.log("DEBUG refreshSlots() - invoking init");
         await ipcRenderer.invoke("init", { init: true });
       } catch (error) {
         console.error("Failed to refresh slots:", error);
@@ -115,6 +116,7 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({
       event: Electron.IpcRendererEvent,
       payload: IPayload[]
     ) => {
+      console.log("DEBUG handleInitRes() - received slots update:", payload);
       handleGetKuStates(event, payload);
     };
 

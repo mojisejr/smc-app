@@ -180,25 +180,27 @@ if (isProd) {
     } catch (alterError: any) {
       logError(
         "background",
-        "Database alter failed, trying force sync",
+        "Database alter failed",
         alterError
       );
 
-      // If alter fails, try force sync in development
+      // In development mode, do NOT use force sync to preserve data
+      // Force sync will delete all existing data including activation keys
       if (!isProd) {
-        try {
-          sql = await executeWithRetry(
-            () => sequelize.sync({ force: true }),
-            "database force synchronization"
-          );
-          logDebug(
-            "background",
-            "Development mode: Database recreated with force sync"
-          );
-        } catch (forceError: any) {
-          logError("background", "Database force sync also failed", forceError);
-          throw forceError;
-        }
+        logError(
+          "background", 
+          "Development mode: Skipping force sync to preserve activation data. Please check database schema manually if needed.",
+          alterError
+        );
+        // Continue with existing database structure
+        sql = await executeWithRetry(
+          () => sequelize.sync(),
+          "database synchronization without alter"
+        );
+        logDebug(
+          "background",
+          "Development mode: Using existing database structure"
+        );
       } else {
         throw alterError;
       }
@@ -289,7 +291,7 @@ if (isProd) {
 
     // Start receiving data from indicator device
     logDebug("background", "Starting indicator data reception");
-    indicator.receive();
+    //indicator.receive();
     appTimer.checkpoint("indicator-receiving");
 
     logSystemInfo("background", "Indicator device started receiving data");
