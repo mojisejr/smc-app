@@ -1,9 +1,6 @@
-import { useEffect, useState } from "react";
 import Indicator from "./baseIndicator";
-import { ipcRenderer } from "electron";
 import Loading from "../Shared/Loading";
 import { useIndicator } from "../../hooks/useIndicator";
-import BatteryIndicator from "./batteryIndicator";
 
 /**
  * {"Temp1":25.9,"Temp2":0,"Huminity1":43,"Huminity2":0,"Battery":15,"temp1":25.9,"temp2":43,"percent_batt":64}
@@ -32,13 +29,13 @@ const Indicators = () => {
           <div className="grid grid-cols-2 gap-2 bg-gray-800 p-6 rounded-xl">
             <Indicator
               title="Temp."
-              value={indicator.data.Temp1}
+              value={indicator.temp}
               threshold={40}
               unit="*c"
             />
             <Indicator
               title="%RH"
-              value={indicator.data.Huminity1}
+              value={indicator.humid}
               threshold={85}
               unit="%"
             />
@@ -54,9 +51,7 @@ const Indicators = () => {
               value={indicator.data.Huminity2}
               unit="%"
             /> */}
-            <div className="w-full flex justify-center col-span-2">
-              <BatteryIndicator level={100} />
-            </div>
+
           </div>
         </div>
       )}

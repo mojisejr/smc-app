@@ -1,5 +1,13 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from 'react';
-import { ipcRenderer } from 'electron';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useRef,
+  useCallback,
+} from "react";
+import { ipcRenderer } from "electron";
 
 interface IPayload {
   slotId: number;
@@ -15,14 +23,21 @@ interface KuStatesContextType {
   isLoading: boolean;
 }
 
-const KuStatesContext = createContext<KuStatesContextType | undefined>(undefined);
+const KuStatesContext = createContext<KuStatesContextType | undefined>(
+  undefined
+);
 
 interface KuStatesProviderProps {
   children: ReactNode;
 }
 
-export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({ children }) => {
-  console.log('[KuStatesProvider] Provider component rendered at', new Date().toISOString());
+export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({
+  children,
+}) => {
+  console.log(
+    "[KuStatesProvider] Provider component rendered at",
+    new Date().toISOString()
+  );
   const [slots, setSlots] = useState<IPayload[]>([]);
   const [canDispense, setCanDispense] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -33,7 +48,9 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({ children }) 
   const refreshSlots = useCallback(async () => {
     // Prevent multiple simultaneous calls
     if (isRefreshingRef.current) {
-      console.log('[KuStatesContext] refreshSlots() blocked - already refreshing');
+      console.log(
+        "[KuStatesContext] refreshSlots() blocked - already refreshing"
+      );
       return;
     }
 
@@ -44,14 +61,17 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({ children }) 
 
     // Debounce rapid calls
     refreshTimeoutRef.current = setTimeout(async () => {
-      console.log('[KuStatesContext] refreshSlots() executing at', new Date().toISOString());
+      console.log(
+        "[KuStatesContext] refreshSlots() executing at",
+        new Date().toISOString()
+      );
       isRefreshingRef.current = true;
       setIsLoading(true);
-      
+
       try {
-        await ipcRenderer.invoke('init', { init: true });
+        await ipcRenderer.invoke("init", { init: true });
       } catch (error) {
-        console.error('Failed to refresh slots:', error);
+        console.error("Failed to refresh slots:", error);
       } finally {
         setIsLoading(false);
         isRefreshingRef.current = false;
@@ -63,7 +83,11 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({ children }) 
     _event: Electron.IpcRendererEvent,
     payload: IPayload[]
   ) => {
-    console.log('[KuStatesContext] Received slots update:', payload?.length || 0, 'slots');
+    console.log(
+      "[KuStatesContext] Received slots update:",
+      payload?.length || 0,
+      "slots"
+    );
     if (payload != undefined) {
       setSlots(payload);
       isDispensible(payload);
@@ -79,22 +103,27 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({ children }) 
   useEffect(() => {
     // Only initialize once when the context is first created
     if (!isInitialized) {
-      console.log('[KuStatesContext] Initializing - calling init for the first time');
+      console.log(
+        "[KuStatesContext] Initializing - calling init for the first time"
+      );
       refreshSlots();
       setIsInitialized(true);
     }
 
     // Set up IPC listener
-    const handleInitRes = (event: Electron.IpcRendererEvent, payload: IPayload[]) => {
+    const handleInitRes = (
+      event: Electron.IpcRendererEvent,
+      payload: IPayload[]
+    ) => {
       handleGetKuStates(event, payload);
     };
 
-    ipcRenderer.on('init-res', handleInitRes);
+    ipcRenderer.on("init-res", handleInitRes);
 
     // Cleanup listener on unmount
     return () => {
-      ipcRenderer.removeListener('init-res', handleInitRes);
-      
+      ipcRenderer.removeListener("init-res", handleInitRes);
+
       // Cleanup timeout
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
@@ -119,7 +148,9 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({ children }) 
 export const useKuStatesContext = (): KuStatesContextType => {
   const context = useContext(KuStatesContext);
   if (context === undefined) {
-    throw new Error('useKuStatesContext must be used within a KuStatesProvider');
+    throw new Error(
+      "useKuStatesContext must be used within a KuStatesProvider"
+    );
   }
   return context;
 };

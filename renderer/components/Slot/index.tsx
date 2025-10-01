@@ -3,6 +3,7 @@ import LockedSlot from "./locked";
 import EmptySlot from "./empty";
 import Modal from "../Modals";
 import InputSlot from "../Dialogs/inputSlot";
+import { IndicatorParams } from "../../interfaces/indicatorParams";
 
 interface SlotProps {
   slotData: {
@@ -13,17 +14,7 @@ interface SlotProps {
     opening: boolean;
     isActive: boolean;
   };
-  indicator: {
-    message: string;
-    success: boolean;
-    data: {
-      Temp1: number;
-      Temp2: number;
-      Huminity1: number;
-      Huminity2: number;
-      Battery: number;
-    };
-  };
+  indicator: IndicatorParams;
 }
 
 const Slot = ({ slotData, indicator }: SlotProps) => {
@@ -46,15 +37,15 @@ const Slot = ({ slotData, indicator }: SlotProps) => {
           hn={slotData.hn}
           date={new Date(slotData.timestamp).toLocaleDateString()}
           time={new Date(slotData.timestamp).toLocaleTimeString()}
-          temp={!indicator ? 0 : indicator.data.Temp1}
-          humid={!indicator ? 0 : indicator.data.Huminity1}
+          temp={!indicator ? 0 : indicator.temp}
+          humid={!indicator ? 0 : indicator.humid}
         />
       ) : (
         <EmptySlot
           slotNo={slotData.slotId}
           isActive={slotData.isActive}
-          temp={!indicator ? 0 : indicator.data.Temp1}
-          humid={!indicator ? 0 : indicator.data.Huminity1}
+          temp={!indicator ? 0 : indicator.temp}
+          humid={!indicator ? 0 : indicator.humid}
         />
       )}
       <Modal isOpen={openModal} onClose={handleSlot}>
