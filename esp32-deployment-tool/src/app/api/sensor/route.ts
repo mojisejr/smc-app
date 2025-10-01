@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('error: Sensor connectivity test failed:', error);
-    
+
+    // ตรงนี้เหมือนว่าจะมี error output message อยู่แล้ว ผมอยากให้ message มีความ specific กว่านี้ จะได้รู้ว่า ปัญหาเกิดจากอะไร
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -179,6 +179,10 @@
 - **VALIDATE LICENSE SYSTEM** after any ESP32-related changes
 - **MONITOR AUDIT LOGS** for any unusual hardware communication patterns
 
+#### 🚨 CRITICAL SAFETY RULE - Git Operations
+
+- **NEVER use `git add -f` (force add)** - This command bypasses .gitignore safety mechanisms and can commit sensitive medical device data, configuration files, or ignored directories that contain patient information or proprietary medical algorithms. All files must respect .gitignore rules for medical device compliance and data protection.
+
 ---
 
 ## Core Development Commands
