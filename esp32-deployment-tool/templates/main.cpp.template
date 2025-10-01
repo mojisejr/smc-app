@@ -17,13 +17,12 @@ const char* CUSTOMER_ORG = "{{ORGANIZATION}}";
 const char* CUSTOMER_ID = "{{CUSTOMER_ID}}";  
 const char* APPLICATION_NAME = "{{APPLICATION_NAME}}";
 
-// SHT30 I2C Sensor Configuration for ESP32-S3 (Fixed pins for all devices)
-#define I2C_SDA_PIN 8      // GPIO 8 - SDA pin for ESP32-S3
-#define I2C_SCL_PIN 9      // GPIO 9 - SCL pin for ESP32-S3
+// SHT30 I2C Sensor Configuration (Using default I2C pins)
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 // Sensor status tracking
 bool sensorAvailable = false;
+String sensorErrorMessage = "";
 String sensorMode = "unknown";
 
 // WiFi Access Point Configuration
@@ -57,9 +56,9 @@ void setup() {
   
   // Initialize I2C for SHT30 Sensor - Medical Device Compliance
   Serial.println("MEDICAL: Initializing SHT30 I2C Temperature/Humidity Sensor...");
-  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  Wire.begin(); // Use default I2C pins (SDA=21, SCL=22 for ESP32)
   Wire.setClock(100000); // Set I2C clock to 100kHz for stable communication
-  Serial.printf("HARDWARE: I2C Pins configured - SDA=GPIO%d, SCL=GPIO%d, Clock=100kHz\n", I2C_SDA_PIN, I2C_SCL_PIN);
+  Serial.println("HARDWARE: I2C initialized with default pins, Clock=100kHz");
   
   // Medical Device Sensor Validation with Retry Logic
   Serial.println("MEDICAL: Testing sensor connectivity with retry mechanism...");
@@ -93,22 +92,26 @@ void setup() {
         Serial.printf("MEDICAL: Initial reading validated - Temp: %.2f°C, Humidity: %.2f%%RH\n", temp, humidity);
         Serial.printf("MEDICAL: Sensor status - Address: 0x44, Mode: Live, Retry: %d\n", retryCount);
       } else {
-        Serial.printf("ERROR: Sensor reading validation failed - Temp: %.2f, Humidity: %.2f\n", temp, humidity);
+        sensorErrorMessage = "Sensor reading validation failed - Invalid temperature or humidity values";
+        Serial.printf("ERROR: %s - Temp: %.2f, Humidity: %.2f\n", sensorErrorMessage.c_str(), temp, humidity);
         delay(1000); // Wait before retry
       }
     } else {
-      Serial.printf("ERROR: I2C communication failed on attempt %d\n", retryCount);
+      sensorErrorMessage = "I2C communication failed - SHT30 sensor not responding at address 0x44";
+      Serial.printf("ERROR: %s on attempt %d\n", sensorErrorMessage.c_str(), retryCount);
       delay(1000); // Wait before retry
     }
   }
   
-  // Final sensor status determination
+  // Final sensor status determination - NO MOCK DATA
   if (!sensorInitialized) {
     sensorAvailable = false;
-    sensorMode = "mock";
-    Serial.println("ERROR: SHT30 sensor initialization failed after all retry attempts");
-    Serial.println("MEDICAL: Switching to mock data mode for system demonstration");
-    Serial.println("MEDICAL: ⚠️  Hardware validation required before medical use");
+    sensorMode = "error";
+    if (sensorErrorMessage.isEmpty()) {
+      sensorErrorMessage = "SHT30 sensor initialization failed after " + String(maxRetries) + " retry attempts";
+    }
+    Serial.printf("ERROR: %s\n", sensorErrorMessage.c_str());
+    Serial.println("MEDICAL: ⚠️  Hardware validation required - System will return sensor errors");
   }
 
   // Configure CORS
@@ -169,46 +172,65 @@ void setup() {
   server.on("/sensor", HTTP_GET, [](AsyncWebServerRequest *request) {
     JsonDocument doc;
     
-    float temperature, humidity;
-    String currentMode;
-    
-    if (sensorAvailable) {
-      // Try to read from real sensor
-      temperature = sht31.readTemperature();
-      humidity = sht31.readHumidity();
+    if (!sensorAvailable) {
+      // Sensor not available - return error response
+      doc["success"] = false;
+      doc["error"] = "SHT30 sensor not available";
+      doc["error_details"] = sensorErrorMessage;
+      doc["sensor"] = "SHT30";
+      doc["mode"] = sensorMode;
+      doc["sensor_available"] = false;
+      doc["timestamp"] = millis();
+      doc["customer_id"] = CUSTOMER_ID;
+      doc["troubleshooting"] = "Check I2C connections, verify sensor power supply, ensure correct I2C address (0x44)";
       
-      // Validate sensor readings
-      if (!isnan(temperature) && !isnan(humidity) && 
-          temperature > -40 && temperature < 80 && 
-          humidity >= 0 && humidity <= 100) {
-        // Real sensor data is valid
-        currentMode = "live";
-        Serial.printf("Live sensor: %.1f°C, %.1f%%RH\n", temperature, humidity);
-      } else {
-        // Sensor failed this reading, use fallback
-        temperature = 22.5 + random(-25, 25) / 10.0;
-        humidity = 65.0 + random(-15, 15) / 10.0;
-        currentMode = "mock_fallback";
-        Serial.println("Sensor failed, using fallback data");
-      }
-    } else {
-      // No sensor available, use mock data
-      temperature = 22.5 + random(-25, 25) / 10.0;
-      humidity = 65.0 + random(-15, 15) / 10.0;
-      currentMode = "mock";
+      String jsonString;
+      serializeJson(doc, jsonString);
+      Serial.printf("ERROR: Sensor endpoint returning error - %s\n", sensorErrorMessage.c_str());
+      request->send(500, "application/json", jsonString);
+      return;
     }
     
-    // Build JSON response with enhanced status information
+    // Try to read from real sensor
+    float temperature = sht31.readTemperature();
+    float humidity = sht31.readHumidity();
+    
+    // Validate sensor readings
+    if (isnan(temperature) || isnan(humidity) || 
+        temperature <= -40 || temperature >= 80 || 
+        humidity < 0 || humidity > 100) {
+      
+      // Sensor reading failed - return error
+      doc["success"] = false;
+      doc["error"] = "SHT30 sensor reading failed";
+      doc["error_details"] = "Invalid sensor readings - temperature: " + String(temperature) + "°C, humidity: " + String(humidity) + "%";
+      doc["sensor"] = "SHT30";
+      doc["mode"] = "error";
+      doc["sensor_available"] = true;
+      doc["timestamp"] = millis();
+      doc["customer_id"] = CUSTOMER_ID;
+      doc["troubleshooting"] = "Sensor detected but readings invalid - check sensor condition and I2C communication";
+      
+      String jsonString;
+      serializeJson(doc, jsonString);
+      Serial.printf("ERROR: Sensor reading failed - Temp: %.2f°C, Humidity: %.2f%%\n", temperature, humidity);
+      request->send(500, "application/json", jsonString);
+      return;
+    }
+    
+    // Valid sensor data - return success response
+    doc["success"] = true;
     doc["temp"] = round(temperature * 10) / 10.0; // Round to 1 decimal
     doc["humid"] = round(humidity * 10) / 10.0;   // Round to 1 decimal
     doc["sensor"] = "SHT30";
-    doc["mode"] = currentMode;
-    doc["sensor_available"] = sensorAvailable;
+    doc["mode"] = "live";
+    doc["sensor_available"] = true;
     doc["timestamp"] = millis();
     doc["customer_id"] = CUSTOMER_ID;
     
     String jsonString;
     serializeJson(doc, jsonString);
+    Serial.printf("SUCCESS: Live sensor data - Temp: %.1f°C, Humidity: %.1f%%RH\n", temperature, humidity);
     request->send(200, "application/json", jsonString);
   });
 
