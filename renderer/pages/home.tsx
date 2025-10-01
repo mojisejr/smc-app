@@ -18,7 +18,12 @@ import Navbar from "../components/Shared/Navbar";
 import DeActivate from "../components/Dialogs/Deactivate";
 import { useIndicator } from "../hooks/useIndicator";
 import { useApp } from "../contexts/appContext";
-import { generateSlotArray, getResponsiveGridConfig, debugSlotConfiguration, loadDisplaySlotConfigAsync } from "../utils/getDisplaySlotConfig";
+import {
+  generateSlotArray,
+  getResponsiveGridConfig,
+  debugSlotConfiguration,
+  loadDisplaySlotConfigAsync,
+} from "../utils/getDisplaySlotConfig";
 
 function Home() {
   const { slots, refreshSlots } = useKuStatesContext();
@@ -36,9 +41,9 @@ function Home() {
     gridClass: string;
     gapClass: string;
   }>({
-    containerClass: 'h-full place-content-center place-items-center px-8 py-8',
-    gridClass: 'grid grid-cols-4',
-    gapClass: 'gap-6'
+    containerClass: "h-full place-content-center place-items-center px-8 py-8",
+    gridClass: "grid grid-cols-4",
+    gapClass: "gap-6",
   });
 
   // Load device configuration on component mount
@@ -47,16 +52,16 @@ function Home() {
       try {
         setConfigLoading(true);
         await loadDisplaySlotConfigAsync();
-        
+
         // Get grid configuration after database config is loaded
         const responsiveGridConfig = getResponsiveGridConfig();
         setGridConfig(responsiveGridConfig);
-        
+
         const slots = generateSlotArray();
         setMockSlots(slots);
         debugSlotConfiguration();
       } catch (error) {
-        console.error('Error loading device configuration:', error);
+        console.error("Error loading device configuration:", error);
         // Use default slots if config loading fails
         const defaultSlots = generateSlotArray();
         setMockSlots(defaultSlots);
@@ -125,7 +130,9 @@ function Home() {
                       <Loading />
                     </div>
                   ) : (
-                    <ul className={`${gridConfig.gridClass} ${gridConfig.gapClass} ${gridConfig.containerClass}`}>
+                    <ul
+                      className={`${gridConfig.gridClass} ${gridConfig.gapClass} ${gridConfig.containerClass}`}
+                    >
                       {mockSlots
                         .map((s, index) => {
                           return {

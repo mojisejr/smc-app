@@ -1,18 +1,19 @@
 import { BrowserWindow } from "electron";
-import { 
-  DEFAULT_ESP32_SENSOR_CONFIG, 
-  ESP32SensorConfig, 
-  ESP32SensorResponse, 
-  ESP32SensorError, 
+import axios from "axios";
+import {
+  DEFAULT_ESP32_SENSOR_CONFIG,
+  ESP32SensorConfig,
+  ESP32SensorResponse,
+  ESP32SensorError,
   ESP32SensorErrorType,
-  validateESP32SensorResponse 
+  validateESP32SensorResponse,
 } from "../../config/esp32-sensor.config";
 import { IndicatorParams } from "../interfaces/indicatorParams";
 
 /**
  * ESP32 Indicator Device for Smart Medication Cart (SMC)
  * Medical Device Compliance: HTTP-based sensor communication with audit logging
- * 
+ *
  * Replaces Serial Port communication with HTTP REST API calls to ESP32 device
  * Implements 1-minute polling mechanism for medical device environmental monitoring
  */
@@ -27,10 +28,12 @@ export class IndicatorDevice {
   constructor(config: Partial<ESP32SensorConfig> = {}, win: BrowserWindow) {
     this.win = win;
     this.config = { ...DEFAULT_ESP32_SENSOR_CONFIG, ...config };
-    
+
     // Medical device audit logging
     if (this.config.enableLogging) {
-      console.log(`INFO: ESP32 IndicatorDevice initialized with endpoint: ${this.config.endpointUrl}`);
+      console.log(
+        `INFO: ESP32 IndicatorDevice initialized with endpoint: ${this.config.endpointUrl}`
+      );
     }
   }
 
@@ -45,17 +48,19 @@ export class IndicatorDevice {
     }
 
     this.isPolling = true;
-    
+
     // Initial reading
     this.fetchSensorData();
-    
+
     // Set up interval polling
     this.pollingInterval = setInterval(() => {
       this.fetchSensorData();
     }, this.config.pollingIntervalMs);
 
     if (this.config.enableLogging) {
-      console.log(`INFO: ESP32 polling started with ${this.config.pollingIntervalMs}ms interval`);
+      console.log(
+        `INFO: ESP32 polling started with ${this.config.pollingIntervalMs}ms interval`
+      );
     }
   }
 
@@ -68,9 +73,9 @@ export class IndicatorDevice {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
-    
+
     this.isPolling = false;
-    
+
     if (this.config.enableLogging) {
       console.log("INFO: ESP32 polling stopped");
     }
@@ -83,33 +88,37 @@ export class IndicatorDevice {
   private async fetchSensorData(): Promise<void> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        this.config.timeoutMs
+      );
 
-      const response = await fetch(this.config.endpointUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      });
+      const response = await axios.get<ESP32SensorResponse>(
+        this.config.endpointUrl,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          signal: controller.signal,
+        }
+      );
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
+      if (response.status < 200 || response.status >= 300) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = response.data;
 
       // Validate response structure for medical device compliance
       if (!validateESP32SensorResponse(data)) {
-        throw new Error('Invalid ESP32 sensor response structure');
+        throw new Error("Invalid ESP32 sensor response structure");
       }
 
       // Process successful response
       this.handleSuccessfulReading(data);
       this.retryCount = 0; // Reset retry count on success
-
     } catch (error) {
       this.handleSensorError(error);
     }
@@ -136,7 +145,9 @@ export class IndicatorDevice {
     });
 
     if (this.config.enableLogging) {
-      console.log(`INFO: ESP32 sensor data received - Temp: ${data.temp}°C, Humidity: ${data.humid}%`);
+      console.log(
+        `INFO: ESP32 sensor data received - Temp: ${data.temp}°C, Humidity: ${data.humid}%`
+      );
     }
   }
 
@@ -147,25 +158,29 @@ export class IndicatorDevice {
   private handleSensorError(error: any): void {
     const sensorError: ESP32SensorError = {
       type: this.categorizeError(error),
-      message: error.message || 'Unknown ESP32 sensor error',
+      message: error.message || "Unknown ESP32 sensor error",
       timestamp: Date.now(),
       retryCount: this.retryCount,
     };
 
     // Medical device audit logging
-    console.log(`ERROR: ESP32 sensor communication failed - ${sensorError.type}: ${sensorError.message}`);
+    console.log(
+      `ERROR: ESP32 sensor communication failed - ${sensorError.type}: ${sensorError.message}`
+    );
 
     // Implement retry mechanism if enabled
     if (this.config.enableRetry && this.retryCount < this.config.maxRetries) {
       this.retryCount++;
-      
+
       setTimeout(() => {
         if (this.config.enableLogging) {
-          console.log(`INFO: ESP32 retry attempt ${this.retryCount}/${this.config.maxRetries}`);
+          console.log(
+            `INFO: ESP32 retry attempt ${this.retryCount}/${this.config.maxRetries}`
+          );
         }
         this.fetchSensorData();
       }, this.config.retryDelayMs * Math.pow(2, this.retryCount - 1)); // Exponential backoff
-      
+
       return;
     }
 
@@ -184,26 +199,26 @@ export class IndicatorDevice {
    * Categorize error types for medical device error handling
    */
   private categorizeError(error: any): ESP32SensorErrorType {
-    if (error.name === 'AbortError') {
+    if (error.name === "AbortError") {
       return ESP32SensorErrorType.TIMEOUT_ERROR;
     }
-    
-    if (error.message?.includes('fetch')) {
+
+    if (error.message?.includes("fetch")) {
       return ESP32SensorErrorType.NETWORK_ERROR;
     }
-    
-    if (error.message?.includes('JSON')) {
+
+    if (error.message?.includes("JSON")) {
       return ESP32SensorErrorType.PARSE_ERROR;
     }
-    
-    if (error.message?.includes('Invalid')) {
+
+    if (error.message?.includes("Invalid")) {
       return ESP32SensorErrorType.INVALID_RESPONSE;
     }
-    
-    if (error.message?.includes('refused')) {
+
+    if (error.message?.includes("refused")) {
       return ESP32SensorErrorType.CONNECTION_REFUSED;
     }
-    
+
     return ESP32SensorErrorType.NETWORK_ERROR;
   }
 
@@ -213,8 +228,8 @@ export class IndicatorDevice {
   public getConnectionStatus(): { connected: boolean; lastReading: number } {
     const now = Date.now();
     const timeSinceLastReading = now - this.lastSuccessfulReading;
-    const connected = timeSinceLastReading < (this.config.pollingIntervalMs * 2); // Consider disconnected if no reading for 2 intervals
-    
+    const connected = timeSinceLastReading < this.config.pollingIntervalMs * 2; // Consider disconnected if no reading for 2 intervals
+
     return {
       connected,
       lastReading: this.lastSuccessfulReading,
@@ -226,7 +241,9 @@ export class IndicatorDevice {
    * @deprecated Use startPolling() instead
    */
   public receive(): void {
-    console.log("INFO: Legacy receive() method called - starting ESP32 polling");
+    console.log(
+      "INFO: Legacy receive() method called - starting ESP32 polling"
+    );
     this.startPolling();
   }
 }
