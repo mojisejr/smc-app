@@ -11,6 +11,8 @@ notes/
 *.lic
 license.json
 
+current-focus.md
+
 *.env
 
 # Logs
