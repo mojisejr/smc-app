@@ -1,0 +1,1 @@
+{"version":3,"file":"list-ports.d.ts","sourceRoot":"","sources":["../../src/commands/list-ports.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAMH,MAAM,WAAW,gBAAgB;IAC/B,GAAG,CAAC,EAAE,OAAO,CAAC;IACd,OAAO,CAAC,EAAE,OAAO,CAAC;CACnB;AAED,wBAAsB,gBAAgB,CAAC,OAAO,GAAE,gBAAqB,GAAG,OAAO,CAAC,IAAI,CAAC,CAqDpF"}

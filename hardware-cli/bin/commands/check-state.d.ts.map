@@ -1,0 +1,1 @@
+{"version":3,"file":"check-state.d.ts","sourceRoot":"","sources":["../../src/commands/check-state.ts"],"names":[],"mappings":"AAAA;;;GAGG;AASH,MAAM,WAAW,iBAAiB;IAChC,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,OAAO,CAAC,EAAE,MAAM,CAAC;IACjB,OAAO,CAAC,EAAE,OAAO,CAAC;CACnB;AAED,wBAAsB,iBAAiB,CAAC,OAAO,GAAE,iBAAsB,GAAG,OAAO,CAAC,IAAI,CAAC,CAuEtF"}
