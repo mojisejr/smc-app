@@ -2,13 +2,15 @@
 
 **CRITICAL**: This is a **safety-critical medical device software** requiring strict compliance patterns for audit trails, error handling, and hardware communication protocols.
 
+**IMPORTANT**: This file contains **SMC-specific rules only**. For global development standards that apply to all projects, see <mcfile name="user_rules.md" path="d:/dev/smc/smc-app/.trae/rules/user_rules.md"></mcfile>.
+
 ---
 
 ## Project Overview
 
 **Project Name**: Smart Medication Cart (SMC)
 
-**Repository**:  https://github.com/mojisejr/smc-app 
+**Repository**: https://github.com/mojisejr/smc-app 
 
 **Description**: แอปพลิเคชัน Electron สำหรับจัดการระบบจ่ายยาอัตโนมัติ ที่ออกแบบมาเพื่อใช้ในสถานพยาบาล โดยรองรับการเชื่อมต่อกับฮาร์ดแวร์ DS12 และ DS16 พร้อมระบบ license ที่ผูกกับ ESP32 hardware binding เพื่อความปลอดภัยระดับการแพทย์
 
@@ -23,7 +25,7 @@
 
 ---
 
-## Development Environment
+## SMC Development Environment
 
 **Operating System**: Windows 11
 **Node.js Version**: 18.x
@@ -32,43 +34,13 @@
 **Typescript Version**: 5.x
 **Electron Version**: 25.x
 
-## Developer Descriptions [REQUIRED]
+## SMC-Specific Coding Requirements
 
-- Solo Developer
-- Intermediate Typescript and Javascript Skill
-- Basic CICD Skill handle this with me carfully need your special help
-- Basic DevOps Skill handle this with me carfully need your special help
-- Basic Security Skill handle this with me carfully need your special help
-  **IMPORTANT ! : All code must be easy to read and understand comment on what the code is doing and why on the Hard part** .
-  **IMPORTANT ! : All code must be written in typescript and follow the My Coding Style**
-
-## Project Coding Style Requirement
-
-- **Don't use `any` type in typescript** (**REQUIRED**)
-- **Always use Explicit Return types when return from function (**REQUIRED**)**
-- **Always use Functional Components over Class Components**
-- **Reuse Components and Hooks when possible by extracting common logic into custom hooks**
 - **Interfaces and Type Must be in the `/interfaces` folder only**
 - **All React Component Must be in the `/src/app/components` folder only**
 - **All React Hook Must be in the `/src/app/hooks` folder only**
-- **All Input and Output and Return types from every function and component must be defined NEVER use `any` type**
-- **Don't use `any` type in typescript**
-
-### Development Guidelines
-
-#### File Naming Conventions
-
-- **Retrospective Files**: `session-YYYY-MM-DD-[description].md`
-- **Log Files**: `YYYY-MM-DD-[type].log`
-- **Backup Files**: `backup-YYYY-MM-DD-HHMM.sql`
-- **Frontend Component Files** `ComponentName.tsx`
-
-#### Important Notes
-
-- **ALL timestamps** in documentation, logs, and file names must use Thailand timezone
-- **Year format** must always be Christian Era (ค.ศ.) not Buddhist Era (พ.ศ.)
-- **Development sessions** should reference Thailand local time
-- **Retrospective files** must use correct Thailand date in filename
+- **Medical Device Compliance**: All code must follow medical device standards
+- **Thai Language Support**: Preserve exact Thai language error messages for medical device certification
 
 ## Architecture Overview
 
@@ -239,14 +211,61 @@ All development activities **MUST** use standardized logging prefixes for medica
 - **`HARDWARE:`**: Hardware communication and controller operations
 - **`LICENSE:`**: ESP32 license system operations and validation
 
-### Two-Issue Pattern for Medical Device Development
+### SMC-Specific Iteration Notes Management
 
-The agent **MUST** maintain exactly **TWO GitHub Issues** at all times for medical device compliance and audit tracking:
+**CRITICAL**: For SMC medical device development, iteration notes **MUST** be managed as follows:
 
-1. **Context Issue** (`=fcs`): Current medical device development focus and compliance context
-2. **Task Issue** (`=plan`): Specific medical device implementation plan with safety considerations
+- **Reading Order**: **ALWAYS** read iteration notes **BEFORE** planning to understand recent medical device context
+- **Ordering**: Display iteration notes in **descending order (newest first)**: 5, 4, 3, 2, 1 for easier reading
+- **Medical Context**: Use iteration notes to understand recent medical device decisions and compliance requirements
+- **Summary**: After final PR, create a summary of key medical device iteration notes for audit trail
 
-**Medical Device Safety Protocol**: This pattern ensures medical device development maintains proper documentation and audit trails required for medical device compliance.
+### SMC Build and Linting Validation
+
+**MANDATORY**: For medical device compliance, all code **MUST** pass validation before commit and PR:
+
+- **Pre-Commit Validation**: 
+  - Run `npm run build` to ensure compilation success
+  - Run `npm run lint` to ensure code quality standards
+  - Run `npm run type-check` for TypeScript validation
+  - **NEVER** commit code that fails any validation step
+
+- **Pre-PR Validation**:
+  - All build and linting checks must pass
+  - Medical device specific tests must pass
+  - Hardware communication tests (if applicable) must pass
+
+### SMC Framework Detection
+
+**CRITICAL**: The agent **MUST** detect and remember the SMC framework context:
+
+- **Detection Methods**: Check `package.json` for Electron, Next.js, React versions
+- **SMC Context**: Remember this is an Electron + Next.js + React medical device application
+- **Hardware Context**: Remember DS12/DS16 hardware controllers and ESP32 license system
+- **Medical Device Context**: Always consider medical device compliance in all decisions
+
+### Local Context Management for Medical Device Development
+
+The agent **MUST** maintain local context management for medical device compliance and audit tracking:
+
+1. **Local Context File** (`=fcs`): Updates `current-focus.md` with iteration-based medical device development focus
+2. **Task Issue** (`=plan`): Specific medical device implementation plan with safety considerations in GitHub
+
+**Medical Device Safety Protocol**: This pattern ensures medical device development maintains proper documentation and audit trails required for medical device compliance through local file management and GitHub task tracking.
+
+### SMC Solo Developer Workflow
+
+**CRITICAL**: For SMC medical device development as a solo developer:
+
+- **Simple Structure**: Maintain clean folder structure without over-engineering for medical device compliance
+- **Real Data Only**: **NEVER** use mock data unless explicitly requested - always work with real medical device data structures
+- **Efficient Communication**: Minimize unnecessary confirmation steps for standard medical device operations
+- **Ask for Confirmation**: **ONLY** for:
+  - Major medical device architecture changes
+  - Critical security decisions affecting patient safety
+  - Hardware communication protocol changes
+  - ESP32 license system modifications
+  - Database schema changes affecting audit trails
 
 ### Agent-Driven Shortcut Commands for Medical Device Development
 
@@ -259,12 +278,12 @@ The agent **MUST** maintain exactly **TWO GitHub Issues** at all times for medic
   - **Safety Pattern Documentation**: Documents new medical device safety patterns and procedures
   - **Regulatory Compliance Check**: Verifies adherence to medical device development standards
 
-- **`=fcs > [message]`**: **MEDICAL DEVICE CONTEXT MANAGEMENT** - Updates `current-focus.md` and creates/updates GitHub Context Issue with medical device compliance focus:
+- **`=fcs > [message]`**: **MEDICAL DEVICE CONTEXT MANAGEMENT** - Updates local `current-focus.md` file with iteration-based medical device compliance focus:
 
   - **Medical Device Context**: Updates development focus with medical device safety considerations
   - **Compliance Tracking**: Ensures all development activities align with medical device standards
-  - **Safety Documentation**: Documents current medical device development priorities
-  - **Audit Trail Creation**: Creates GitHub issue for medical device compliance tracking
+  - **Safety Documentation**: Documents current medical device development priorities in local context file
+  - **Iteration-Based Management**: Uses newest-first ordering for easy access to recent medical device context
 
 - **`=plan > [question/problem]`**: **MEDICAL DEVICE IMPLEMENTATION PLANNING** - Creates or updates GitHub Task Issue with detailed medical device implementation plan:
 
@@ -310,13 +329,20 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 **Automated Execution Flow:**
 
 ```
-1. Parse GitHub Task Issue → Extract requirements and scope
+1. Read current-focus.md and GitHub Task Issue → Extract requirements and scope
 2. **Auto-Branch Creation** → feature/[issue-number]-[sanitized-description] (if needed)
 3. **Context Retrieval** → READ notes/iteration_[branch_name].md for To-Do list
-4. Implementation Phase → Execute planned work with progress tracking
-5. **Iteration Note Update** → Append Iteration X details and new Remaining Tasks
-6. **Auto-Commit & Push** → Commit updated code and Note file on current branch
-7. User Notification → Provide commit hash for review and continuation
+4. **Medical Device Validation** → Verify hardware safety and compliance requirements
+5. **Implementation** → Execute with medical device safety protocols
+6. **Build & Linting Validation** → **MANDATORY** SMC-specific checks:
+   - `npm run build` (Electron + Next.js build)
+   - `npm run lint` (ESLint + TypeScript)
+   - `npm run type-check` (TypeScript validation)
+   - Medical device hardware tests (if applicable)
+   - ESP32 license system validation (if applicable)
+7. **Iteration Note Update** → Append Iteration X details and new Remaining Tasks
+8. **Auto-Commit & Push** → Commit updated code and Note file on current branch
+9. User Notification → Provide commit hash for review and continuation
 ```
 
 ##### TodoWrite Integration Enhancement
@@ -421,7 +447,7 @@ The following commands now include **FULL WORKFLOW AUTOMATION**:
 
 #### Pre-Implementation Checks
 
-- ✅ Verify GitHub Task Issue exists and is properly formatted
+- ✅ Verify current-focus.md and GitHub Task Issue exist and are properly formatted
 - ✅ Ensure no conflicting branches exist
 - ✅ Confirm GitHub CLI is authenticated and functional
 - ✅ Validate repository permissions for branch creation and PR management
@@ -619,7 +645,7 @@ _Based on documented performance improvements from retrospective analysis_
 - **Branch Management**: Always create feature branches
 - **Incremental Testing**: Build validation at each phase
 - **Documentation Standards**: Comprehensive PR descriptions
-- **Issue Tracking**: Real-time GitHub issue updates
+- **Context Tracking**: Real-time local context file updates
 
 ### 🔄 Continuous Improvement Framework
 
@@ -793,7 +819,7 @@ _Lessons from 10+ development sessions in `/docs/retrospective/`_
 - **Clear Phase Objectives**: Define specific deliverables for each phase
 - **Dependency Mapping**: Identify cross-phase dependencies upfront
 - **Progress Checkpoints**: Validate phase completion before proceeding
-- **Issue Tracking**: Update GitHub issues after each phase completion
+- **Context Tracking**: Update local context file after each phase completion
 
 ### 🛡️ Database Best Practices
 

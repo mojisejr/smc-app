@@ -995,6 +995,8 @@ export class DS12Controller extends KuControllerBase {
       // PROTOCOL PARSING: Use DS12ProtocolParser for response parsing
       const parseResult = await this.protocolParser.parseSlotStates(data);
 
+      console.log("DEBUG RECEIVED CHECK STATES:", parseResult);
+
       if (!parseResult.success) {
         await this.logOperation("check-state-parse-error", {
           error: parseResult.error?.message || "Parse failed",
@@ -1019,6 +1021,8 @@ export class DS12Controller extends KuControllerBase {
       const slotData = await this.convertToSlotStateObjects(
         slotStatesFromHardware
       );
+
+      console.log("DEBUG SLOT DATA:", slotData);
 
       // MEDICAL AUDIT: Log successful status check
       await this.logOperation("check-state-success", {
