@@ -55,21 +55,28 @@ export async function unlockCommand(slotNumber: string, options: UnlockOptions =
       console.log(chalk.green(`✅ เลือกพอร์ต: ${portPath} (${bestPort.confidence})`));
     }
 
-    // Test port connection first
+    // Test port connection first and get reusable port
     console.log(chalk.gray('🔗 กำลังทดสอบการเชื่อมต่อ...'));
-    const canConnect = await testPortConnection(portPath!, options.timeout);
+    const connectionTest = await testPortConnection(portPath!, options.timeout, true);
     
-    if (!canConnect) {
+    if (!connectionTest.success) {
       console.error(chalk.red(`❌ ไม่สามารถเชื่อมต่อกับพอร์ต ${portPath}`));
       console.log(chalk.gray('💡 ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และไม่มีโปรแกรมอื่นใช้งาน'));
       process.exit(1);
     }
 
-    // Create connection and send unlock command
-    const connection = new DS12Connection({
+    // Create DS12 connection with reused port to prevent race condition
+    const connectionConfig: any = {
       portPath: portPath!,
-      timeout: options.timeout || 3000
-    });
+      timeout: 5000,
+    };
+    
+    // Only add existingPort if it exists
+    if (connectionTest.port) {
+      connectionConfig.existingPort = connectionTest.port;
+    }
+    
+    const connection = new DS12Connection(connectionConfig);
 
     console.log(chalk.gray('🔗 กำลังเชื่อมต่อกับอุปกรณ์...'));
     await connection.connect();
@@ -79,6 +86,18 @@ export async function unlockCommand(slotNumber: string, options: UnlockOptions =
     const result = await connection.sendCommand(packet);
 
     await connection.disconnect();
+
+    // Manually close the port since we're using an existing port
+    if (connectionTest.port && connectionTest.port.isOpen) {
+      await new Promise<void>((resolve) => {
+        connectionTest.port!.close((err) => {
+          if (err) {
+            console.warn(chalk.yellow(`⚠️ Warning: Failed to close port: ${err.message}`));
+          }
+          resolve();
+        });
+      });
+    }
 
     if (!result.success) {
       console.error(chalk.red(`❌ เกิดข้อผิดพลาด: ${result.error}`));

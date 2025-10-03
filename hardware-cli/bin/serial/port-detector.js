@@ -10,6 +10,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.listAllPorts = listAllPorts;
 exports.detectDS12Ports = detectDS12Ports;
 exports.testPortConnection = testPortConnection;
+exports.testPortConnectionLegacy = testPortConnectionLegacy;
 exports.getBestPort = getBestPort;
 exports.formatPortList = formatPortList;
 const serialport_1 = require("serialport");
@@ -129,15 +130,16 @@ function analyzePort(port) {
 }
 /**
  * Test a port to verify if it responds to DS12 commands
+ * Returns a connection result with optional port instance for reuse
  */
-async function testPortConnection(portPath, timeout = 3000) {
+async function testPortConnection(portPath, timeout = 3000, reuseConnection = false) {
     return new Promise((resolve) => {
         let port = null;
         let timeoutId;
-        const cleanup = () => {
+        const cleanup = (keepPortOpen = false) => {
             if (timeoutId)
                 clearTimeout(timeoutId);
-            if (port && port.isOpen) {
+            if (port && port.isOpen && !keepPortOpen) {
                 port.close();
             }
         };
@@ -153,24 +155,40 @@ async function testPortConnection(portPath, timeout = 3000) {
             // Set timeout
             timeoutId = setTimeout(() => {
                 cleanup();
-                resolve(false);
+                resolve({ success: false });
             }, timeout);
             port.open((err) => {
                 if (err) {
                     cleanup();
-                    resolve(false);
+                    resolve({ success: false });
                     return;
                 }
-                // Port opened successfully - this is a good sign
-                cleanup();
-                resolve(true);
+                // Port opened successfully
+                if (reuseConnection) {
+                    // Keep port open for reuse - caller is responsible for closing
+                    cleanup(true);
+                    resolve({ success: true, port: port });
+                }
+                else {
+                    // Traditional behavior - close immediately
+                    cleanup();
+                    resolve({ success: true });
+                }
             });
         }
         catch (error) {
             cleanup();
-            resolve(false);
+            resolve({ success: false });
         }
     });
+}
+/**
+ * Legacy wrapper for backward compatibility
+ * @deprecated Use testPortConnection with reuseConnection parameter instead
+ */
+async function testPortConnectionLegacy(portPath, timeout = 3000) {
+    const result = await testPortConnection(portPath, timeout, false);
+    return result.success;
 }
 /**
  * Get the best port candidate for DS12/DS16 connection

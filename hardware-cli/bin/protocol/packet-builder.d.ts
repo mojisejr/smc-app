@@ -48,6 +48,7 @@ export declare function packetToHexString(packet: number[]): string;
 export declare function packetToBuffer(packet: number[]): Buffer;
 /**
  * Validate packet structure
+ * CU12 Protocol: STX + ADDR + LOCKNUM + CMD + ASK + DATALEN + ETX + SUM + DATA
  */
 export declare function validatePacket(packet: number[]): boolean;
 //# sourceMappingURL=packet-builder.d.ts.map

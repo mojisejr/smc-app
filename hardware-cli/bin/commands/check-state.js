@@ -30,20 +30,25 @@ async function checkStateCommand(options = {}) {
             portPath = bestPort.path;
             console.log(chalk_1.default.green(`✅ เลือกพอร์ต: ${portPath} (${bestPort.confidence})`));
         }
-        // Test port connection first
+        // Test port connection first and get reusable port
         console.log(chalk_1.default.gray("🔗 กำลังทดสอบการเชื่อมต่อ..."));
-        const canConnect = await (0, port_detector_1.testPortConnection)(portPath, options.timeout);
-        console.log("DEBUG: Port connection test result:", canConnect);
-        if (!canConnect) {
+        const connectionTest = await (0, port_detector_1.testPortConnection)(portPath, options.timeout, true);
+        console.log("DEBUG: Port connection test result:", connectionTest.success);
+        if (!connectionTest.success) {
             console.error(chalk_1.default.red(`❌ ไม่สามารถเชื่อมต่อกับพอร์ต ${portPath}`));
             console.log(chalk_1.default.gray("💡 ตรวจสอบว่าอุปกรณ์เชื่อมต่ออยู่และไม่มีโปรแกรมอื่นใช้งาน"));
             process.exit(1);
         }
-        // Create connection and send status request
-        const connection = new connection_1.DS12Connection({
+        // Create connection using the existing port to prevent race condition
+        const connectionConfig = {
             portPath: portPath,
             timeout: options.timeout || 3000,
-        });
+        };
+        // Only add existingPort if it exists
+        if (connectionTest.port) {
+            connectionConfig.existingPort = connectionTest.port;
+        }
+        const connection = new connection_1.DS12Connection(connectionConfig);
         console.log("DEBUG: Port path:", portPath);
         console.log(chalk_1.default.gray("🔗 กำลังเชื่อมต่อกับอุปกรณ์..."));
         await connection.connect();
@@ -53,6 +58,17 @@ async function checkStateCommand(options = {}) {
         const result = await connection.sendCommand(packet);
         console.log("ได้รับ response : ", result);
         await connection.disconnect();
+        // Manually close the port since we're using an existing port
+        if (connectionTest.port && connectionTest.port.isOpen) {
+            await new Promise((resolve) => {
+                connectionTest.port.close((err) => {
+                    if (err) {
+                        console.warn(chalk_1.default.yellow(`⚠️ Warning: Failed to close port: ${err.message}`));
+                    }
+                    resolve();
+                });
+            });
+        }
         if (!result.success) {
             console.error(chalk_1.default.red(`❌ เกิดข้อผิดพลาด: ${result.error}`));
             process.exit(1);
