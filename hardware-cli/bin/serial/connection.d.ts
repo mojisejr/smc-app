@@ -5,11 +5,13 @@
  * This module provides robust serial connection management
  * with proper error handling and medical device compliance.
  */
+import { SerialPort } from "serialport";
 import { ParsedResponse } from "../protocol/parser";
 export interface ConnectionConfig {
     portPath: string;
     timeout?: number;
     retries?: number;
+    existingPort?: SerialPort;
 }
 export interface SendCommandResult {
     success: boolean;
@@ -23,6 +25,7 @@ export declare class DS12Connection {
     private portPath;
     private timeout;
     private retries;
+    private usingExistingPort;
     constructor(config: ConnectionConfig);
     /**
      * Open connection to DS12/DS16 device

@@ -5,6 +5,7 @@
  * This module provides intelligent port detection capabilities
  * for identifying DS12/DS16 devices among available serial ports.
  */
+import { SerialPort } from "serialport";
 export interface DetectedPort {
     path: string;
     manufacturer?: string;
@@ -31,8 +32,17 @@ export declare function listAllPorts(): Promise<PortDetectionResult>;
 export declare function detectDS12Ports(): Promise<PortDetectionResult>;
 /**
  * Test a port to verify if it responds to DS12 commands
+ * Returns a connection result with optional port instance for reuse
  */
-export declare function testPortConnection(portPath: string, timeout?: number): Promise<boolean>;
+export declare function testPortConnection(portPath: string, timeout?: number, reuseConnection?: boolean): Promise<{
+    success: boolean;
+    port?: SerialPort;
+}>;
+/**
+ * Legacy wrapper for backward compatibility
+ * @deprecated Use testPortConnection with reuseConnection parameter instead
+ */
+export declare function testPortConnectionLegacy(portPath: string, timeout?: number): Promise<boolean>;
 /**
  * Get the best port candidate for DS12/DS16 connection
  */

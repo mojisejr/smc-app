@@ -15,9 +15,16 @@ class DS12Connection {
     constructor(config) {
         this.port = null;
         this.isConnected = false;
+        this.usingExistingPort = false;
         this.portPath = config.portPath;
         this.timeout = config.timeout || constants_1.PROTOCOL_CONSTANTS.COMMUNICATION_TIMEOUT;
         this.retries = config.retries || 3;
+        // If an existing port is provided, use it
+        if (config.existingPort) {
+            this.port = config.existingPort;
+            this.usingExistingPort = true;
+            this.isConnected = config.existingPort.isOpen;
+        }
     }
     /**
      * Open connection to DS12/DS16 device
@@ -27,6 +34,17 @@ class DS12Connection {
             if (this.isConnected && this.port?.isOpen) {
                 return true;
             }
+            // If using an existing port, just verify it's open
+            if (this.usingExistingPort && this.port) {
+                if (this.port.isOpen) {
+                    this.isConnected = true;
+                    return true;
+                }
+                else {
+                    throw new Error(`${constants_1.ERROR_MESSAGES.CONNECTION_FAILED}: Existing port is not open`);
+                }
+            }
+            // Create new port connection
             this.port = new serialport_1.SerialPort({
                 path: this.portPath,
                 baudRate: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.BAUD_RATE,
@@ -54,6 +72,12 @@ class DS12Connection {
      * Close connection to DS12/DS16 device
      */
     async disconnect() {
+        // If using an existing port, don't close it - let the caller handle it
+        if (this.usingExistingPort) {
+            this.isConnected = false;
+            // Don't set port to null since we don't own it
+            return;
+        }
         if (this.port && this.port.isOpen) {
             return new Promise((resolve, reject) => {
                 this.port.close((err) => {

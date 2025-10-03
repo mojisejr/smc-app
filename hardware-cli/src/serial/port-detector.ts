@@ -151,18 +151,20 @@ function analyzePort(port: any): DetectedPort | null {
 
 /**
  * Test a port to verify if it responds to DS12 commands
+ * Returns a connection result with optional port instance for reuse
  */
 export async function testPortConnection(
   portPath: string,
-  timeout: number = 3000
-): Promise<boolean> {
+  timeout: number = 3000,
+  reuseConnection: boolean = false
+): Promise<{ success: boolean; port?: SerialPort }> {
   return new Promise((resolve) => {
     let port: SerialPort | null = null;
     let timeoutId: NodeJS.Timeout;
 
-    const cleanup = () => {
+    const cleanup = (keepPortOpen: boolean = false) => {
       if (timeoutId) clearTimeout(timeoutId);
-      if (port && port.isOpen) {
+      if (port && port.isOpen && !keepPortOpen) {
         port.close();
       }
     };
@@ -180,25 +182,44 @@ export async function testPortConnection(
       // Set timeout
       timeoutId = setTimeout(() => {
         cleanup();
-        resolve(false);
+        resolve({ success: false });
       }, timeout);
 
       port.open((err) => {
         if (err) {
           cleanup();
-          resolve(false);
+          resolve({ success: false });
           return;
         }
 
-        // Port opened successfully - this is a good sign
-        cleanup();
-        resolve(true);
+        // Port opened successfully
+        if (reuseConnection) {
+          // Keep port open for reuse - caller is responsible for closing
+          cleanup(true);
+          resolve({ success: true, port: port! });
+        } else {
+          // Traditional behavior - close immediately
+          cleanup();
+          resolve({ success: true });
+        }
       });
     } catch (error) {
       cleanup();
-      resolve(false);
+      resolve({ success: false });
     }
   });
+}
+
+/**
+ * Legacy wrapper for backward compatibility
+ * @deprecated Use testPortConnection with reuseConnection parameter instead
+ */
+export async function testPortConnectionLegacy(
+  portPath: string,
+  timeout: number = 3000
+): Promise<boolean> {
+  const result = await testPortConnection(portPath, timeout, false);
+  return result.success;
 }
 
 /**
