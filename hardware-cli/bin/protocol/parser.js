@@ -37,7 +37,7 @@ function parseResponse(buffer) {
     const command = data[constants_1.PROTOCOL_CONSTANTS.PACKET_POS.CMD];
     const ask = data[constants_1.PROTOCOL_CONSTANTS.PACKET_POS.ASK];
     const dataLen = data[constants_1.PROTOCOL_CONSTANTS.PACKET_POS.DATALEN];
-    // Extract data payload if present
+    // Extract data payload if present (DATA comes after SUM in CU12 protocol)
     const responseData = dataLen > 0 ?
         data.slice(constants_1.PROTOCOL_CONSTANTS.PACKET_POS.DATA_START, constants_1.PROTOCOL_CONSTANTS.PACKET_POS.DATA_START + dataLen) :
         [];

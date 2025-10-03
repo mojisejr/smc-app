@@ -158,6 +158,7 @@ class DS12Connection {
             }, this.timeout);
             // Set up data listener
             const onData = (data) => {
+                console.log("RESPONSE DATA", data);
                 responseBuffer = Buffer.concat([responseBuffer, data]);
                 // Check if we have a complete response
                 if (this.isCompleteResponse(responseBuffer)) {
@@ -188,24 +189,27 @@ class DS12Connection {
     }
     /**
      * Check if response buffer contains a complete packet
+     * CU12 Protocol: STX + ADDR + LOCKNUM + CMD + ASK + DATALEN + ETX + SUM + DATA
      */
     isCompleteResponse(buffer) {
         if (buffer.length < 8) {
             return false;
         }
-        // Check for frame start
+        // Check for frame start (STX)
         if (buffer[0] !== constants_1.PROTOCOL_CONSTANTS.FRAME_START) {
+            return false;
+        }
+        // Check for ETX at position 6
+        if (buffer.length >= 7 &&
+            buffer[constants_1.PROTOCOL_CONSTANTS.PACKET_POS.ETX] !== constants_1.PROTOCOL_CONSTANTS.ETX) {
             return false;
         }
         // Check if we have enough data for the packet
         if (buffer.length >= 6) {
             const dataLen = buffer[constants_1.PROTOCOL_CONSTANTS.PACKET_POS.DATALEN];
-            const expectedLength = 8 + dataLen; // Header + data + checksum + frame end
-            if (buffer.length >= expectedLength) {
-                // Check for frame end
-                const frameEndPos = expectedLength - 1;
-                return buffer[frameEndPos] === constants_1.PROTOCOL_CONSTANTS.FRAME_END;
-            }
+            const expectedLength = 8 + dataLen; // Header(7) + SUM(1) + DATA(dataLen)
+            // We have a complete packet when we reach the expected length
+            return buffer.length >= expectedLength;
         }
         return false;
     }

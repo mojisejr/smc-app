@@ -36,7 +36,7 @@ export class DS12Connection {
     this.portPath = config.portPath;
     this.timeout = config.timeout || PROTOCOL_CONSTANTS.COMMUNICATION_TIMEOUT;
     this.retries = config.retries || 3;
-    
+
     // If an existing port is provided, use it
     if (config.existingPort) {
       this.port = config.existingPort;
@@ -60,7 +60,9 @@ export class DS12Connection {
           this.isConnected = true;
           return true;
         } else {
-          throw new Error(`${ERROR_MESSAGES.CONNECTION_FAILED}: Existing port is not open`);
+          throw new Error(
+            `${ERROR_MESSAGES.CONNECTION_FAILED}: Existing port is not open`
+          );
         }
       }
 
@@ -199,6 +201,7 @@ export class DS12Connection {
 
       // Set up data listener
       const onData = (data: Buffer) => {
+        console.log("RESPONSE DATA", data);
         responseBuffer = Buffer.concat([responseBuffer, data]);
 
         // Check if we have a complete response
@@ -235,27 +238,33 @@ export class DS12Connection {
 
   /**
    * Check if response buffer contains a complete packet
+   * CU12 Protocol: STX + ADDR + LOCKNUM + CMD + ASK + DATALEN + ETX + SUM + DATA
    */
   private isCompleteResponse(buffer: Buffer): boolean {
     if (buffer.length < 8) {
       return false;
     }
 
-    // Check for frame start
+    // Check for frame start (STX)
     if (buffer[0] !== PROTOCOL_CONSTANTS.FRAME_START) {
+      return false;
+    }
+
+    // Check for ETX at position 6
+    if (
+      buffer.length >= 7 &&
+      buffer[PROTOCOL_CONSTANTS.PACKET_POS.ETX] !== PROTOCOL_CONSTANTS.ETX
+    ) {
       return false;
     }
 
     // Check if we have enough data for the packet
     if (buffer.length >= 6) {
       const dataLen = buffer[PROTOCOL_CONSTANTS.PACKET_POS.DATALEN];
-      const expectedLength = 8 + dataLen; // Header + data + checksum + frame end
+      const expectedLength = 8 + dataLen; // Header(7) + SUM(1) + DATA(dataLen)
 
-      if (buffer.length >= expectedLength) {
-        // Check for frame end
-        const frameEndPos = expectedLength - 1;
-        return buffer[frameEndPos] === PROTOCOL_CONSTANTS.FRAME_END;
-      }
+      // We have a complete packet when we reach the expected length
+      return buffer.length >= expectedLength;
     }
 
     return false;

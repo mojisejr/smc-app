@@ -45,6 +45,7 @@ export declare class DS12Connection {
     private sendSingleCommand;
     /**
      * Check if response buffer contains a complete packet
+     * CU12 Protocol: STX + ADDR + LOCKNUM + CMD + ASK + DATALEN + ETX + SUM + DATA
      */
     private isCompleteResponse;
     /**

@@ -49,16 +49,19 @@ export function buildPacket(packetData: PacketData): number[] {
     PROTOCOL_CONSTANTS.ETX
   ];
 
-  // Calculate and append checksum
-  const checksum = calculateChecksum(packet);
-  packet.push(checksum);
-
-  // Append data if any
+  // Calculate checksum (includes all bytes before SUM position)
+  const packetWithData = [...packet, ...data];
+  const checksum = calculateChecksum(packetWithData);
+  
+  // Build final packet: STX + ADDR + LOCKNUM + CMD + ASK + DATALEN + ETX + SUM + DATA
+  const finalPacket = [...packet, checksum];
+  
+  // Append data if any (after SUM)
   if (data.length > 0) {
-    packet.push(...data);
+    finalPacket.push(...data);
   }
 
-  return packet;
+  return finalPacket;
 }
 
 /**
@@ -116,6 +119,7 @@ export function packetToBuffer(packet: number[]): Buffer {
 
 /**
  * Validate packet structure
+ * CU12 Protocol: STX + ADDR + LOCKNUM + CMD + ASK + DATALEN + ETX + SUM + DATA
  */
 export function validatePacket(packet: number[]): boolean {
   if (packet.length < 8) {
@@ -128,9 +132,20 @@ export function validatePacket(packet: number[]): boolean {
     return false;
   }
 
-  // Verify checksum
-  const packetWithoutChecksum = packet.slice(0, 7);
-  const expectedChecksum = calculateChecksum(packetWithoutChecksum);
+  // Get data length
+  const dataLen = packet[PROTOCOL_CONSTANTS.PACKET_POS.DATALEN];
+  
+  // Verify packet length matches expected length
+  const expectedLength = 8 + dataLen; // Header (7) + SUM (1) + DATA (dataLen)
+  if (packet.length !== expectedLength) {
+    return false;
+  }
+
+  // Verify checksum - includes header + data
+  const headerPart = packet.slice(0, 7); // STX to ETX
+  const dataPart = packet.slice(8, 8 + dataLen); // DATA part
+  const packetForChecksum = [...headerPart, ...dataPart];
+  const expectedChecksum = calculateChecksum(packetForChecksum);
   const actualChecksum = packet[PROTOCOL_CONSTANTS.PACKET_POS.SUM];
 
   return expectedChecksum === actualChecksum;
