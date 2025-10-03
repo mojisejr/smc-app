@@ -33,7 +33,7 @@ class DS12Connection {
                 dataBits: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.DATA_BITS,
                 stopBits: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.STOP_BITS,
                 parity: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.PARITY,
-                autoOpen: false
+                autoOpen: false,
             });
             return new Promise((resolve, reject) => {
                 this.port.open((err) => {
@@ -77,7 +77,7 @@ class DS12Connection {
         if (!this.isConnected || !this.port) {
             return {
                 success: false,
-                error: constants_1.ERROR_MESSAGES.NOT_CONNECTED
+                error: constants_1.ERROR_MESSAGES.NOT_CONNECTED,
             };
         }
         let attempt = 0;
@@ -98,7 +98,7 @@ class DS12Connection {
                 if (attempt >= this.retries) {
                     return {
                         success: false,
-                        error: `${constants_1.ERROR_MESSAGES.COMMUNICATION_TIMEOUT}: ${error}`
+                        error: `${constants_1.ERROR_MESSAGES.COMMUNICATION_TIMEOUT}: ${error}`,
                     };
                 }
                 await this.delay(500);
@@ -106,7 +106,7 @@ class DS12Connection {
         }
         return {
             success: false,
-            error: `${constants_1.ERROR_MESSAGES.COMMUNICATION_TIMEOUT} after ${this.retries} attempts`
+            error: `${constants_1.ERROR_MESSAGES.COMMUNICATION_TIMEOUT} after ${this.retries} attempts`,
         };
     }
     /**
@@ -117,7 +117,7 @@ class DS12Connection {
             if (!this.port) {
                 resolve({
                     success: false,
-                    error: constants_1.ERROR_MESSAGES.NOT_CONNECTED
+                    error: constants_1.ERROR_MESSAGES.NOT_CONNECTED,
                 });
                 return;
             }
@@ -126,10 +126,10 @@ class DS12Connection {
             let timeoutId;
             // Set up timeout
             timeoutId = setTimeout(() => {
-                this.port.removeAllListeners('data');
+                this.port.removeAllListeners("data");
                 resolve({
                     success: false,
-                    error: constants_1.ERROR_MESSAGES.COMMUNICATION_TIMEOUT
+                    error: constants_1.ERROR_MESSAGES.COMMUNICATION_TIMEOUT,
                 });
             }, this.timeout);
             // Set up data listener
@@ -138,25 +138,25 @@ class DS12Connection {
                 // Check if we have a complete response
                 if (this.isCompleteResponse(responseBuffer)) {
                     clearTimeout(timeoutId);
-                    this.port.removeAllListeners('data');
+                    this.port.removeAllListeners("data");
                     const parsedResponse = (0, parser_1.parseResponse)(responseBuffer);
                     resolve({
                         success: parsedResponse.success,
                         response: parsedResponse,
                         rawData: responseBuffer,
-                        ...(parsedResponse.error && { error: parsedResponse.error })
+                        ...(parsedResponse.error && { error: parsedResponse.error }),
                     });
                 }
             };
-            this.port.on('data', onData);
+            this.port.on("data", onData);
             // Send the command
             this.port.write(buffer, (err) => {
                 if (err) {
                     clearTimeout(timeoutId);
-                    this.port.removeAllListeners('data');
+                    this.port.removeAllListeners("data");
                     resolve({
                         success: false,
-                        error: `Write error: ${err.message}`
+                        error: `Write error: ${err.message}`,
                     });
                 }
             });
@@ -189,7 +189,7 @@ class DS12Connection {
      * Utility delay function
      */
     delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
     /**
      * Check if connection is active
@@ -210,8 +210,8 @@ class DS12Connection {
                 stopBits: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.STOP_BITS,
                 parity: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.PARITY,
                 timeout: this.timeout,
-                retries: this.retries
-            }
+                retries: this.retries,
+            },
         };
     }
 }

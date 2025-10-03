@@ -5,7 +5,7 @@
  * This module provides robust serial connection management
  * with proper error handling and medical device compliance.
  */
-import { ParsedResponse } from '../protocol/parser';
+import { ParsedResponse } from "../protocol/parser";
 export interface ConnectionConfig {
     portPath: string;
     timeout?: number;

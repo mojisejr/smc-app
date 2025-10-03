@@ -22,17 +22,17 @@ async function listAllPorts() {
         const ports = await serialport_1.SerialPort.list();
         return {
             success: true,
-            ports: ports.map(port => ({
+            ports: ports.map((port) => ({
                 path: port.path,
                 ...(port.manufacturer && { manufacturer: port.manufacturer }),
                 ...(port.serialNumber && { serialNumber: port.serialNumber }),
                 ...(port.pnpId && { pnpId: port.pnpId }),
                 ...(port.vendorId && { vendorId: port.vendorId }),
                 ...(port.productId && { productId: port.productId }),
-                confidence: 'low',
-                reason: 'Listed port without filtering'
+                confidence: "low",
+                reason: "Listed port without filtering",
             })),
-            totalPorts: ports.length
+            totalPorts: ports.length,
         };
     }
     catch (error) {
@@ -40,7 +40,7 @@ async function listAllPorts() {
             success: false,
             ports: [],
             error: `Failed to list ports: ${error}`,
-            totalPorts: 0
+            totalPorts: 0,
         };
     }
 }
@@ -65,7 +65,7 @@ async function detectDS12Ports() {
         return {
             success: true,
             ports: detectedPorts,
-            totalPorts: ports.length
+            totalPorts: ports.length,
         };
     }
     catch (error) {
@@ -73,7 +73,7 @@ async function detectDS12Ports() {
             success: false,
             ports: [],
             error: `${constants_1.ERROR_MESSAGES.PORT_DETECTION_FAILED}: ${error}`,
-            totalPorts: 0
+            totalPorts: 0,
         };
     }
 }
@@ -82,12 +82,12 @@ async function detectDS12Ports() {
  */
 function analyzePort(port) {
     const path = port.path;
-    const manufacturer = port.manufacturer?.toLowerCase() || '';
-    const pnpId = port.pnpId?.toLowerCase() || '';
-    const vendorId = port.vendorId?.toLowerCase() || '';
-    const productId = port.productId?.toLowerCase() || '';
+    const manufacturer = port.manufacturer?.toLowerCase() || "";
+    const pnpId = port.pnpId?.toLowerCase() || "";
+    const vendorId = port.vendorId?.toLowerCase() || "";
+    const productId = port.productId?.toLowerCase() || "";
     // High confidence indicators
-    if (manufacturer.includes('ftdi') || manufacturer.includes('prolific')) {
+    if (manufacturer.includes("ftdi") || manufacturer.includes("prolific")) {
         return {
             path,
             ...(port.manufacturer && { manufacturer: port.manufacturer }),
@@ -95,12 +95,12 @@ function analyzePort(port) {
             ...(port.pnpId && { pnpId: port.pnpId }),
             ...(port.vendorId && { vendorId: port.vendorId }),
             ...(port.productId && { productId: port.productId }),
-            confidence: 'high',
-            reason: 'FTDI/Prolific chip detected (common for DS12/DS16)'
+            confidence: "high",
+            reason: "FTDI/Prolific chip detected (common for DS12/DS16)",
         };
     }
     // Medium confidence indicators
-    if (pnpId.includes('usb') || vendorId || productId) {
+    if (pnpId.includes("usb") || vendorId || productId) {
         return {
             path,
             ...(port.manufacturer && { manufacturer: port.manufacturer }),
@@ -108,12 +108,12 @@ function analyzePort(port) {
             ...(port.pnpId && { pnpId: port.pnpId }),
             ...(port.vendorId && { vendorId: port.vendorId }),
             ...(port.productId && { productId: port.productId }),
-            confidence: 'medium',
-            reason: 'USB serial adapter detected'
+            confidence: "medium",
+            reason: "USB serial adapter detected",
         };
     }
     // Low confidence - any COM port on Windows
-    if (path.startsWith('COM') || path.startsWith('/dev/tty')) {
+    if (path.startsWith("COM") || path.startsWith("/dev/tty")) {
         return {
             path,
             ...(port.manufacturer && { manufacturer: port.manufacturer }),
@@ -121,8 +121,8 @@ function analyzePort(port) {
             ...(port.pnpId && { pnpId: port.pnpId }),
             ...(port.vendorId && { vendorId: port.vendorId }),
             ...(port.productId && { productId: port.productId }),
-            confidence: 'low',
-            reason: 'Generic serial port'
+            confidence: "low",
+            reason: "Generic serial port",
         };
     }
     return null;
@@ -148,7 +148,7 @@ async function testPortConnection(portPath, timeout = 3000) {
                 dataBits: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.DATA_BITS,
                 stopBits: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.STOP_BITS,
                 parity: constants_1.PROTOCOL_CONSTANTS.SERIAL_CONFIG.PARITY,
-                autoOpen: false
+                autoOpen: false,
             });
             // Set timeout
             timeoutId = setTimeout(() => {
@@ -188,15 +188,15 @@ async function getBestPort() {
  */
 function formatPortList(ports) {
     if (ports.length === 0) {
-        return 'ไม่พบพอร์ตที่เหมาะสม';
+        return "ไม่พบพอร์ตที่เหมาะสม";
     }
     let output = `พบพอร์ตที่เป็นไปได้ ${ports.length} พอร์ต:\n\n`;
     ports.forEach((port, index) => {
         const confidenceIcon = {
-            high: '🟢',
-            medium: '🟡',
-            low: '🔴',
-            unknown: '⚪'
+            high: "🟢",
+            medium: "🟡",
+            low: "🔴",
+            unknown: "⚪",
         }[port.confidence];
         output += `${index + 1}. ${port.path} ${confidenceIcon}\n`;
         output += `   ความเชื่อมั่น: ${port.confidence}\n`;
@@ -207,7 +207,7 @@ function formatPortList(ports) {
         if (port.serialNumber) {
             output += `   Serial: ${port.serialNumber}\n`;
         }
-        output += '\n';
+        output += "\n";
     });
     return output;
 }

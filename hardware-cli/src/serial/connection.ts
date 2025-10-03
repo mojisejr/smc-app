@@ -1,14 +1,14 @@
 /**
  * DS12/DS16 Serial Connection Manager
  * Manages serial communication with DS12/DS16 hardware devices
- * 
+ *
  * This module provides robust serial connection management
  * with proper error handling and medical device compliance.
  */
 
-import { SerialPort } from 'serialport';
-import { PROTOCOL_CONSTANTS, ERROR_MESSAGES } from '../protocol/constants';
-import { parseResponse, ParsedResponse } from '../protocol/parser';
+import { SerialPort } from "serialport";
+import { PROTOCOL_CONSTANTS, ERROR_MESSAGES } from "../protocol/constants";
+import { parseResponse, ParsedResponse } from "../protocol/parser";
 
 export interface ConnectionConfig {
   portPath: string;
@@ -51,13 +51,15 @@ export class DS12Connection {
         dataBits: PROTOCOL_CONSTANTS.SERIAL_CONFIG.DATA_BITS,
         stopBits: PROTOCOL_CONSTANTS.SERIAL_CONFIG.STOP_BITS,
         parity: PROTOCOL_CONSTANTS.SERIAL_CONFIG.PARITY,
-        autoOpen: false
+        autoOpen: false,
       });
 
       return new Promise((resolve, reject) => {
         this.port!.open((err) => {
           if (err) {
-            reject(new Error(`${ERROR_MESSAGES.CONNECTION_FAILED}: ${err.message}`));
+            reject(
+              new Error(`${ERROR_MESSAGES.CONNECTION_FAILED}: ${err.message}`)
+            );
             return;
           }
 
@@ -65,7 +67,6 @@ export class DS12Connection {
           resolve(true);
         });
       });
-
     } catch (error) {
       throw new Error(`${ERROR_MESSAGES.CONNECTION_FAILED}: ${error}`);
     }
@@ -101,56 +102,57 @@ export class DS12Connection {
     if (!this.isConnected || !this.port) {
       return {
         success: false,
-        error: ERROR_MESSAGES.NOT_CONNECTED
+        error: ERROR_MESSAGES.NOT_CONNECTED,
       };
     }
 
     let attempt = 0;
-    
+
     while (attempt < this.retries) {
       try {
         const result = await this.sendSingleCommand(packet);
-        
+
         if (result.success) {
           return result;
         }
 
         attempt++;
-        
+
         // Wait before retry
         if (attempt < this.retries) {
           await this.delay(500);
         }
-
       } catch (error) {
         attempt++;
-        
+
         if (attempt >= this.retries) {
           return {
             success: false,
-            error: `${ERROR_MESSAGES.COMMUNICATION_TIMEOUT}: ${error}`
+            error: `${ERROR_MESSAGES.COMMUNICATION_TIMEOUT}: ${error}`,
           };
         }
-        
+
         await this.delay(500);
       }
     }
 
     return {
       success: false,
-      error: `${ERROR_MESSAGES.COMMUNICATION_TIMEOUT} after ${this.retries} attempts`
+      error: `${ERROR_MESSAGES.COMMUNICATION_TIMEOUT} after ${this.retries} attempts`,
     };
   }
 
   /**
    * Send a single command attempt
    */
-  private async sendSingleCommand(packet: number[]): Promise<SendCommandResult> {
+  private async sendSingleCommand(
+    packet: number[]
+  ): Promise<SendCommandResult> {
     return new Promise((resolve) => {
       if (!this.port) {
         resolve({
           success: false,
-          error: ERROR_MESSAGES.NOT_CONNECTED
+          error: ERROR_MESSAGES.NOT_CONNECTED,
         });
         return;
       }
@@ -161,10 +163,10 @@ export class DS12Connection {
 
       // Set up timeout
       timeoutId = setTimeout(() => {
-        this.port!.removeAllListeners('data');
+        this.port!.removeAllListeners("data");
         resolve({
           success: false,
-          error: ERROR_MESSAGES.COMMUNICATION_TIMEOUT
+          error: ERROR_MESSAGES.COMMUNICATION_TIMEOUT,
         });
       }, this.timeout);
 
@@ -175,29 +177,29 @@ export class DS12Connection {
         // Check if we have a complete response
         if (this.isCompleteResponse(responseBuffer)) {
           clearTimeout(timeoutId);
-          this.port!.removeAllListeners('data');
+          this.port!.removeAllListeners("data");
 
           const parsedResponse = parseResponse(responseBuffer);
-          
+
           resolve({
             success: parsedResponse.success,
             response: parsedResponse,
             rawData: responseBuffer,
-            ...(parsedResponse.error && { error: parsedResponse.error })
+            ...(parsedResponse.error && { error: parsedResponse.error }),
           });
         }
       };
 
-      this.port.on('data', onData);
+      this.port.on("data", onData);
 
       // Send the command
       this.port.write(buffer, (err) => {
         if (err) {
           clearTimeout(timeoutId);
-          this.port!.removeAllListeners('data');
+          this.port!.removeAllListeners("data");
           resolve({
             success: false,
-            error: `Write error: ${err.message}`
+            error: `Write error: ${err.message}`,
           });
         }
       });
@@ -221,7 +223,7 @@ export class DS12Connection {
     if (buffer.length >= 6) {
       const dataLen = buffer[PROTOCOL_CONSTANTS.PACKET_POS.DATALEN];
       const expectedLength = 8 + dataLen; // Header + data + checksum + frame end
-      
+
       if (buffer.length >= expectedLength) {
         // Check for frame end
         const frameEndPos = expectedLength - 1;
@@ -236,7 +238,7 @@ export class DS12Connection {
    * Utility delay function
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -259,8 +261,8 @@ export class DS12Connection {
         stopBits: PROTOCOL_CONSTANTS.SERIAL_CONFIG.STOP_BITS,
         parity: PROTOCOL_CONSTANTS.SERIAL_CONFIG.PARITY,
         timeout: this.timeout,
-        retries: this.retries
-      }
+        retries: this.retries,
+      },
     };
   }
 }

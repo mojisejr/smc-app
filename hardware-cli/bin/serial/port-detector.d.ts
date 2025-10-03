@@ -12,7 +12,7 @@ export interface DetectedPort {
     pnpId?: string;
     vendorId?: string;
     productId?: string;
-    confidence: 'high' | 'medium' | 'low' | 'unknown';
+    confidence: "high" | "medium" | "low" | "unknown";
     reason: string;
 }
 export interface PortDetectionResult {
