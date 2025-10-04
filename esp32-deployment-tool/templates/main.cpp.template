@@ -60,6 +60,51 @@ String cu12Mode = "unknown";
 uint8_t cu12SlotStates[CU12_MAX_SLOTS] = {0}; // Track slot states
 unsigned long lastCU12Communication = 0;
 
+// ========================================
+// MEDICAL DEVICE LOGGING SYSTEM
+// ========================================
+struct LogEntry {
+  unsigned long timestamp;
+  String level;
+  String component;
+  String message;
+  String details;
+};
+
+const int MAX_LOG_ENTRIES = 50;
+LogEntry systemLogs[MAX_LOG_ENTRIES];
+int logIndex = 0;
+int totalLogCount = 0;
+
+void addSystemLog(String level, String component, String message, String details = "") {
+  systemLogs[logIndex] = {millis(), level, component, message, details};
+  logIndex = (logIndex + 1) % MAX_LOG_ENTRIES;
+  totalLogCount++;
+  
+  // Also output to Serial for real-time monitoring
+  Serial.printf("[%s] %s: %s", level.c_str(), component.c_str(), message.c_str());
+  if (details.length() > 0) {
+    Serial.printf(" - %s", details.c_str());
+  }
+  Serial.println();
+}
+
+void logCU12Event(String level, String message, String details = "") {
+  addSystemLog(level, "CU12", message, details);
+}
+
+void logSensorEvent(String level, String message, String details = "") {
+  addSystemLog(level, "SHT30", message, details);
+}
+
+void logSystemEvent(String level, String message, String details = "") {
+  addSystemLog(level, "SYSTEM", message, details);
+}
+
+void logNetworkEvent(String level, String message, String details = "") {
+  addSystemLog(level, "NETWORK", message, details);
+}
+
 // WiFi Access Point Configuration
 const char* AP_SSID = "{{WIFI_SSID}}";
 const char* AP_PASSWORD = "{{WIFI_PASSWORD}}";
@@ -169,28 +214,29 @@ bool readCU12Response(uint8_t* response, int maxLen, int timeoutMs = CU12_PACKET
 }
 
 bool initializeCU12() {
-  Serial.println("MEDICAL: Initializing CU12 Hardware Communication...");
+  logCU12Event("INFO", "Starting CU12 Hardware Communication initialization");
   
   // Initialize USB Host for ESP32-S3
+  logSystemEvent("INFO", "Initializing USB Host for ESP32-S3");
   USB.begin();
   delay(1000);
   
   // Configure RS485 Direction Enable pin for half-duplex communication
   pinMode(RS485_DE_PIN, OUTPUT);
   digitalWrite(RS485_DE_PIN, LOW); // Start in receive mode
-  Serial.printf("MEDICAL: RS485 DE pin configured on GPIO %d\n", RS485_DE_PIN);
+  logCU12Event("INFO", "RS485 DE pin configured", "GPIO " + String(RS485_DE_PIN) + " set to receive mode");
   
   // Initialize UART1 for CU12 communication using built-in RS485 transceiver
   // GPIO 16 (RX) and GPIO 17 (TX) are internally connected to RS485 A+/B-
   CU12Serial.begin(CU12_BAUD_RATE, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
   delay(500);
   
-  Serial.printf("MEDICAL: Built-in RS485 initialized - RX: GPIO%d, TX: GPIO%d, Baud: %d\n", 
-                RS485_RX_PIN, RS485_TX_PIN, CU12_BAUD_RATE);
+  logCU12Event("INFO", "Built-in RS485 initialized", 
+               "RX: GPIO" + String(RS485_RX_PIN) + ", TX: GPIO" + String(RS485_TX_PIN) + ", Baud: " + String(CU12_BAUD_RATE));
   
   // Test CU12 communication with version request
   for (int attempt = 1; attempt <= CU12_MAX_RETRIES; attempt++) {
-    Serial.printf("MEDICAL: CU12 Connection attempt %d/%d\n", attempt, CU12_MAX_RETRIES);
+    logCU12Event("INFO", "Connection attempt " + String(attempt) + "/" + String(CU12_MAX_RETRIES));
     
     if (sendCU12Command(CU12_GET_VERSION)) {
       uint8_t response[48];
@@ -198,10 +244,16 @@ bool initializeCU12() {
         if (response[4] == CU12_ASK_SUCCESS) {
           cu12Available = true;
           cu12Mode = "live";
-          Serial.println("MEDICAL: ✅ CU12 Hardware validated and operational");
+          logCU12Event("INFO", "✅ CU12 Hardware validated and operational", "Version request successful");
           return true;
+        } else {
+          logCU12Event("WARN", "CU12 responded but with error code", "ASK code: 0x" + String(response[4], HEX));
         }
+      } else {
+        logCU12Event("WARN", "Failed to read CU12 response", "Attempt " + String(attempt));
       }
+    } else {
+      logCU12Event("WARN", "Failed to send CU12 command", "Attempt " + String(attempt));
     }
     
     delay(1000);
@@ -210,12 +262,14 @@ bool initializeCU12() {
   cu12Available = false;
   cu12Mode = "error";
   cu12ErrorMessage = "CU12 hardware initialization failed after " + String(CU12_MAX_RETRIES) + " attempts";
-  Serial.printf("ERROR: %s\n", cu12ErrorMessage.c_str());
+  logCU12Event("ERROR", "CU12 initialization failed", cu12ErrorMessage);
   return false;
 }
 
 void setup() {
   Serial.begin(115200);
+  delay(1000); // Allow Serial to initialize
+  
   Serial.println();
   Serial.println("========================================");
   Serial.println("SMC ESP32 Customer Configuration");
@@ -223,24 +277,28 @@ void setup() {
   Serial.printf("Application: %s\n", APPLICATION_NAME);
   Serial.println("========================================");
   
+  // Initialize logging system
+  logSystemEvent("INFO", "System startup initiated", "Customer: " + String(CUSTOMER_ORG) + " (" + String(CUSTOMER_ID) + ")");
+  logSystemEvent("INFO", "Application: " + String(APPLICATION_NAME));
+  
   // Initialize Wi-Fi
-  Serial.println("Starting WiFi Access Point...");
+  logNetworkEvent("INFO", "Starting WiFi Access Point initialization");
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(local_ip, gateway, subnet);
   WiFi.softAP(AP_SSID, AP_PASSWORD);
   
-  Serial.printf("AP SSID: %s\n", AP_SSID);
-  Serial.printf("AP IP Address: %s\n", WiFi.softAPIP().toString().c_str());
-  Serial.printf("MAC Address: %s\n", WiFi.macAddress().c_str());
+  logNetworkEvent("INFO", "WiFi AP configured", 
+                  "SSID: " + String(AP_SSID) + ", IP: " + WiFi.softAPIP().toString());
+  logNetworkEvent("INFO", "MAC Address: " + WiFi.macAddress());
   
   // Initialize I2C for SHT30 Sensor - Medical Device Compliance
-  Serial.println("MEDICAL: Initializing SHT30 I2C Temperature/Humidity Sensor...");
+  logSensorEvent("INFO", "Initializing SHT30 I2C Temperature/Humidity Sensor");
   Wire.begin(); // Use default I2C pins (SDA=21, SCL=22 for ESP32)
   Wire.setClock(100000); // Set I2C clock to 100kHz for stable communication
-  Serial.println("HARDWARE: I2C initialized with default pins, Clock=100kHz");
+  logSensorEvent("INFO", "I2C initialized", "Default pins (SDA=21, SCL=22), Clock=100kHz");
   
   // Medical Device Sensor Validation with Retry Logic
-  Serial.println("MEDICAL: Testing sensor connectivity with retry mechanism...");
+  logSensorEvent("INFO", "Starting sensor connectivity test with retry mechanism");
   delay(1000); // Wait for I2C to stabilize
   
   bool sensorInitialized = false;
@@ -250,10 +308,11 @@ void setup() {
   // Retry loop for medical device reliability
   while (!sensorInitialized && retryCount < maxRetries) {
     retryCount++;
-    Serial.printf("MEDICAL: Sensor initialization attempt %d/%d\n", retryCount, maxRetries);
+    logSensorEvent("INFO", "Sensor initialization attempt " + String(retryCount) + "/" + String(maxRetries));
     
     if (sht31.begin(0x44)) {
       delay(500); // Allow sensor to stabilize after initialization
+      logSensorEvent("INFO", "I2C communication established", "Address: 0x44");
       
       // Perform comprehensive sensor validation
       float temp = sht31.readTemperature();
@@ -267,17 +326,17 @@ void setup() {
         sensorInitialized = true;
         sensorAvailable = true;
         sensorMode = "live";
-        Serial.println("MEDICAL: ✅ SHT30 sensor validated and operational");
-        Serial.printf("MEDICAL: Initial reading validated - Temp: %.2f°C, Humidity: %.2f%%RH\n", temp, humidity);
-        Serial.printf("MEDICAL: Sensor status - Address: 0x44, Mode: Live, Retry: %d\n", retryCount);
+        logSensorEvent("INFO", "✅ SHT30 sensor validated and operational", 
+                       "Temp: " + String(temp, 2) + "°C, Humidity: " + String(humidity, 2) + "%RH");
+        logSensorEvent("INFO", "Sensor status confirmed", "Address: 0x44, Mode: Live, Retry: " + String(retryCount));
       } else {
         sensorErrorMessage = "Sensor reading validation failed - Invalid temperature or humidity values";
-        Serial.printf("ERROR: %s - Temp: %.2f, Humidity: %.2f\n", sensorErrorMessage.c_str(), temp, humidity);
+        logSensorEvent("WARN", sensorErrorMessage, "Temp: " + String(temp, 2) + ", Humidity: " + String(humidity, 2));
         delay(1000); // Wait before retry
       }
     } else {
       sensorErrorMessage = "I2C communication failed - SHT30 sensor not responding at address 0x44";
-      Serial.printf("ERROR: %s on attempt %d\n", sensorErrorMessage.c_str(), retryCount);
+      logSensorEvent("WARN", sensorErrorMessage, "Attempt " + String(retryCount));
       delay(1000); // Wait before retry
     }
   }
@@ -289,8 +348,8 @@ void setup() {
     if (sensorErrorMessage.isEmpty()) {
       sensorErrorMessage = "SHT30 sensor initialization failed after " + String(maxRetries) + " retry attempts";
     }
-    Serial.printf("ERROR: %s\n", sensorErrorMessage.c_str());
-    Serial.println("MEDICAL: ⚠️  Hardware validation required - System will return sensor errors");
+    logSensorEvent("ERROR", "Sensor initialization failed", sensorErrorMessage);
+    logSensorEvent("WARN", "Hardware validation required - System will return sensor errors");
   }
 
   // Initialize CU12 Hardware Communication (Medical Device)
@@ -652,10 +711,114 @@ void setup() {
     request->send(200, "application/json", jsonString);
   });
 
+  // ========================================
+  // MEDICAL DEVICE LOGGING ENDPOINT
+  // ========================================
+  server.on("/logs", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    
+    // System information
+    doc["success"] = true;
+    doc["system"]["uptime_ms"] = millis();
+    doc["system"]["free_heap"] = ESP.getFreeHeap();
+    doc["system"]["total_logs"] = totalLogCount;
+    doc["system"]["customer_id"] = CUSTOMER_ID;
+    doc["system"]["timestamp"] = millis();
+    
+    // Hardware status
+    JsonObject hardware = doc["hardware"].to<JsonObject>();
+    hardware["cu12_available"] = cu12Available;
+    hardware["cu12_mode"] = cu12Mode;
+    hardware["cu12_error"] = cu12ErrorMessage;
+    hardware["sensor_available"] = sensorAvailable;
+    hardware["sensor_mode"] = sensorMode;
+    hardware["sensor_error"] = sensorErrorMessage;
+    
+    // Network status
+    JsonObject network = doc["network"].to<JsonObject>();
+    network["wifi_mode"] = (WiFi.getMode() == WIFI_AP) ? "AP" : "STA";
+    network["ap_ip"] = WiFi.softAPIP().toString();
+    network["mac_address"] = WiFi.macAddress();
+    network["connected_clients"] = WiFi.softAPgetStationNum();
+    
+    // Recent logs (last 20 entries)
+    JsonArray logsArray = doc["logs"].to<JsonArray>();
+    int entriesToShow = min(20, totalLogCount);
+    int startIndex = (logIndex - entriesToShow + MAX_LOG_ENTRIES) % MAX_LOG_ENTRIES;
+    
+    for (int i = 0; i < entriesToShow; i++) {
+      int idx = (startIndex + i) % MAX_LOG_ENTRIES;
+      JsonObject logEntry = logsArray.add<JsonObject>();
+      logEntry["timestamp"] = systemLogs[idx].timestamp;
+      logEntry["level"] = systemLogs[idx].level;
+      logEntry["component"] = systemLogs[idx].component;
+      logEntry["message"] = systemLogs[idx].message;
+      if (systemLogs[idx].details.length() > 0) {
+        logEntry["details"] = systemLogs[idx].details;
+      }
+    }
+    
+    String jsonString;
+    serializeJson(doc, jsonString);
+    logNetworkEvent("INFO", "Logs endpoint accessed", "Returned " + String(entriesToShow) + " log entries");
+    request->send(200, "application/json", jsonString);
+  });
+
+  // Detailed diagnostic endpoint
+  server.on("/diagnostics", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    
+    doc["success"] = true;
+    doc["timestamp"] = millis();
+    doc["customer_id"] = CUSTOMER_ID;
+    
+    // System diagnostics
+    JsonObject system = doc["system"].to<JsonObject>();
+    system["uptime_ms"] = millis();
+    system["free_heap"] = ESP.getFreeHeap();
+    system["heap_size"] = ESP.getHeapSize();
+    system["chip_model"] = ESP.getChipModel();
+    system["chip_revision"] = ESP.getChipRevision();
+    system["cpu_freq_mhz"] = ESP.getCpuFreqMHz();
+    
+    // CU12 detailed diagnostics
+    JsonObject cu12Diag = doc["cu12_diagnostics"].to<JsonObject>();
+    cu12Diag["available"] = cu12Available;
+    cu12Diag["mode"] = cu12Mode;
+    cu12Diag["error_message"] = cu12ErrorMessage;
+    cu12Diag["last_communication"] = lastCU12Communication;
+    cu12Diag["rs485_de_pin"] = RS485_DE_PIN;
+    cu12Diag["rs485_rx_pin"] = RS485_RX_PIN;
+    cu12Diag["rs485_tx_pin"] = RS485_TX_PIN;
+    cu12Diag["baud_rate"] = CU12_BAUD_RATE;
+    cu12Diag["max_retries"] = CU12_MAX_RETRIES;
+    
+    // Sensor detailed diagnostics
+    JsonObject sensorDiag = doc["sensor_diagnostics"].to<JsonObject>();
+    sensorDiag["available"] = sensorAvailable;
+    sensorDiag["mode"] = sensorMode;
+    sensorDiag["error_message"] = sensorErrorMessage;
+    if (sensorAvailable) {
+      float temp = sht31.readTemperature();
+      float hum = sht31.readHumidity();
+      sensorDiag["current_temperature"] = temp;
+      sensorDiag["current_humidity"] = hum;
+      sensorDiag["temp_valid"] = !isnan(temp) && temp > -40 && temp < 85;
+      sensorDiag["humidity_valid"] = !isnan(hum) && hum >= 0 && hum <= 100;
+    }
+    
+    String jsonString;
+    serializeJson(doc, jsonString);
+    logNetworkEvent("INFO", "Diagnostics endpoint accessed", "Full system diagnostic report generated");
+    request->send(200, "application/json", jsonString);
+  });
+
   // Start server
   Serial.println("Starting HTTP server...");
+  logSystemEvent("INFO", "Starting HTTP server with logging endpoints");
   server.begin();
   Serial.println("Server started successfully!");
+  logSystemEvent("INFO", "HTTP server started successfully", "Ready for client connections");
   Serial.println("Ready for client connections.");
 }
 
