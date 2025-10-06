@@ -178,17 +178,13 @@ if (isProd) {
         );
       }
     } catch (alterError: any) {
-      logError(
-        "background",
-        "Database alter failed",
-        alterError
-      );
+      logError("background", "Database alter failed", alterError);
 
       // In development mode, do NOT use force sync to preserve data
       // Force sync will delete all existing data including activation keys
       if (!isProd) {
         logError(
-          "background", 
+          "background",
           "Development mode: Skipping force sync to preserve activation data. Please check database schema manually if needed.",
           alterError
         );
@@ -291,7 +287,7 @@ if (isProd) {
 
     // Start receiving data from indicator device
     logDebug("background", "Starting indicator data reception");
-    //indicator.receive();
+    indicator.receive();
     appTimer.checkpoint("indicator-receiving");
 
     logSystemInfo("background", "Indicator device started receiving data");
