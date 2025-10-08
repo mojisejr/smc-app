@@ -93,35 +93,8 @@ export type ValidationMode = 'bypass' | 'real-hardware' | 'production';
  */
 export type WiFiStrategy = 'auto' | 'manual';
 
-/**
- * Get validation mode based on environment and license type
- * Returns bypass mode for internal/development licenses
- * Enhanced with internal license detection
- */
-export function getValidationMode(): ValidationMode {
-  // Check environment variables first
-  if (process.env.SMC_LICENSE_BYPASS_MODE === "true") {
-    return "bypass";
-  }
-
-  // Check for internal build type
-  const buildType = process.env.BUILD_TYPE;
-  if (buildType === "internal" || buildType === "development") {
-    return "bypass";
-  }
-
-  // Check for ESP32 validation bypass
-  if (process.env.ESP32_VALIDATION_BYPASS === "true") {
-    return "bypass";
-  }
-
-  if (process.env.SMC_DEV_REAL_HARDWARE === "true") {
-    return "real-hardware";
-  }
-
-  // Default to production mode
-  return "production";
-}
+// ฟังก์ชัน getValidationMode() ถูกลบออกเพื่อบังคับให้ใช้การตรวจสอบแบบเต็มรูปแบบเสมอ
+// การตรวจสอบ environment variables จะทำโดยตรงในแต่ละส่วนของโค้ดที่ต้องการ
 
 /**
  * ตรวจสอบว่าอยู่ใน license bypass mode หรือไม่

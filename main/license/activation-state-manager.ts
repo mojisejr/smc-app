@@ -14,7 +14,6 @@
 import { BrowserWindow, ipcMain } from "electron";
 import { EventEmitter } from "events";
 import { isSystemActivated, validateLicense } from "./validator";
-import { getValidationMode } from "../utils/environment";
 import { logger } from "../logger";
 import { BuildTimeController } from "../ku-controllers/BuildTimeController";
 import { getSetting } from "../setting/getSetting";
@@ -67,6 +66,7 @@ class ActivationStateManager extends EventEmitter {
 
   /**
    * Initialize the activation state manager
+   * Performs full validation of license including ESP32 hardware binding
    */
   async initialize(mainWindow: BrowserWindow): Promise<ActivationState> {
     if (this.isInitialized) {
@@ -77,26 +77,21 @@ class ActivationStateManager extends EventEmitter {
 
     try {
       console.log("info: Initializing Activation State Manager...");
+      logger.info("Performing full license validation during system startup");
+      
+      // Perform full validation instead of just checking database flag
+      // This ensures ESP32 hardware binding is verified at startup
+      const validationResult = await this.performFullValidation("startup");
+      
+      // Use the validation result directly
+      const isActivated = validationResult.isActivated;
+      const source: "startup" | "manual-check" | "activation-process" = "startup";
+      
+      // Extract license type and organization from validation result
+      const licenseType = validationResult.licenseType;
+      const organization = validationResult.organization;
 
-      // Determine validation mode
-      const validationMode = getValidationMode();
-
-      let isActivated = false;
-      let source: "startup" | "manual-check" | "activation-process" = "startup";
-
-      if (validationMode === "bypass") {
-        console.log("info: Bypass mode - system considered activated");
-        isActivated = true;
-      } else {
-        console.log("info: Checking database activation status...");
-        isActivated = await isSystemActivated();
-      }
-
-      // Extract license type and organization if activated
-      let licenseType: "production" | "internal" | "development" | undefined;
-      let organization: string | undefined;
-
-      if (isActivated && validationMode !== "bypass") {
+      if (isActivated && !(process.env.NODE_ENV === 'development' && process.env.LICENSE_VALIDATION_BYPASS === 'true')) {
         try {
           const { LicenseFileManager } = await import("./file-manager");
           const licenseFile = await LicenseFileManager.findLicenseFile();
@@ -291,31 +286,46 @@ class ActivationStateManager extends EventEmitter {
    * Perform full activation validation
    */
   async performFullValidation(
-    source: "manual-check" | "activation-process" = "manual-check"
+    source: "manual-check" | "activation-process" | "startup" = "manual-check"
   ): Promise<ActivationState> {
     try {
       console.log("info: Performing full activation validation...");
+      logger.info("Starting full license validation including ESP32 hardware binding");
 
-      const validationMode = getValidationMode();
+      // Check if we're in development bypass mode
+      const isDevelopmentMode = process.env.NODE_ENV === 'development';
+      const isBypassMode = process.env.LICENSE_VALIDATION_BYPASS === 'true';
+      
       let isActivated = false;
       let licenseType: "production" | "internal" | "development" | undefined;
       let organization: string | undefined;
+      let validationError: string | undefined;
 
-      if (validationMode === "bypass") {
+      if (isDevelopmentMode && isBypassMode) {
         isActivated = true;
-        console.log("info: Bypass mode - validation skipped");
+        licenseType = "development";
+        organization = "Development Environment";
+        logger.info("Development bypass mode - validation skipped");
+        console.log("info: Development bypass mode - validation skipped");
       } else {
-        // Perform full license validation including ESP32 if available
-        isActivated = await validateLicense();
-        console.log(`info: Full validation result: ${isActivated}`);
+        // Step 1: Check if license file exists
+        const { LicenseFileManager } = await import("./file-manager");
+        const licenseFile = await LicenseFileManager.findLicenseFile();
+        
+        if (!licenseFile) {
+          validationError = "ไม่พบไฟล์ใบอนุญาต กรุณาติดตั้งใบอนุญาตก่อนใช้งาน";
+          logger.error("License file not found during validation");
+          console.error("error: License file not found during validation");
+          isActivated = false;
+        } else {
+          // Step 2: Perform full license validation including ESP32
+          isActivated = await validateLicense();
+          logger.info(`Full validation result: ${isActivated}`);
+          console.log(`info: Full validation result: ${isActivated}`);
 
-        // Extract license type and organization if activated
-        if (isActivated) {
-          try {
-            const { LicenseFileManager } = await import("./file-manager");
-            const licenseFile = await LicenseFileManager.findLicenseFile();
-
-            if (licenseFile) {
+          // Step 3: Extract license type and organization if activated
+          if (isActivated) {
+            try {
               // Parse license to get type and organization
               const licenseData = await LicenseFileManager.parseLicenseFile(
                 licenseFile
@@ -323,17 +333,22 @@ class ActivationStateManager extends EventEmitter {
               if (licenseData) {
                 licenseType = licenseData.license_type || "production";
                 organization = licenseData.organization;
+                logger.info(`License type detected: ${licenseType}, Organization: ${organization}`);
                 console.log(
                   `info: License type detected: ${licenseType}, Organization: ${organization}`
                 );
               }
+            } catch (parseError) {
+              logger.warn("Could not extract license type information", { error: parseError });
+              console.warn(
+                "warn: Could not extract license type information:",
+                parseError
+              );
+              licenseType = "production"; // Default to production if parsing fails
             }
-          } catch (parseError) {
-            console.warn(
-              "warn: Could not extract license type information:",
-              parseError
-            );
-            licenseType = "production"; // Default to production if parsing fails
+          } else {
+            validationError = "การตรวจสอบใบอนุญาตล้มเหลว กรุณาตรวจสอบการเชื่อมต่อกับ ESP32";
+            logger.error("License validation failed - ESP32 connection issue or invalid license");
           }
         }
       }
@@ -349,9 +364,27 @@ class ActivationStateManager extends EventEmitter {
 
       await this.updateState(newState, "Full validation check");
 
+      // Handle navigation based on validation result
+      if (!isActivated && this.mainWindow && source === "startup") {
+        logger.info("Redirecting to activation page due to failed validation");
+        console.log("info: Redirecting to activation page due to failed validation");
+        
+        // Send validation error to renderer process
+        if (validationError) {
+          this.mainWindow.webContents.send('license-validation-failed', {
+            error: validationError,
+            isRevalidation: true
+          });
+        }
+        
+        // Navigate to activation page
+        this.mainWindow.webContents.send('navigate-to', '/activate-key');
+      }
+
       return this.currentState;
     } catch (error) {
       console.error("error: Full validation failed:", error);
+      logger.error("Full validation failed with exception", { error });
 
       const newState: ActivationState = {
         ...this.currentState,
