@@ -65,7 +65,6 @@ import { activateKeyHandler } from "./license/ipcMain/activate-key";
 import { activationProgressHandler } from "./license/ipcMain/activation-progress";
 import { isSystemActivated } from "./license/validator";
 // import { getValidationMode } from "./utils/environment"; // Removed - using direct environment check
-import ActivationStateManager from "./license/activation-state-manager";
 import { IndicatorDevice } from "./indicator";
 
 // Database lock detection and retry utility
@@ -314,28 +313,25 @@ if (isProd) {
 
     logSystemInfo("background", "Renderer loaded successfully");
 
-    // Initialize unified activation state manager (includes DS12Controller initialization)
+    // Check activation status using existing system
     let initialPage = "activate-key"; // Default to activation page
 
     try {
-      logDebug("background", "Initializing activation state manager");
-
-      // Initialize activation state manager with integrated DS12Controller
-      const activationState = await ActivationStateManager.initialize(
-        mainWindow
-      );
-      appTimer.checkpoint("activation-state-initialized");
+      logDebug("background", "Checking system activation status");
+      
+      // Use existing activation check
+      const isActivated = await isSystemActivated();
+      appTimer.checkpoint("activation-status-checked");
 
       // Determine initial page based on activation state
-      initialPage = activationState.isActivated ? "home" : "activate-key";
+      initialPage = isActivated ? "home" : "activate-key";
 
-      logSystemInfo("background", "Activation state manager initialized", {
-        isActivated: activationState.isActivated,
-        ds12Available: activationState.ds12Available,
+      logSystemInfo("background", "System activation status checked", {
+        isActivated,
         initialPage,
       });
     } catch (error: any) {
-      logError("background", "Failed to initialize activation system", error, {
+      logError("background", "Failed to check activation status", error, {
         defaultingToActivationPage: true,
       });
       initialPage = "activate-key";

@@ -31,6 +31,61 @@
 
 ---
 
+## Iteration 4: 2025-10-08 15:44:04
+
+**Summary of Actions:**
+* เพิ่ม debug logging ใน `activation-state-manager.ts` เพื่อตรวจสอบการลงทะเบียน IPC handlers
+* เพิ่ม debug logging ใน `background.ts` เพื่อตรวจสอบการเรียกใช้ `ActivationStateManager.initialize()`
+* เพิ่ม debug logging ใน `appContext.tsx` เพื่อตรวจสอบการเรียกใช้ IPC calls
+* ทดสอบแอปพลิเคชันในโหมด development และ production build
+* ตรวจสอบ main process logs และพบว่ามี FATAL ERROR เกิดขึ้นใน production build
+
+**Issues and Solutions:**
+* **Issue Found:** Frontend แสดง error "No handler registered for 'activation-state:get-current'" และ "activation-state:validate"
+* **Investigation Applied:** เพิ่ม debug logging ในหลายจุดเพื่อตรวจสอบการทำงานของ IPC handlers
+* **Key Finding:** ใน development mode ไม่เห็น main process logs แต่ใน production build มี FATAL ERROR เกิดขึ้น
+* **User Observation:** ผู้ใช้สังเกตว่า UI activation ทำงานได้ปกติและ completed แล้ว อาจไม่จำเป็นต้องใช้ activation-state system
+
+**Critical User Feedback:**
+* **ข้อสังเกตุจากผู้ใช้:** ใน UI มันก็ activate ได้ปกติ แล้วมันก็ completed ด้วย
+* **คำถามสำคัญ:** ไม่จำเป็นต้องทำพวก activation-state แล้วหรือเปล่า? ลองเอาพวกนี้ทั้งหมดออกเลยได้หรือไม่?
+* **แนวทางใหม่:** ควรวิเคราะห์ว่า activation-state system มีความจำเป็นหรือซ้ำซ้อนกับระบบที่มีอยู่แล้ว
+
+**Remaining Tasks (To-Do for Next Iteration):**
+1. [COMPLETED] **Analyze Activation System Redundancy:** Based on user observation that UI activation works properly, investigate if the entire `activation-state` system (ActivationStateManager) is redundant and can be removed
+2. [COMPLETED] **Review Existing Activation Flow:** Examine the working activation system (`check-activation`, `validator.ts`, `appContext.tsx`) to understand why it works and identify duplicate components
+3. [COMPLETED] **Test Removing Activation-State Handlers:** If analysis confirms redundancy, test removing all `activation-state:*` IPC handlers and related code
+4. [COMPLETED] **Clean Up Debug Logging:** Remove debug console.log statements after resolving the activation system issues
+
+---
+
+## Iteration 5: 2025-10-08 15:53:48
+
+**Summary of Actions:**
+* **MAJOR CLEANUP:** Successfully removed the entire `ActivationStateManager` system as it was confirmed redundant
+* **File Deletion:** Deleted `main/license/activation-state-manager.ts` (entire file)
+* **Background.ts Update:** Replaced `ActivationStateManager.initialize()` with simple `isSystemActivated()` check
+* **AppContext.tsx Refactor:** Replaced all `activation-state:*` IPC calls with existing `check-activation` calls
+* **Debug Cleanup:** Removed debug console.log statements from frontend
+* **Testing:** Verified application works correctly with existing activation system
+
+**Issues and Solutions:**
+* **Issue Found:** User correctly identified that `ActivationStateManager` was completely redundant since the existing activation system (`check-activation`, `validator.ts`) already worked perfectly
+* **Solution Applied:** Removed the entire `ActivationStateManager` system and reverted to using the proven existing activation flow
+* **Key Insight:** The original activation system was already complete and functional - the new system was unnecessary complexity
+
+**Critical User Feedback Validated:**
+* **User Observation:** "ใน UI มันก็ activate ได้ปกติ แล้วมันก็ completed ด้วย แบบนี้ ไม่จำเป็นต้องทำพวก activation-state แล้วหรือเปล่าครับ"
+* **Analysis Result:** User was 100% correct - the existing system was sufficient and working properly
+* **Action Taken:** Complete removal of redundant `ActivationStateManager` system
+
+**Remaining Tasks (To-Do for Next Iteration):**
+1. [COMPLETED] All tasks completed successfully - the activation system is now clean and functional
+
+**Current Status:** All redundant code removed successfully. Application works perfectly with the original, proven activation system.
+
+---
+
 ## Iteration 2: 2025-10-08 15:04:16
 
 **Summary of Actions:**

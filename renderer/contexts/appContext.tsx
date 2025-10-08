@@ -53,68 +53,111 @@ export function AppProvider({ children }: appProviderProps) {
   }, []); // Only run once on mount to avoid infinite loops
 
   const initializeActivationStatus = async () => {
-    try {
-      // Get current activation state from unified state manager
-      const activationState = await ipcRenderer.invoke("activation-state:get-current");
-      // Info log removed for production
-      
-      // Set initial state based on unified state manager
-      setActivated(activationState.isActivated);
-      
-    } catch (error) {
-      console.error('error: Failed to initialize activation status:', error);
-      // Fallback to legacy check
-      await handleCheckActivated();
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 500;
+    
+    while (retryCount < maxRetries) {
+      try {
+        // Use existing activation check system
+        const result = await ipcRenderer.invoke("check-activation");
+        
+        // Set initial state based on existing system
+        setActivated(result.isActivated);
+        return; // Success, exit retry loop
+        
+      } catch (error) {
+        retryCount++;
+        console.error(`error: Failed to initialize activation status (attempt ${retryCount}/${maxRetries}):`, error);
+        
+        if (retryCount >= maxRetries) {
+          console.error('error: Max retries reached for activation status initialization');
+          // Default to not activated
+          setActivated(false);
+          return;
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
   };
 
   const handleCheckActivated = async () => {
-    try {
-      // Use unified activation state manager for validation
-      const activationState = await ipcRenderer.invoke("activation-state:validate");
-      // Info log removed for production
-      
-      setActivated(activationState.isActivated);
-      
-      // Only redirect if we're on a protected page and not activated
-      if (!activationState.isActivated) {
-        const currentPath = window.location.pathname;
-        const isOnActivationPage = currentPath.includes('/activate-key');
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 500;
+    
+    while (retryCount < maxRetries) {
+      try {
+        // Use existing activation check system
+        const result = await ipcRenderer.invoke("check-activation");
         
-        // Don't redirect if already on activation page
-        if (!isOnActivationPage) {
-          // Info log removed for production
-          replace("/activate-key");
+        setActivated(result.isActivated);
+        
+        // Only redirect if we're on a protected page and not activated
+        if (!result.isActivated) {
+          const currentPath = window.location.pathname;
+          const isOnActivationPage = currentPath.includes('/activate-key');
+          
+          // Don't redirect if already on activation page
+          if (!isOnActivationPage) {
+            replace("/activate-key");
+          }
         }
-      }
-    } catch (error) {
-      console.error('error: Failed to check activation:', error);
-      setActivated(false);
-      
-      // Only redirect on error if not already on activation page
-      const currentPath = window.location.pathname;
-      const isOnActivationPage = currentPath.includes('/activate-key');
-      
-      if (!isOnActivationPage) {
-        // Error log kept for debugging
-        replace("/activate-key");
+        return; // Success, exit retry loop
+        
+      } catch (error) {
+        retryCount++;
+        console.error(`error: Failed to check activation (attempt ${retryCount}/${maxRetries}):`, error);
+        
+        if (retryCount >= maxRetries) {
+          console.error('error: Max retries reached for activation check');
+          setActivated(false);
+          
+          // Only redirect on error if not already on activation page
+          const currentPath = window.location.pathname;
+          const isOnActivationPage = currentPath.includes('/activate-key');
+          
+          if (!isOnActivationPage) {
+            replace("/activate-key");
+          }
+          return;
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     }
   };
 
   const refreshActivationStatus = async () => {
-    try {
-      // Force a fresh validation through the unified state manager
-      const activationState = await ipcRenderer.invoke("activation-state:validate");
-      // Info log removed for production
-      
-      setActivated(activationState.isActivated);
-      
-      return activationState;
-    } catch (error) {
-      console.error('error: Failed to refresh activation status:', error);
-      setActivated(false);
-      throw error;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 500;
+    
+    while (retryCount < maxRetries) {
+      try {
+        // Force a fresh validation through existing system
+        const result = await ipcRenderer.invoke("check-activation");
+        
+        setActivated(result.isActivated);
+        
+        return result;
+        
+      } catch (error) {
+        retryCount++;
+        console.error(`error: Failed to refresh activation status (attempt ${retryCount}/${maxRetries}):`, error);
+        
+        if (retryCount >= maxRetries) {
+          console.error('error: Max retries reached for activation refresh');
+          setActivated(false);
+          throw error;
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
   };
 
