@@ -120,7 +120,8 @@ export default function ActivatePage() {
     }
   }, [isRevalidation]);
 
-    // Subscribe to progress updates
+  // Subscribe to progress updates
+  useEffect(() => {
     const progressListener = (_event: any, update: ProgressUpdate) => {
       console.log(
         `info: Progress update - ${update.step}: ${update.progress}%`

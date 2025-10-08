@@ -84,12 +84,13 @@ class ActivationStateManager extends EventEmitter {
       const validationResult = await this.performFullValidation("startup");
       
       // Use the validation result directly
-      const isActivated = validationResult.isActivated;
+      const isActivated = validationResult.isValid;
       const source: "startup" | "manual-check" | "activation-process" = "startup";
       
-      // Extract license type and organization from validation result
-      const licenseType = validationResult.licenseType;
-      const organization = validationResult.organization;
+      // Initialize default values
+      let licenseType = "production";
+      let organization = "Unknown";
+      const validationMode = "real-hardware"; // Always use real hardware validation
 
       if (isActivated && !(process.env.NODE_ENV === 'development' && process.env.LICENSE_VALIDATION_BYPASS === 'true')) {
         try {

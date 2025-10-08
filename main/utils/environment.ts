@@ -1,37 +1,37 @@
 /**
  * Environment Detection Utilities
- * 
- * ใช้สำหรับตรวจสอบ environment และ platform 
+ *
+ * ใช้สำหรับตรวจสอบ environment และ platform
  * เพื่อกำหนด behavior ที่แตกต่างกันระหว่าง development และ production
  */
 
 /**
  * ตรวจสอบว่าอยู่ใน development environment บน macOS หรือไม่
  * ใช้สำหรับ bypass WiFi connection ในระหว่าง development
- * 
+ *
  * @returns true ถ้าอยู่ใน development mode บน macOS
  */
 export function isDevelopmentBypass(): boolean {
-  const nodeEnv = process.env.NODE_ENV || 'production';
+  const nodeEnv = process.env.NODE_ENV || "production";
   const platform = process.platform;
-  
+
   // Development bypass เฉพาะบน macOS เท่านั้น
-  return nodeEnv === 'development' && platform === 'darwin';
+  return nodeEnv === "development" && platform === "darwin";
 }
 
 /**
  * ตรวจสอบว่าอยู่ใน production environment หรือไม่
- * 
+ *
  * @returns true ถ้าอยู่ใน production mode
  */
 export function isProduction(): boolean {
-  const nodeEnv = process.env.NODE_ENV || 'production';
-  return nodeEnv === 'production';
+  const nodeEnv = process.env.NODE_ENV || "production";
+  return nodeEnv === "production";
 }
 
 /**
  * ตรวจสอบ platform ปัจจุบัน
- * 
+ *
  * @returns platform string (darwin, win32, linux, etc.)
  */
 export function getCurrentPlatform(): string {
@@ -49,10 +49,10 @@ export function getEnvironmentInfo(): {
   isProduction: boolean;
 } {
   return {
-    nodeEnv: process.env.NODE_ENV || 'production',
+    nodeEnv: process.env.NODE_ENV || "production",
     platform: process.platform,
     isDevelopmentBypass: isDevelopmentBypass(),
-    isProduction: isProduction()
+    isProduction: isProduction(),
   };
 }
 
@@ -62,15 +62,17 @@ export function getEnvironmentInfo(): {
  */
 export function logEnvironmentInfo(): void {
   const envInfo = getEnvironmentInfo();
-  
-  console.log('info: Environment Information:');
+
+  console.log("info: Environment Information:");
   console.log(`info:   NODE_ENV: ${envInfo.nodeEnv}`);
   console.log(`info:   Platform: ${envInfo.platform}`);
   console.log(`info:   Development Bypass: ${envInfo.isDevelopmentBypass}`);
   console.log(`info:   Production Mode: ${envInfo.isProduction}`);
-  
+
   if (envInfo.isDevelopmentBypass) {
-    console.log('⚠️  Development Mode: Some features may be mocked or bypassed');
+    console.log(
+      "⚠️  Development Mode: Some features may be mocked or bypassed"
+    );
   }
 }
 
@@ -81,42 +83,45 @@ export function logEnvironmentInfo(): void {
 /**
  * License validation mode types
  * - bypass: ข้าม validation ทั้งหมด (development only)
- * - real-hardware: ใช้ ESP32 จริงใน dev mode (ไม่ mock)  
+ * - real-hardware: ใช้ ESP32 จริงใน dev mode (ไม่ mock)
  * - production: Full license validation (production)
  */
-export type ValidationMode = 'bypass' | 'real-hardware' | 'production';
+export type ValidationMode = "bypass" | "real-hardware" | "production";
 
 /**
  * Platform WiFi strategy types
  * - auto: ลองเชื่อมต่อ WiFi อัตโนมัติ (Windows)
  * - manual: แสดง instructions ให้ user เชื่อมต่อเอง (macOS)
  */
-export type WiFiStrategy = 'auto' | 'manual';
+export type WiFiStrategy = "auto" | "manual";
 
 // ฟังก์ชัน getValidationMode() ถูกลบออกเพื่อบังคับให้ใช้การตรวจสอบแบบเต็มรูปแบบเสมอ
 // การตรวจสอบ environment variables จะทำโดยตรงในแต่ละส่วนของโค้ดที่ต้องการ
 
 /**
  * ตรวจสอบว่าอยู่ใน license bypass mode หรือไม่
- * 
+ *
  * @returns true ถ้า SMC_LICENSE_BYPASS_MODE=true
  */
 export function isLicenseBypassMode(): boolean {
-  return process.env.SMC_LICENSE_BYPASS_MODE === 'true';
+  return process.env.SMC_LICENSE_BYPASS_MODE === "true";
 }
 
 /**
  * ตรวจสอบว่าอยู่ใน real hardware mode หรือไม่
- * 
+ *
  * @returns true ถ้า development + SMC_DEV_REAL_HARDWARE=true
  */
 export function isRealHardwareMode(): boolean {
-  return process.env.NODE_ENV === 'development' && process.env.SMC_DEV_REAL_HARDWARE === 'true';
+  return (
+    process.env.NODE_ENV === "development" &&
+    process.env.SMC_DEV_REAL_HARDWARE === "true"
+  );
 }
 
 /**
  * กำหนด platform WiFi strategy
- * 
+ *
  * @returns WiFiStrategy ตาม platform และ environment:
  *   - auto: Windows หรือ SMC_PLATFORM_WIFI_AUTO=true
  *   - manual: macOS หรือ SMC_PLATFORM_WIFI_AUTO=false
@@ -124,31 +129,31 @@ export function isRealHardwareMode(): boolean {
 export function getPlatformWiFiStrategy(): WiFiStrategy {
   // ถ้าตั้งค่า SMC_PLATFORM_WIFI_AUTO ไว้แล้ว ใช้ตามนั้น
   if (process.env.SMC_PLATFORM_WIFI_AUTO !== undefined) {
-    return process.env.SMC_PLATFORM_WIFI_AUTO === 'true' ? 'auto' : 'manual';
+    return process.env.SMC_PLATFORM_WIFI_AUTO === "true" ? "auto" : "manual";
   }
-  
+
   // Default behavior: Windows = auto, macOS = manual
-  return process.platform === 'win32' ? 'auto' : 'manual';
+  return process.platform === "win32" ? "auto" : "manual";
 }
 
 /**
  * แสดงข้อมูล Phase 4.2 configuration ทั้งหมด
  */
 export function logPhase42Configuration(): void {
-  const validationMode = getValidationMode();
+  // const validationMode = getValidationMode();
   const wifiStrategy = getPlatformWiFiStrategy();
-  
-  console.log('info: Phase 4.2 Configuration:');
-  console.log(`info:   Validation Mode: ${validationMode}`);
+
+  console.log("info: Phase 4.2 Configuration:");
+  // console.log(`info:   Validation Mode: ${validationMode}`);
   console.log(`info:   WiFi Strategy: ${wifiStrategy} (${process.platform})`);
   console.log(`info:   License Bypass: ${isLicenseBypassMode()}`);
   console.log(`info:   Real Hardware: ${isRealHardwareMode()}`);
-  
-  if (validationMode === 'bypass') {
-    console.log('🔓 License validation will be bypassed');
-  }
-  
-  if (wifiStrategy === 'manual') {
-    console.log('📶 Manual WiFi connection required');
+
+  // if (validationMode === "bypass") {
+  //   console.log("🔓 License validation will be bypassed");
+  // }
+
+  if (wifiStrategy === "manual") {
+    console.log("📶 Manual WiFi connection required");
   }
 }
