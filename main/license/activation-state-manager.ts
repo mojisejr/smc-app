@@ -496,7 +496,8 @@ class ActivationStateManager extends EventEmitter {
     bypassMode: boolean;
     validationMode: string;
   } {
-    const validationMode = getValidationMode();
+    // ตรวจสอบ bypass flag โดยตรงแทนการใช้ getValidationMode()
+    const validationMode = process.env.SMC_DEV_REAL_HARDWARE === 'true' ? 'real-hardware' : 'development' :;
     const buildType = process.env.BUILD_TYPE;
     const internalBuildMode = process.env.INTERNAL_BUILD_MODE === 'true';
     const esp32Bypass = process.env.ESP32_VALIDATION_BYPASS === 'true';

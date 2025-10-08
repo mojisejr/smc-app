@@ -1,6 +1,6 @@
 import * as http from "http";
 import { logger } from "../logger";
-import { getValidationMode } from "../utils/environment";
+// import { getValidationMode } from "../utils/environment"; // Removed - using direct environment check
 import {
   runtimeLogger,
   logHardwareOperation,
@@ -120,7 +120,8 @@ export class ESP32Client {
   static async getMacAddress(ip?: string): Promise<string | null> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
     const timer = new PerformanceTimer();
-    const validationMode = getValidationMode();
+    // ตรวจสอบ bypass flag โดยตรงแทนการใช้ getValidationMode()
+    const validationMode = process.env.SMC_DEV_REAL_HARDWARE === 'true' ? 'real-hardware' : 'development';
     const buildType = process.env.BUILD_TYPE;
     const esp32Bypass = process.env.ESP32_VALIDATION_BYPASS === 'true';
 

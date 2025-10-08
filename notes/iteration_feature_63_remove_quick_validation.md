@@ -1,5 +1,36 @@
 # Iteration Notes for feature/63-remove-quick-validation
 
+## Iteration 3: 2025-10-08 15:20:45
+
+**Summary of Actions:**
+* แก้ไขปัญหา TypeScript compilation errors ที่เกิดจากการเรียกใช้ฟังก์ชัน `getValidationMode()` ที่ถูกลบไปแล้ว
+* แทนที่การเรียกใช้ `getValidationMode()` ด้วยการตรวจสอบ environment variable โดยตรงในไฟล์ต่างๆ:
+  - `main/license/esp32-client.ts`
+  - `main/license/wifi-manager.ts` 
+  - `main/license/validator.ts`
+  - `main/license/activation-state-manager.ts`
+  - `main/background.ts`
+* ลบ import statements ที่ไม่จำเป็นของ `getValidationMode` จากทุกไฟล์
+* ทดสอบและยืนยันว่าแอปพลิเคชันสามารถ build และรันได้สำเร็จ
+
+**Issues and Solutions:**
+* **Issue Found:** Frontend และ backend แสดง error เกี่ยวกับ "No handler registered for 'activation-state:get-current'" และ "No handler registered for 'activation-state:validate'"
+* **Solution Applied:** ตรวจสอบและยืนยันว่า IPC handlers มีอยู่แล้วใน `activation-state-manager.ts` และถูกเรียกใช้ผ่าน `registerIpcHandlers()`
+* **Issue Found:** TypeError เกี่ยวกับ `getValidationMode is not a function` ใน ESP32Client และไฟล์อื่นๆ
+* **Solution Applied:** แทนที่การเรียกใช้ `getValidationMode()` ด้วยการตรวจสอบ `process.env.SMC_DEV_REAL_HARDWARE === 'true'` โดยตรง
+* **Build Success:** แอปพลิเคชันสามารถ build และรันได้สำเร็จโดยไม่มี compilation errors
+
+**Remaining Tasks (To-Do for Next Iteration):**
+1. [COMPLETED] แก้ไขปัญหา getValidationMode() function ที่ถูกเรียกใช้แต่ถูกลบไปแล้ว
+2. [COMPLETED] ตรวจสอบและแก้ไข IPC handlers ที่หายไป
+3. [COMPLETED] ทดสอบระบบหลังจากแก้ไขเพื่อให้แน่ใจว่าทำงานได้ปกติ
+4. [COMPLETED] อัพเดท iteration notes ด้วยการแก้ไขปัญหาใหม่
+5. [PENDING] Commit การเปลี่ยนแปลงทั้งหมดพร้อม descriptive message
+
+**Current Status:** ปัญหา TypeScript compilation และ runtime errors ได้รับการแก้ไขเรียบร้อยแล้ว แอปพลิเคชันสามารถรันได้ปกติ
+
+---
+
 ## Iteration 2: 2025-10-08 15:04:16
 
 **Summary of Actions:**

@@ -64,7 +64,7 @@ import { checkActivationKeyHandler } from "./license/ipcMain/check-activation-ke
 import { activateKeyHandler } from "./license/ipcMain/activate-key";
 import { activationProgressHandler } from "./license/ipcMain/activation-progress";
 import { isSystemActivated } from "./license/validator";
-import { getValidationMode } from "./utils/environment";
+// import { getValidationMode } from "./utils/environment"; // Removed - using direct environment check
 import ActivationStateManager from "./license/activation-state-manager";
 import { IndicatorDevice } from "./indicator";
 

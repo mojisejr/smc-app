@@ -3,7 +3,7 @@ import * as os from "os";
 import { promisify } from "util";
 import { logger } from "../logger";
 import {
-  getValidationMode,
+  // getValidationMode, // Removed - using direct environment check
   getPlatformWiFiStrategy,
   logPhase42Configuration,
 } from "../utils/environment";
@@ -111,7 +111,8 @@ export class SystemWiFiManager {
     const timer = new PerformanceTimer();
 
     try {
-      const validationMode = getValidationMode();
+      // ตรวจสอบ bypass flag โดยตรงแทนการใช้ getValidationMode()
+      const validationMode = process.env.SMC_DEV_REAL_HARDWARE === 'true' ? 'real-hardware' : 'development';
       const wifiStrategy = getPlatformWiFiStrategy();
 
       console.log(`info: Phase 4.2 WiFi Connection - SSID: ${ssid}`);
@@ -402,7 +403,8 @@ export class SystemWiFiManager {
    */
   static async isConnectedTo(ssid: string): Promise<boolean> {
     try {
-      const validationMode = getValidationMode();
+      // ตรวจสอบ bypass flag โดยตรงแทนการใช้ getValidationMode()
+      const validationMode = process.env.SMC_DEV_REAL_HARDWARE === 'true' ? 'real-hardware' : 'development';
 
       // ตรวจสอบ validation mode
       if (validationMode === "bypass") {
