@@ -179,91 +179,7 @@ export async function clearLicenseActivation(): Promise<void> {
   }
 }
 
-/**
- * ตรวจสอบ license แบบเบื้องต้น (database + file existence)
- * ไม่เชื่อมต่อ ESP32 เพื่อความเร็ว
- */
-export async function validateLicenseQuick(): Promise<boolean> {
-  const timer = new PerformanceTimer();
 
-  try {
-    await logLicenseOperation(
-      "validator",
-      "Starting quick license validation",
-      "info",
-      {
-        operation: "validate_quick_start",
-      }
-    );
-
-    // 1. ตรวจสอบ database flag
-    const isActivated = await isSystemActivated();
-    if (!isActivated) {
-      await logLicenseOperation(
-        "validator",
-        "Quick validation failed: System not activated",
-        "error",
-        {
-          operation: "validate_quick_failed",
-          reason: "not_activated",
-          duration_ms: timer ? timer.stop() : 0,
-        }
-      );
-      return false;
-    }
-
-    // 2. ตรวจสอบว่ามี license.lic file หรือไม่
-    const { LicenseFileManager } = await import("./file-manager");
-    const licenseFile = await LicenseFileManager.findLicenseFile();
-
-    if (!licenseFile) {
-      console.log("debug: license.lic file not found, clearing activation");
-      await clearLicenseActivation();
-
-      await logLicenseOperation(
-        "validator",
-        "Quick validation failed: License file not found",
-        "error",
-        {
-          operation: "validate_quick_failed",
-          reason: "license_file_not_found",
-          duration_ms: timer ? timer.stop() : 0,
-        }
-      );
-
-      return false;
-    }
-
-    await logLicenseOperation(
-      "validator",
-      "Quick license validation successful",
-      "info",
-      {
-        operation: "validate_quick_success",
-        duration_ms: timer ? timer.stop() : 0,
-      }
-    );
-
-    return true;
-  } catch (error) {
-    console.error("error: Quick license validation failed:", error);
-
-    await runtimeLogger({
-      user: "system",
-      logType: "license",
-      component: "validator",
-      level: "error",
-      message: `Quick license validation failed: ${error.message}`,
-      metadata: {
-        operation: "validate_quick_error",
-        error: error.message,
-        duration_ms: timer ? timer.stop() : 0,
-      },
-    });
-
-    return false;
-  }
-}
 
 /**
  * ตรวจสอบ license แบบเต็มรูปแบบ (รวม ESP32 validation)
@@ -282,16 +198,16 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
       }
     );
 
-    // 1. Quick validation ก่อน
-    const quickValid = await validateLicenseQuick();
-    if (!quickValid) {
+    // 1. ตรวจสอบ database activation flag
+    const isActivated = await isSystemActivated();
+    if (!isActivated) {
       await logLicenseOperation(
         "validator",
-        "Full validation failed: Quick validation failed",
+        "Full validation failed: System not activated",
         "error",
         {
           operation: "validate_full_failed",
-          reason: "quick_validation_failed",
+          reason: "not_activated",
           duration_ms: timer ? timer.stop() : 0,
         }
       );
@@ -628,9 +544,10 @@ export async function validateLicense(): Promise<boolean> {
     console.log(`info: ESP32 bypass: ${esp32Bypass}`);
     console.log(`info: Internal build mode: ${internalBuildMode}`);
 
-    // 2. Quick validation ก่อน (database + file existence)
-    const quickValid = await validateLicenseQuick();
-    if (!quickValid) {
+    // 2. ตรวจสอบ database activation flag
+    const isActivated = await isSystemActivated();
+    if (!isActivated) {
+      console.log("debug: System not activated");
       return false;
     }
 

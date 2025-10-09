@@ -11,7 +11,7 @@ import { logger } from "../../logger";
 
 export interface ValidationResult {
   isValid: boolean;
-  method?: 'quick' | 'full' | 'database-only';
+  method?: 'full';
   error?: string;
   details?: {
     databaseFlag?: boolean;
@@ -138,32 +138,7 @@ export const checkActivationKeyHandler = async () => {
     }
   });
 
-  // Database-only check - เร็วที่สุด ใช้สำหรับ UI quick check
-  ipcMain.handle("check-activation-database", async (): Promise<ValidationResult> => {
-    try {
-      const databaseFlag = await isSystemActivated();
-      
-      return {
-        isValid: databaseFlag,
-        method: 'database-only',
-        details: {
-          databaseFlag
-        }
-      };
-      
-    } catch (error: any) {
-      console.error("error: Database activation check failed:", error);
-      
-      return {
-        isValid: false,
-        method: 'database-only',
-        error: error.message,
-        details: {
-          databaseFlag: false
-        }
-      };
-    }
-  });
+
 
   // Utility handler - ตรวจสอบ ESP32 connection อย่างเดียว
   ipcMain.handle("check-esp32-connection", async () => {
