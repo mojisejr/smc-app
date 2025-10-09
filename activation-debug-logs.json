@@ -1,0 +1,14 @@
+{
+  "metadata": {
+    "totalEvents": 0,
+    "duration": 104539,
+    "startTime": "2025-10-09T17:16:15.118Z",
+    "endTime": "2025-10-09T17:17:59.658Z"
+  },
+  "events": [],
+  "analysis": {
+    "eventsBySource": {},
+    "timingAnalysis": [],
+    "criticalEvents": []
+  }
+}

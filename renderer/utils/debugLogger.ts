@@ -25,7 +25,7 @@ class DebugLogger {
   constructor() {
     // Enable debug logging in development or when explicitly enabled
     this.isEnabled = process.env.NODE_ENV === 'development' || 
-                     localStorage.getItem('smc-debug-activation') === 'true';
+                     (typeof window !== 'undefined' && localStorage.getItem('smc-debug-activation') === 'true');
   }
 
   /**
@@ -179,4 +179,9 @@ export const getActivationTimingAnalysis = () => {
 // Enable debug logging by default in development
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   debugLogger.setEnabled(true);
+}
+
+// Expose debugLogger to window object for DevTools console access
+if (typeof window !== 'undefined') {
+  (window as any).debugLogger = debugLogger;
 }
