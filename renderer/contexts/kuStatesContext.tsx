@@ -8,6 +8,7 @@ import React, {
   useCallback,
 } from "react";
 import { ipcRenderer } from "electron";
+import { logActivationEvent } from "../utils/debugLogger";
 
 interface IPayload {
   slotId: number;
@@ -46,17 +47,26 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({
   const isRefreshingRef = useRef<boolean>(false);
 
   const refreshSlots = useCallback(async () => {
+    logActivationEvent('KuStatesContext', 'REFRESH_SLOTS_CALLED', {
+      isRefreshing: isRefreshingRef.current,
+      hasPendingTimeout: !!refreshTimeoutRef.current
+    });
+    
     // Prevent multiple simultaneous calls
     if (isRefreshingRef.current) {
       console.log(
         "[KuStatesContext] refreshSlots() blocked - already refreshing"
       );
+      logActivationEvent('KuStatesContext', 'REFRESH_SLOTS_BLOCKED', {
+        reason: 'already_refreshing'
+      });
       return;
     }
 
     // Clear any pending refresh
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
+      logActivationEvent('KuStatesContext', 'REFRESH_SLOTS_TIMEOUT_CLEARED');
     }
 
     // Debounce rapid calls
@@ -65,17 +75,27 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({
         "[KuStatesContext] refreshSlots() executing at",
         new Date().toISOString()
       );
+      logActivationEvent('KuStatesContext', 'REFRESH_SLOTS_EXECUTING', {
+        timestamp: new Date().toISOString()
+      });
+      
       isRefreshingRef.current = true;
       setIsLoading(true);
 
       try {
         console.log("DEBUG refreshSlots() - invoking init");
+        logActivationEvent('KuStatesContext', 'IPC_INIT_INVOKE_START');
         await ipcRenderer.invoke("init", { init: true });
+        logActivationEvent('KuStatesContext', 'IPC_INIT_INVOKE_COMPLETE');
       } catch (error) {
         console.error("Failed to refresh slots:", error);
+        logActivationEvent('KuStatesContext', 'REFRESH_SLOTS_ERROR', {
+          error: error.message
+        });
       } finally {
         setIsLoading(false);
         isRefreshingRef.current = false;
+        logActivationEvent('KuStatesContext', 'REFRESH_SLOTS_FINISHED');
       }
     }, 100); // 100ms debounce
   }, []);
@@ -117,6 +137,10 @@ export const KuStatesProvider: React.FC<KuStatesProviderProps> = ({
       payload: IPayload[]
     ) => {
       console.log("DEBUG handleInitRes() - received slots update:", payload);
+      logActivationEvent('KuStatesContext', 'INIT_RES_RECEIVED', {
+        slotsCount: payload?.length || 0,
+        hasPayload: !!payload
+      });
       handleGetKuStates(event, payload);
     };
 

@@ -24,6 +24,7 @@ import {
   debugSlotConfiguration,
   loadDisplaySlotConfigAsync,
 } from "../utils/getDisplaySlotConfig";
+import { logActivationEvent } from "../utils/debugLogger";
 
 function Home() {
   const { slots, refreshSlots } = useKuStatesContext();
@@ -75,9 +76,21 @@ function Home() {
 
   // Refresh slot data when activation status changes
   useEffect(() => {
+    logActivationEvent('Home', 'USE_EFFECT_IS_ACTIVATED_TRIGGERED', { 
+      isActivated,
+      currentPath: window.location.pathname 
+    });
+    
     if (isActivated) {
-      // Info log removed for production
+      logActivationEvent('Home', 'REFRESH_SLOTS_CALL_START', { 
+        reason: 'isActivated_changed_to_true' 
+      });
       refreshSlots();
+      logActivationEvent('Home', 'REFRESH_SLOTS_CALL_COMPLETE');
+    } else {
+      logActivationEvent('Home', 'REFRESH_SLOTS_SKIPPED', { 
+        reason: 'isActivated_is_false' 
+      });
     }
   }, [isActivated, refreshSlots]);
 

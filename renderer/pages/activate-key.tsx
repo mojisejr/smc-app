@@ -8,6 +8,7 @@ import {
   DialogButton,
 } from "../components/Shared/DesignSystem";
 import { useApp } from "../contexts/appContext";
+import { logActivationEvent, startActivationDebug } from "../utils/debugLogger";
 
 /**
  * CLI License File Activation Page
@@ -151,26 +152,35 @@ export default function ActivatePage() {
   }, []);
 
   const startActivationProcess = async () => {
+    // Start debug logging session
+    const sequenceId = startActivationDebug();
+    logActivationEvent('ActivateKey', 'ACTIVATION_PROCESS_START', { sequenceId });
+    
     try {
       setCurrentStep("loading");
       setProgress(0);
       setErrorMessage("");
 
-      // Info log removed for production
-
       // Subscribe to progress updates
       await ipcRenderer.invoke("subscribe-activation-progress");
 
       // Start activation process
+      logActivationEvent('ActivateKey', 'IPC_ACTIVATE_LICENSE_FILE_INVOKE_START');
       const result: ActivationResult = await ipcRenderer.invoke(
         "activate-license-file"
       );
+      logActivationEvent('ActivateKey', 'IPC_ACTIVATE_LICENSE_FILE_INVOKE_COMPLETE', { 
+        success: result.success,
+        hasData: !!result.data 
+      });
 
       if (result.success) {
         setCurrentStep("success");
         setProgress(100);
         setLicenseData(result.data || null);
-        // Info log removed for production
+        logActivationEvent('ActivateKey', 'ACTIVATION_SUCCESS', { 
+          licenseData: result.data ? { organization: result.data.organization } : null 
+        });
         
         // Refresh activation status immediately after successful activation
         await refreshActivationStatus();
@@ -178,6 +188,7 @@ export default function ActivatePage() {
         setCurrentStep("error");
         setProgress(0);
         setErrorMessage(result.error || "เกิดข้อผิดพลาดไม่ทราบสาเหตุ");
+        logActivationEvent('ActivateKey', 'ACTIVATION_FAILED', { error: result.error });
         console.error("error: License activation failed:", result.error);
       }
     } catch (error: any) {
@@ -185,6 +196,7 @@ export default function ActivatePage() {
       setCurrentStep("error");
       setProgress(0);
       setErrorMessage(error.message || "เกิดข้อผิดพลาดในการเชื่อมต่อระบบ");
+      logActivationEvent('ActivateKey', 'ACTIVATION_PROCESS_ERROR', { error: error.message });
     }
   };
 
@@ -193,9 +205,25 @@ export default function ActivatePage() {
   };
 
   const handleContinue = async () => {
-    // Refresh activation status to ensure unified state synchronization
-    await refreshActivationStatus();
-    replace("/home");
+    logActivationEvent('ActivateKey', 'HANDLE_CONTINUE_START', { 
+      currentStep, 
+      licenseData: licenseData ? { organization: licenseData.organization } : null 
+    });
+    
+    try {
+      // Refresh activation status to ensure unified state synchronization
+      logActivationEvent('ActivateKey', 'REFRESH_ACTIVATION_STATUS_START');
+      await refreshActivationStatus();
+      logActivationEvent('ActivateKey', 'REFRESH_ACTIVATION_STATUS_COMPLETE');
+      
+      // Navigate to home page
+      logActivationEvent('ActivateKey', 'NAVIGATION_TO_HOME_START');
+      replace("/home");
+      logActivationEvent('ActivateKey', 'NAVIGATION_TO_HOME_COMPLETE');
+    } catch (error) {
+      logActivationEvent('ActivateKey', 'HANDLE_CONTINUE_ERROR', { error: error.message });
+      console.error('Error in handleContinue:', error);
+    }
   };
 
   const handleClose = () => {
