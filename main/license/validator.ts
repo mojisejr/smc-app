@@ -1,7 +1,7 @@
 import { Setting } from "../../db/model/setting.model";
 import { logger } from "../logger";
 import {
-  getValidationMode,
+  // getValidationMode, // Removed - using direct environment check
   logPhase42Configuration,
 } from "../utils/environment";
 import {
@@ -534,7 +534,8 @@ export async function validateLicense(): Promise<boolean> {
 
   try {
     // 1. Enhanced environment and build type detection
-    const validationMode = getValidationMode();
+    // ตรวจสอบ bypass flag โดยตรงแทนการใช้ getValidationMode()
+    const validationMode = process.env.SMC_DEV_REAL_HARDWARE === 'true' ? 'real-hardware' : 'development';
     const buildType = process.env.BUILD_TYPE || "production";
     const esp32Bypass = process.env.ESP32_VALIDATION_BYPASS === "true";
     const internalBuildMode = process.env.INTERNAL_BUILD_MODE === "true";

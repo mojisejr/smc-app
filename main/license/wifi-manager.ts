@@ -3,7 +3,7 @@ import * as os from "os";
 import { promisify } from "util";
 import { logger } from "../logger";
 import {
-  getValidationMode,
+  // getValidationMode, // Removed - using direct environment check
   getPlatformWiFiStrategy,
   logPhase42Configuration,
 } from "../utils/environment";
@@ -111,7 +111,11 @@ export class SystemWiFiManager {
     const timer = new PerformanceTimer();
 
     try {
-      const validationMode = getValidationMode();
+      // ตรวจสอบ bypass flag โดยตรงแทนการใช้ getValidationMode()
+      const validationMode =
+        process.env.SMC_DEV_REAL_HARDWARE === "true"
+          ? "real-hardware"
+          : "development";
       const wifiStrategy = getPlatformWiFiStrategy();
 
       console.log(`info: Phase 4.2 WiFi Connection - SSID: ${ssid}`);
@@ -129,24 +133,35 @@ export class SystemWiFiManager {
       const buildType = process.env.BUILD_TYPE || "production";
       const esp32Bypass = process.env.ESP32_VALIDATION_BYPASS === "true";
       const internalBuildMode = process.env.INTERNAL_BUILD_MODE === "true";
-      const isInternalBuild = buildType === "internal" || buildType === "development";
-      const shouldBypass = validationMode === "bypass" || esp32Bypass || internalBuildMode || isInternalBuild;
-      
-      console.log(`info: Enhanced bypass detection - Mode: ${validationMode}, Build: ${buildType}, ESP32 Bypass: ${esp32Bypass}, Internal Mode: ${internalBuildMode}`);
-      
+      const isInternalBuild =
+        buildType === "internal" || buildType === "development";
+      const shouldBypass =
+        validationMode === "bypass" ||
+        esp32Bypass ||
+        internalBuildMode ||
+        isInternalBuild;
+
+      console.log(
+        `info: Enhanced bypass detection - Mode: ${validationMode}, Build: ${buildType}, ESP32 Bypass: ${esp32Bypass}, Internal Mode: ${internalBuildMode}`
+      );
+
       if (shouldBypass) {
         const bypassReasons = [];
         if (validationMode === "bypass") bypassReasons.push("validation mode");
         if (esp32Bypass) bypassReasons.push("ESP32 bypass flag");
         if (internalBuildMode) bypassReasons.push("internal build mode");
         if (isInternalBuild) bypassReasons.push(`${buildType} build type`);
-        
+
         console.log(
-          `info: [ENHANCED BYPASS] Skipping WiFi connection - Reasons: ${bypassReasons.join(", ")}`
+          `info: [ENHANCED BYPASS] Skipping WiFi connection - Reasons: ${bypassReasons.join(
+            ", "
+          )}`
         );
         await logger({
           user: "system",
-          message: `WiFi connection bypassed - Reasons: ${bypassReasons.join(", ")}`,
+          message: `WiFi connection bypassed - Reasons: ${bypassReasons.join(
+            ", "
+          )}`,
         });
 
         await logHardwareOperation(
@@ -402,7 +417,11 @@ export class SystemWiFiManager {
    */
   static async isConnectedTo(ssid: string): Promise<boolean> {
     try {
-      const validationMode = getValidationMode();
+      // ตรวจสอบ bypass flag โดยตรงแทนการใช้ getValidationMode()
+      const validationMode =
+        process.env.SMC_DEV_REAL_HARDWARE === "true"
+          ? "real-hardware"
+          : "development";
 
       // ตรวจสอบ validation mode
       if (validationMode === "bypass") {

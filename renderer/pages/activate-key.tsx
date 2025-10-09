@@ -94,12 +94,34 @@ export default function ActivatePage() {
   const [currentMessage, setCurrentMessage] = useState<string>("");
   const [showManualWiFi, setShowManualWiFi] = useState<boolean>(false);
   const [wifiCredentials, setWifiCredentials] = useState<{ ssid: string; password: string } | null>(null);
+  const [isRevalidation, setIsRevalidation] = useState<boolean>(false);
+  const [revalidationError, setRevalidationError] = useState<string>("");
+
+  // Listen for license validation failures
+  useEffect(() => {
+    const handleValidationFailure = (event: any, data: { error: string, isRevalidation: boolean }) => {
+      setIsRevalidation(data.isRevalidation);
+      setRevalidationError(data.error || "การตรวจสอบใบอนุญาตล้มเหลว กรุณาตรวจสอบการเชื่อมต่อกับ ESP32");
+      setErrorMessage(data.error || "การตรวจสอบใบอนุญาตล้มเหลว กรุณาตรวจสอบการเชื่อมต่อกับ ESP32");
+      setCurrentStep("error");
+    };
+
+    ipcRenderer.on('license-validation-failed', handleValidationFailure);
+    
+    return () => {
+      ipcRenderer.removeListener('license-validation-failed', handleValidationFailure);
+    };
+  }, []);
 
   // Auto-start activation on page load
   useEffect(() => {
-    startActivationProcess();
+    if (!isRevalidation) {
+      startActivationProcess();
+    }
+  }, [isRevalidation]);
 
-    // Subscribe to progress updates
+  // Subscribe to progress updates
+  useEffect(() => {
     const progressListener = (_event: any, update: ProgressUpdate) => {
       console.log(
         `info: Progress update - ${update.step}: ${update.progress}%`
@@ -191,7 +213,7 @@ export default function ActivatePage() {
     <div className="w-full flex h-screen justify-center items-center bg-base-200">
       <DialogBase maxWidth="max-w-[600px]">
         <DialogHeader
-          title="การ Activate License"
+          title={isRevalidation ? "ตรวจสอบใบอนุญาตซ้ำ" : "การ Activate License"}
           variant={
             currentStep === "success"
               ? "success"
@@ -285,10 +307,12 @@ export default function ActivatePage() {
           {/* Error State */}
           {currentStep === "error" && (
             <div className="space-y-4">
-              <StatusIndicator status="error" message={errorMessage} />
+              <StatusIndicator status="error" message={isRevalidation ? revalidationError : errorMessage} />
 
-              <div className="bg-error/10 p-4 rounded-lg border border-error/20">
-                <h4 className="font-semibold mb-2 text-error">การแก้ไขปัญหา</h4>
+              <div className={`${isRevalidation ? 'bg-warning/10 border-warning/20' : 'bg-error/10 border-error/20'} p-4 rounded-lg border`}>
+                <h4 className={`font-semibold mb-2 ${isRevalidation ? 'text-warning' : 'text-error'}`}>
+                  {isRevalidation ? 'การตรวจสอบใบอนุญาตล้มเหลว' : 'การแก้ไขปัญหา'}
+                </h4>
                 <ul className="text-sm space-y-1 text-base-content/70">
                   <li>• ตรวจสอบว่ามีไฟล์ license.lic ในโฟลเดอร์ติดตั้ง</li>
                   <li>• ตรวจสอบการเชื่อมต่อ WiFi กับ ESP32</li>
@@ -305,9 +329,18 @@ export default function ActivatePage() {
                 >
                   ลองใหม่
                 </DialogButton>
-                <DialogButton variant="primary" onClick={handleClose}>
-                  ปิดโปรแกรม
-                </DialogButton>
+                {isRevalidation ? (
+                  <DialogButton 
+                    variant="primary" 
+                    onClick={() => replace('/home')}
+                  >
+                    กลับสู่หน้าหลัก
+                  </DialogButton>
+                ) : (
+                  <DialogButton variant="primary" onClick={handleClose}>
+                    ปิดโปรแกรม
+                  </DialogButton>
+                )}
               </div>
             </div>
           )}

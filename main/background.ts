@@ -63,9 +63,8 @@ import {
 import { checkActivationKeyHandler } from "./license/ipcMain/check-activation-key";
 import { activateKeyHandler } from "./license/ipcMain/activate-key";
 import { activationProgressHandler } from "./license/ipcMain/activation-progress";
-import { isSystemActivated } from "./license/validator";
-import { getValidationMode } from "./utils/environment";
-import ActivationStateManager from "./license/activation-state-manager";
+import { isSystemActivated, validateLicense } from "./license/validator";
+// import { getValidationMode } from "./utils/environment"; // Removed - using direct environment check
 import { IndicatorDevice } from "./indicator";
 
 // Database lock detection and retry utility
@@ -314,28 +313,27 @@ if (isProd) {
 
     logSystemInfo("background", "Renderer loaded successfully");
 
-    // Initialize unified activation state manager (includes DS12Controller initialization)
+    // Check activation status using existing system
     let initialPage = "activate-key"; // Default to activation page
 
     try {
-      logDebug("background", "Initializing activation state manager");
+      logDebug("background", "Performing full license validation on startup");
+      
+      // Use full validation instead of quick check
+      // This ensures ESP32 hardware binding, license file, WiFi, MAC address, and organization are all validated
+      const isActivated = await validateLicense();
+      appTimer.checkpoint("full-validation-completed");
 
-      // Initialize activation state manager with integrated DS12Controller
-      const activationState = await ActivationStateManager.initialize(
-        mainWindow
-      );
-      appTimer.checkpoint("activation-state-initialized");
+      // Determine initial page based on full validation result
+      initialPage = isActivated ? "home" : "activate-key";
 
-      // Determine initial page based on activation state
-      initialPage = activationState.isActivated ? "home" : "activate-key";
-
-      logSystemInfo("background", "Activation state manager initialized", {
-        isActivated: activationState.isActivated,
-        ds12Available: activationState.ds12Available,
+      logSystemInfo("background", "Full license validation completed", {
+        isActivated,
         initialPage,
+        validationType: "full_validation_with_esp32_binding"
       });
     } catch (error: any) {
-      logError("background", "Failed to initialize activation system", error, {
+      logError("background", "Failed to perform full license validation", error, {
         defaultingToActivationPage: true,
       });
       initialPage = "activate-key";
