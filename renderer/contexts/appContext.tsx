@@ -21,12 +21,91 @@ const appContextDefaultValue: appContextType = {
 
 const AppContext = createContext<appContextType>(appContextDefaultValue);
 
+// localStorage key for activation state persistence
+const ACTIVATION_STATE_KEY = 'smc-activation-state';
+
+// Helper functions for localStorage operations
+const saveActivationStateToStorage = (isActivated: boolean) => {
+  // Check if we're in browser environment
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const stateData = {
+      isActivated,
+      timestamp: Date.now(),
+      version: '1.0'
+    };
+    localStorage.setItem(ACTIVATION_STATE_KEY, JSON.stringify(stateData));
+    logActivationEvent('AppContext', 'ACTIVATION_STATE_SAVED_TO_STORAGE', { isActivated });
+  } catch (error) {
+    console.error('Failed to save activation state to localStorage:', error);
+  }
+};
+
+const loadActivationStateFromStorage = (): boolean | null => {
+  // Check if we're in browser environment
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const storedData = localStorage.getItem(ACTIVATION_STATE_KEY);
+    if (!storedData) return null;
+    
+    const parsedData = JSON.parse(storedData);
+    const isValid = parsedData && typeof parsedData.isActivated === 'boolean';
+    
+    if (isValid) {
+      logActivationEvent('AppContext', 'ACTIVATION_STATE_LOADED_FROM_STORAGE', { 
+        isActivated: parsedData.isActivated,
+        timestamp: parsedData.timestamp 
+      });
+      return parsedData.isActivated;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Failed to load activation state from localStorage:', error);
+    return null;
+  }
+};
+
+const clearActivationStateFromStorage = () => {
+  // Check if we're in browser environment
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.removeItem(ACTIVATION_STATE_KEY);
+    logActivationEvent('AppContext', 'ACTIVATION_STATE_CLEARED_FROM_STORAGE');
+  } catch (error) {
+    console.error('Failed to clear activation state from localStorage:', error);
+  }
+};
+
 export function AppProvider({ children }: appProviderProps) {
   const { replace } = useRouter();
   const [admin, setAdmin] = useState<string | null>(null);
   const [isActivated, setActivated] = useState<boolean>(false);
 
+  // Enhanced setActivated function with localStorage persistence
+  const setActivatedWithPersistence = (newState: boolean) => {
+    setActivated(newState);
+    saveActivationStateToStorage(newState);
+    
+    logActivationEvent('AppContext', 'ACTIVATION_STATE_UPDATED_WITH_PERSISTENCE', { 
+      newState,
+      currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR' 
+    });
+  };
+
   useEffect(() => {
+    // Initialize with localStorage value if available (client-side only)
+    const storedState = loadActivationStateFromStorage();
+    if (storedState !== null) {
+      setActivated(storedState);
+      logActivationEvent('AppContext', 'ACTIVATION_STATE_INITIALIZED_FROM_STORAGE', { 
+        storedState 
+      });
+    }
+    
     initializeActivationStatus();
     
     // Listen for activation state changes from main process
@@ -34,19 +113,19 @@ export function AppProvider({ children }: appProviderProps) {
       logActivationEvent('AppContext', 'ACTIVATION_STATE_CHANGED_EVENT', {
         previousState: isActivated,
         newState: changeEvent.newState.isActivated,
-        currentPath: window.location.pathname
+        currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR'
       });
       
-      setActivated(changeEvent.newState.isActivated);
+      setActivatedWithPersistence(changeEvent.newState.isActivated);
       
       // Handle navigation based on new state
-      if (!changeEvent.newState.isActivated && window.location.pathname !== "/activate-key") {
+      if (!changeEvent.newState.isActivated && typeof window !== 'undefined' && window.location.pathname !== "/activate-key") {
         logActivationEvent('AppContext', 'NAVIGATION_TO_ACTIVATE_KEY', {
           reason: 'not_activated',
           currentPath: window.location.pathname
         });
         replace("/activate-key");
-      } else if (changeEvent.newState.isActivated && window.location.pathname === "/activate-key") {
+      } else if (changeEvent.newState.isActivated && typeof window !== 'undefined' && window.location.pathname === "/activate-key") {
         logActivationEvent('AppContext', 'NAVIGATION_TO_HOME', {
           reason: 'activated',
           currentPath: window.location.pathname
@@ -69,13 +148,22 @@ export function AppProvider({ children }: appProviderProps) {
     const maxRetries = 3;
     const retryDelay = 500;
     
+    // Get stored state for comparison
+    const storedState = loadActivationStateFromStorage();
+    
     while (retryCount < maxRetries) {
       try {
         // Use existing activation check system
         const result = await ipcRenderer.invoke("check-activation");
         
-        // Set initial state based on existing system
-        setActivated(result.isActivated);
+        logActivationEvent('AppContext', 'ACTIVATION_STATUS_INITIALIZED', {
+          ipcResult: result.isActivated,
+          storedState,
+          finalState: result.isActivated
+        });
+        
+        // Set initial state based on existing system and persist to localStorage
+        setActivatedWithPersistence(result.isActivated);
         return; // Success, exit retry loop
         
       } catch (error) {
@@ -84,8 +172,17 @@ export function AppProvider({ children }: appProviderProps) {
         
         if (retryCount >= maxRetries) {
           console.error('error: Max retries reached for activation status initialization');
-          // Default to not activated
-          setActivated(false);
+          
+          // Fallback to stored state if available, otherwise default to false
+          const fallbackState = storedState !== null ? storedState : false;
+          
+          logActivationEvent('AppContext', 'ACTIVATION_STATUS_FALLBACK', {
+            fallbackState,
+            storedState,
+            error: error.message
+          });
+          
+          setActivatedWithPersistence(fallbackState);
           return;
         }
         
@@ -105,7 +202,7 @@ export function AppProvider({ children }: appProviderProps) {
         // Use existing activation check system
         const result = await ipcRenderer.invoke("check-activation");
         
-        setActivated(result.isActivated);
+        setActivatedWithPersistence(result.isActivated);
         
         // Only redirect if we're on a protected page and not activated
         if (!result.isActivated) {
@@ -125,7 +222,7 @@ export function AppProvider({ children }: appProviderProps) {
         
         if (retryCount >= maxRetries) {
           console.error('error: Max retries reached for activation check');
-          setActivated(false);
+          setActivatedWithPersistence(false);
           
           // Only redirect on error if not already on activation page
           const currentPath = window.location.pathname;
@@ -164,7 +261,7 @@ export function AppProvider({ children }: appProviderProps) {
           previousState: isActivated,
           newState: result.isActivated 
         });
-        setActivated(result.isActivated);
+        setActivatedWithPersistence(result.isActivated);
         
         logActivationEvent('AppContext', 'REFRESH_ACTIVATION_STATUS_SUCCESS', { 
           isActivated: result.isActivated 
@@ -182,7 +279,7 @@ export function AppProvider({ children }: appProviderProps) {
         
         if (retryCount >= maxRetries) {
           console.error('error: Max retries reached for activation refresh');
-          setActivated(false);
+          setActivatedWithPersistence(false);
           logActivationEvent('AppContext', 'REFRESH_ACTIVATION_STATUS_FAILED', { 
             finalError: error.message 
           });

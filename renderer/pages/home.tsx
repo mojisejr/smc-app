@@ -94,6 +94,43 @@ function Home() {
     }
   }, [isActivated, refreshSlots]);
 
+  // Fallback recovery mechanism to ensure slot state is loaded
+  useEffect(() => {
+    let fallbackTimer: NodeJS.Timeout;
+    
+    // Only set fallback if we're activated but don't have slot data
+    if (isActivated && (!slots || slots.length === 0)) {
+      logActivationEvent('Home', 'FALLBACK_RECOVERY_TIMER_SET', {
+        isActivated,
+        slotsLength: slots?.length || 0,
+        reason: 'activated_but_no_slots'
+      });
+      
+      // Set a fallback timer to retry slot loading after 2 seconds
+      fallbackTimer = setTimeout(() => {
+        logActivationEvent('Home', 'FALLBACK_RECOVERY_TRIGGERED', {
+          isActivated,
+          slotsLength: slots?.length || 0,
+          currentPath: window.location.pathname
+        });
+        
+        // Double-check activation status and retry slot loading
+        if (isActivated) {
+          logActivationEvent('Home', 'FALLBACK_REFRESH_SLOTS_CALL');
+          refreshSlots();
+        }
+      }, 2000);
+    }
+    
+    // Cleanup timer on unmount or when dependencies change
+    return () => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        logActivationEvent('Home', 'FALLBACK_RECOVERY_TIMER_CLEARED');
+      }
+    };
+  }, [isActivated, slots, refreshSlots]);
+
   useEffect(() => {
     if (unlocking.unlocking) {
       setCloseLockWait(false);
