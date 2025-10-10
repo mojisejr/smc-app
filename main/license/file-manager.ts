@@ -72,7 +72,8 @@ function generateHKDFKey(
   licenseData: LicenseData,
   kdfContext: KDFContext
 ): Buffer {
-  console.log("info: Generating HKDF key for license decryption...");
+  console.log("DEBUG: Starting HKDF key generation for license decryption...");
+  console.log(`DEBUG: HKDF Config - Hash: ${HKDF_CONFIG.hash}, Key Length: ${HKDF_CONFIG.key_length} bytes`);
 
   try {
     // สร้าง Input Key Material (IKM) จาก sensitive license data (WiFi-free for Phase 9)
@@ -84,7 +85,14 @@ function generateHKDFKey(
       // Phase 9: ลบ wifiSsid ออกจาก key derivation
     ];
 
+    console.log(`DEBUG: IKM Parts Count: ${ikm_parts.length}`);
+    console.log(`DEBUG: IKM Parts - ApplicationId: ${licenseData.applicationId}`);
+    console.log(`DEBUG: IKM Parts - CustomerId: ${licenseData.customerId}`);
+    console.log(`DEBUG: IKM Parts - MAC Address: ${licenseData.macAddress}`);
+    console.log(`DEBUG: IKM Parts - Expiry Date: ${licenseData.expiryDate}`);
+
     const ikm = Buffer.from(ikm_parts.join("_"), "utf8");
+    console.log(`DEBUG: IKM String: ${ikm_parts.join("_")}`);
 
     // แปลง salt จาก base64
     const salt = Buffer.from(kdfContext.salt, "base64");
@@ -92,25 +100,40 @@ function generateHKDFKey(
     // แปลง info จาก string
     const info = Buffer.from(kdfContext.info, "utf8");
 
-    console.log(`debug: IKM size: ${ikm.length} bytes`);
-    console.log(`debug: Salt size: ${salt.length} bytes`);
-    console.log(`debug: Info size: ${info.length} bytes`);
+    console.log(`DEBUG: IKM size: ${ikm.length} bytes`);
+    console.log(`DEBUG: Salt size: ${salt.length} bytes (expected: ${HKDF_CONFIG.salt_length})`);
+    console.log(`DEBUG: Info size: ${info.length} bytes`);
+    console.log(`DEBUG: KDF Context Info: ${kdfContext.info}`);
+    console.log(`DEBUG: KDF Context Algorithm: ${kdfContext.algorithm}`);
+
+    // Validate salt length
+    if (salt.length !== HKDF_CONFIG.salt_length) {
+      console.error(`ERROR: Invalid salt length: ${salt.length} bytes (expected: ${HKDF_CONFIG.salt_length})`);
+      throw new Error(`Invalid salt length: ${salt.length} bytes (expected: ${HKDF_CONFIG.salt_length})`);
+    }
 
     // HKDF-Extract: PRK = HMAC-Hash(salt, IKM)
+    console.log("DEBUG: Starting HKDF-Extract phase...");
     const prk = crypto.createHmac(HKDF_CONFIG.hash, salt).update(ikm).digest();
+    console.log(`DEBUG: PRK generated, size: ${prk.length} bytes`);
 
     // HKDF-Expand: OKM = HMAC-Hash(PRK, info + 0x01)
+    console.log("DEBUG: Starting HKDF-Expand phase...");
     const expandInfo = Buffer.concat([info, Buffer.from([0x01])]);
+    console.log(`DEBUG: Expand Info size: ${expandInfo.length} bytes`);
+    
     const okm = crypto
       .createHmac(HKDF_CONFIG.hash, prk)
       .update(expandInfo)
       .digest();
+    console.log(`DEBUG: OKM generated, size: ${okm.length} bytes`);
 
     // ตัด key ให้ได้ขนาดที่ต้องการ (32 bytes สำหรับ AES-256)
     const derivedKey = okm.slice(0, HKDF_CONFIG.key_length);
 
-    console.log("info: ✅ HKDF key generated successfully");
-    console.log(`debug: Key size: ${derivedKey.length} bytes`);
+    console.log("INFO: ✅ HKDF key generated successfully");
+    console.log(`DEBUG: Final derived key size: ${derivedKey.length} bytes (expected: ${HKDF_CONFIG.key_length})`);
+    console.log(`DEBUG: Key derivation completed successfully`);
 
     return derivedKey;
   } catch (error: any) {
@@ -139,7 +162,12 @@ function decryptLicenseData(
   }
 ): LicenseData {
   try {
-    console.log("info: Decrypting HKDF license data...");
+    console.log("DEBUG: Starting HKDF license data decryption...");
+    console.log(`DEBUG: Encrypted data length: ${encryptedData.length} characters`);
+    console.log(`DEBUG: Key data - ApplicationId: ${keyData.applicationId}`);
+    console.log(`DEBUG: Key data - CustomerId: ${keyData.customerId}`);
+    console.log(`DEBUG: Key data - MAC Address: ${keyData.macAddress}`);
+    console.log(`DEBUG: Key data - Expiry Date: ${keyData.expiryDate}`);
 
     // สร้าง temporary license data object สำหรับ HKDF key generation (WiFi-free)
     const tempLicenseData: LicenseData = {
@@ -156,27 +184,41 @@ function decryptLicenseData(
       wifiPassword: "",
     };
 
+    console.log("DEBUG: Temporary license data object created for HKDF key generation");
+
     // สร้าง HKDF key จาก key data และ KDF context
     const derivedKey = generateHKDFKey(tempLicenseData, kdfContext);
 
-    console.log("debug: Using HKDF key for decryption");
+    console.log("DEBUG: HKDF key generated, proceeding with AES-256-CBC decryption");
+    console.log(`DEBUG: Using encryption algorithm: ${ENCRYPTION_CONFIG.algorithm}`);
 
     // Decode จาก Base64
+    console.log("DEBUG: Decoding encrypted data from Base64...");
     const hexData = Buffer.from(encryptedData, "base64").toString("utf8");
+    console.log(`DEBUG: Hex data length: ${hexData.length} characters`);
 
     // แยก IV กับ encrypted data
+    console.log("DEBUG: Parsing IV and encrypted data...");
     const parts = hexData.split(":");
     if (parts.length !== 2) {
-      throw new Error("Invalid encrypted data format");
+      console.error(`ERROR: Invalid encrypted data format - expected 2 parts (IV:data), got ${parts.length}`);
+      throw new Error("Invalid encrypted data format - expected IV:data format");
     }
 
     const iv = Buffer.from(parts[0], "hex");
     const encrypted = parts[1];
 
-    console.log(`debug: IV length: ${iv.length} bytes`);
-    console.log(`debug: Data length: ${encrypted.length} characters`);
+    console.log(`DEBUG: IV length: ${iv.length} bytes (expected: ${ENCRYPTION_CONFIG.iv_length})`);
+    console.log(`DEBUG: Encrypted data length: ${encrypted.length} characters`);
+
+    // Validate IV length
+    if (iv.length !== ENCRYPTION_CONFIG.iv_length) {
+      console.error(`ERROR: Invalid IV length: ${iv.length} bytes (expected: ${ENCRYPTION_CONFIG.iv_length})`);
+      throw new Error(`Invalid IV length: ${iv.length} bytes (expected: ${ENCRYPTION_CONFIG.iv_length})`);
+    }
 
     // สร้าง decipher ด้วย createDecipheriv ด้วย HKDF key
+    console.log("DEBUG: Creating AES-256-CBC decipher...");
     const decipher = crypto.createDecipheriv(
       ENCRYPTION_CONFIG.algorithm,
       derivedKey,
@@ -184,14 +226,18 @@ function decryptLicenseData(
     );
 
     // ถอดรหัสข้อมูล
+    console.log("DEBUG: Decrypting data with AES-256-CBC...");
     let decrypted = decipher.update(encrypted, "hex", "utf8");
     decrypted += decipher.final("utf8");
+    console.log(`DEBUG: Decrypted data length: ${decrypted.length} characters`);
 
     // Parse JSON
+    console.log("DEBUG: Parsing decrypted JSON data...");
     const decryptedLicenseData = JSON.parse(decrypted);
 
-    console.log("info: ✅ HKDF license decryption successful");
-    console.log(`info: Organization: ${decryptedLicenseData.organization}`);
+    console.log("INFO: ✅ HKDF license decryption successful");
+    console.log(`INFO: Organization: ${decryptedLicenseData.organization}`);
+    console.log(`DEBUG: Decrypted license data keys: ${Object.keys(decryptedLicenseData).join(', ')}`);
 
     return decryptedLicenseData as LicenseData;
   } catch (error: any) {

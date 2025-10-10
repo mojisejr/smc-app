@@ -120,16 +120,29 @@ export class ESP32Client {
   static async getMacAddress(ip?: string): Promise<string | null> {
     const targetIp = ip || this.DEFAULT_CONFIG.ip;
     const timer = new PerformanceTimer();
+    
+    console.log('DEBUG:ESP32: Starting ESP32 MAC address retrieval process');
+    console.log(`DEBUG:ESP32: Target IP: ${targetIp}`);
+    console.log(`DEBUG:ESP32: MAC endpoint: ${this.MAC_ENDPOINT}`);
+    console.log(`DEBUG:ESP32: Max retries: ${this.DEFAULT_CONFIG.max_retries}`);
+    
     // ตรวจสอบ bypass flag โดยตรงแทนการใช้ getValidationMode()
     const validationMode = process.env.SMC_DEV_REAL_HARDWARE === 'true' ? 'real-hardware' : 'development';
     const buildType = process.env.BUILD_TYPE;
     const esp32Bypass = process.env.ESP32_VALIDATION_BYPASS === 'true';
+    
+    console.log(`DEBUG:ESP32: Environment check - Validation mode: ${validationMode}, Build type: ${buildType}, ESP32 bypass: ${esp32Bypass}`);
 
     // Enhanced bypass logic for internal builds
+    console.log('DEBUG:ESP32: Checking license type for bypass conditions');
+    
     try {
       const { LicenseFileManager } = await import("./file-manager");
       const licenseData = await LicenseFileManager.parseLicenseFile();
       const licenseType = licenseData?.license_type;
+      
+      console.log(`DEBUG:ESP32: License data retrieved - Type: ${licenseType}, Organization: ${licenseData?.organization}`);
+      console.log('DEBUG:ESP32: Evaluating bypass conditions...');
 
       // Multiple bypass conditions
       if (
@@ -139,7 +152,11 @@ export class ESP32Client {
         buildType === 'development' ||
         esp32Bypass
       ) {
+        console.log('DEBUG:ESP32: Bypass conditions met - activating ESP32 validation bypass');
         const bypassReason = this.getBypassReason(licenseType, validationMode, buildType, esp32Bypass);
+        
+        console.log('INFO:ESP32: ESP32 validation bypass activated');
+        console.log(`DEBUG:ESP32: Bypass reason: ${bypassReason}`);
         
         console.log(
           `info: ESP32 bypass activated - ${bypassReason}`
@@ -150,6 +167,7 @@ export class ESP32Client {
         });
 
         const mockMacAddress = this.generateMockMacAddress(bypassReason);
+        console.log(`DEBUG:ESP32: Generated mock MAC address: ${mockMacAddress}`);
 
         await logHardwareOperation(
           `Bypassing ESP32 MAC address check: ${bypassReason}`,
@@ -169,9 +187,12 @@ export class ESP32Client {
         console.log(
           `info: Using mock MAC address: ${mockMacAddress} (reason: ${bypassReason})`
         );
+        console.log('DEBUG:ESP32: Returning mock MAC address - ESP32 hardware validation bypassed');
         return mockMacAddress;
       }
     } catch (error) {
+      console.log('ERROR:ESP32: License type check failed - proceeding with ESP32 hardware validation');
+      console.log(`DEBUG:ESP32: License check error: ${error.message}`);
       console.log(
         "debug: License type check failed, proceeding with ESP32 hardware validation:",
         error.message
@@ -179,6 +200,9 @@ export class ESP32Client {
     }
 
     // Production license หรือไม่สามารถตรวจสอบ license type ได้ - ใช้ ESP32 hardware validation
+    console.log('INFO:ESP32: No bypass conditions met - proceeding with ESP32 hardware validation');
+    console.log('DEBUG:ESP32: Starting production ESP32 MAC address retrieval');
+    
     console.log("info: Connecting to ESP32 hardware for MAC address retrieval");
     await logger({
       user: "system",

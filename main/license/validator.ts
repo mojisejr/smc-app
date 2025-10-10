@@ -184,11 +184,15 @@ export async function clearLicenseActivation(): Promise<void> {
 /**
  * ตรวจสอบ license แบบเต็มรูปแบบ (รวม ESP32 validation)
  * ใช้เมื่อต้องการความแม่นยำสูงสุด
+ * Enhanced with comprehensive debug logging for medical device compliance
  */
 export async function validateLicenseWithESP32(): Promise<boolean> {
   const timer = new PerformanceTimer();
 
   try {
+    console.log('DEBUG:LICENSE: Starting comprehensive license validation with ESP32 MAC address binding');
+    console.log('DEBUG:LICENSE: Medical device compliance validation initiated');
+    
     await logLicenseOperation(
       "validator",
       "Starting full license validation with ESP32",
@@ -199,8 +203,12 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
     );
 
     // 1. ตรวจสอบ database activation flag
+    console.log('DEBUG:LICENSE: Step 1 - Checking current system activation status');
     const isActivated = await isSystemActivated();
+    console.log(`DEBUG:LICENSE: System activation status retrieved - activated: ${isActivated}`);
+    
     if (!isActivated) {
+      console.log('DEBUG:LICENSE: Validation failed - system not activated');
       await logLicenseOperation(
         "validator",
         "Full validation failed: System not activated",
@@ -215,11 +223,16 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
     }
 
     // 2. โหลดและ parse license file
+    console.log('DEBUG:LICENSE: Step 2 - Loading and parsing license file');
+    console.log('DEBUG:HKDF: Initiating license file decryption process');
+    
     const { LicenseFileManager } = await import("./file-manager");
     const licenseData = await LicenseFileManager.parseLicenseFile();
 
     if (!licenseData) {
-      console.log("debug: Failed to parse license file");
+      console.log("ERROR:HKDF: Failed to parse license file - decryption or parsing error");
+      console.log("DEBUG:LICENSE: License file parsing failed - possible HKDF key derivation issue");
+      
       await logLicenseOperation(
         "validator",
         "Full validation failed: Cannot parse license file",
@@ -232,6 +245,10 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
       );
       return false;
     }
+
+    console.log('DEBUG:HKDF: License file decryption successful');
+    console.log(`DEBUG:LICENSE: License data parsed - type: ${licenseData.license_type}, organization: ${licenseData.organization}`);
+    console.log(`DEBUG:LICENSE: License MAC address: ${licenseData.macAddress}, expiry: ${licenseData.expiryDate}`);
 
     // 2.1. Extract license type for validation logic
     const licenseType = licenseData.license_type || "production";
@@ -300,6 +317,9 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
       );
     } else {
       // Standard ESP32 validation for production licenses
+      console.log('DEBUG:LICENSE: Step 4 - Starting ESP32 MAC address validation for production license');
+      console.log('DEBUG:MAC: Initiating ESP32 communication for MAC address retrieval');
+      
       await logLicenseOperation(
         "validator",
         "Starting ESP32 MAC address validation",
@@ -312,10 +332,15 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
       );
 
       const { ESP32Client } = await import("./esp32-client");
+      console.log('DEBUG:MAC: ESP32Client imported successfully');
+      console.log(`DEBUG:MAC: Expected MAC address from license: ${licenseData.macAddress}`);
+      
       const esp32Mac = await ESP32Client.getMacAddress();
 
       if (!esp32Mac) {
-        console.log("debug: Cannot retrieve MAC address from ESP32");
+        console.log("ERROR:MAC: Cannot retrieve MAC address from ESP32 - connection failed");
+        console.log("DEBUG:MAC: ESP32 communication failure - check hardware connection and network");
+        
         await logger({
           user: "system",
           message: "License validation failed: Cannot connect to ESP32",
@@ -335,10 +360,21 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
         return false;
       }
 
-      if (licenseData.macAddress.toUpperCase() !== esp32Mac.toUpperCase()) {
-        console.log("debug: MAC address mismatch");
-        console.log("debug: License MAC:", licenseData.macAddress);
-        console.log("debug: ESP32 MAC:", esp32Mac);
+      console.log(`DEBUG:MAC: ESP32 MAC address retrieved successfully: ${esp32Mac}`);
+      console.log('DEBUG:MAC: Starting MAC address comparison process');
+      
+      // Enhanced MAC address comparison with normalization
+      const normalizedLicenseMac = licenseData.macAddress.toUpperCase().replace(/[:-]/g, '');
+      const normalizedEsp32Mac = esp32Mac.toUpperCase().replace(/[:-]/g, '');
+      
+      console.log(`DEBUG:MAC: Normalized MAC addresses - License: ${normalizedLicenseMac}, ESP32: ${normalizedEsp32Mac}`);
+      console.log(`DEBUG:MAC: Original MAC addresses - License: ${licenseData.macAddress}, ESP32: ${esp32Mac}`);
+
+      if (normalizedLicenseMac !== normalizedEsp32Mac) {
+        console.log("ERROR:MAC: MAC address mismatch detected");
+        console.log(`DEBUG:MAC: MAC validation failed - License: ${licenseData.macAddress} vs ESP32: ${esp32Mac}`);
+        console.log(`DEBUG:MAC: Normalized comparison - License: ${normalizedLicenseMac} vs ESP32: ${normalizedEsp32Mac}`);
+        
         await logger({
           user: "system",
           message: "License validation failed: MAC address mismatch",
@@ -353,6 +389,8 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
             reason: "mac_address_mismatch",
             expected_mac: licenseData.macAddress,
             actual_mac: esp32Mac,
+            normalized_expected: normalizedLicenseMac,
+            normalized_actual: normalizedEsp32Mac,
             duration_ms: timer ? timer.stop() : 0,
           }
         );
@@ -360,17 +398,51 @@ export async function validateLicenseWithESP32(): Promise<boolean> {
         return false;
       }
 
-      await logLicenseOperation(
-        "validator",
-        "ESP32 MAC address validation successful",
-        "info",
-        {
-          operation: "esp32_validation_success",
-          mac_address: esp32Mac,
-        }
-      );
-    }
+      console.log('INFO:MAC: MAC address validation successful - ESP32 and license MAC addresses match');
+    console.log(`DEBUG:MAC: Validated MAC address: ${esp32Mac}`);
+    
+    await logLicenseOperation(
+      "validator",
+      "ESP32 MAC address validation successful",
+      "info",
+      {
+        operation: "esp32_validation_success",
+        mac_address: esp32Mac,
+        normalized_mac: normalizedEsp32Mac,
+      }
+    );
+  }
 
+  // Validate organization data
+  console.log('DEBUG:LICENSE: Step 5 - Starting organization data validation');
+  console.log('DEBUG:ORG: Validating organization and customer data against system settings');
+  
+  const isOrgValid = await validateOrganizationData(licenseData);
+  
+  if (!isOrgValid) {
+    console.log('ERROR:ORG: Organization data validation failed');
+    console.log('DEBUG:ORG: Organization/customer data does not match system settings');
+    
+    await logLicenseOperation(
+      "validator",
+      "License validation failed: Organization data mismatch",
+      "error",
+      {
+        operation: "license_validation_failed",
+        reason: "organization_data_mismatch",
+        duration_ms: timer ? timer.stop() : 0,
+      }
+    );
+    return false;
+  }
+  
+  console.log('INFO:ORG: Organization data validation successful');
+  console.log('DEBUG:ORG: Organization and customer data match system settings');
+
+  console.log('INFO:LICENSE: License validation completed successfully');
+    console.log(`DEBUG:LICENSE: Final validation summary - Type: ${licenseType}, Expires: ${licenseData.expiryDate}`);
+    console.log(`DEBUG:LICENSE: Validation duration: ${timer ? timer.stop() : 0}ms`);
+    
     await logger({
       user: "system",
       message: `${licenseType.toUpperCase()} license validation successful - expires: ${

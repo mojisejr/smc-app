@@ -204,11 +204,21 @@ export const activateKeyHandler = async () => {
           message: `${licenseType.toUpperCase()} license - MAC address validation bypassed`
         });
       } else {
-        // Production license - ตรวจสอบ MAC address matching
-        if (licenseData.macAddress.toUpperCase() !== esp32Mac.toUpperCase()) {
-          console.log(`debug: MAC address mismatch in license data validation`);
-          console.log(`debug: License MAC: ${licenseData.macAddress}`);
-          console.log(`debug: ESP32 MAC: ${esp32Mac}`);
+        // Production license - ตรวจสอบ MAC address matching with normalization
+        console.log(`DEBUG:MAC: Starting MAC address validation for production license`);
+        console.log(`DEBUG:MAC: License MAC: ${licenseData.macAddress}`);
+        console.log(`DEBUG:MAC: ESP32 MAC: ${esp32Mac}`);
+        
+        // Enhanced MAC address comparison with normalization (same as validator.ts)
+        const normalizedLicenseMac = licenseData.macAddress.toUpperCase().replace(/[:-]/g, '');
+        const normalizedEsp32Mac = esp32Mac.toUpperCase().replace(/[:-]/g, '');
+        
+        console.log(`DEBUG:MAC: Normalized MAC addresses - License: ${normalizedLicenseMac}, ESP32: ${normalizedEsp32Mac}`);
+        
+        if (normalizedLicenseMac !== normalizedEsp32Mac) {
+          console.log(`ERROR:MAC: MAC address mismatch in license data validation`);
+          console.log(`DEBUG:MAC: Original MAC addresses - License: ${licenseData.macAddress}, ESP32: ${esp32Mac}`);
+          console.log(`DEBUG:MAC: Normalized comparison failed - License: ${normalizedLicenseMac} vs ESP32: ${normalizedEsp32Mac}`);
           
           await logger({
             user: "system",
@@ -221,6 +231,8 @@ export const activateKeyHandler = async () => {
             step: 'mac-validation'
           };
         }
+        
+        console.log(`INFO:MAC: MAC address validation successful - normalized comparison passed`);
       }
 
       // Step 7: บันทึก activation ลงฐานข้อมูล
