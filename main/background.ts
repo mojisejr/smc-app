@@ -318,7 +318,7 @@ if (isProd) {
 
     try {
       logDebug("background", "Performing full license validation on startup");
-      
+
       // Use full validation instead of quick check
       // This ensures ESP32 hardware binding, license file, WiFi, MAC address, and organization are all validated
       const isActivated = await validateLicense();
@@ -330,12 +330,17 @@ if (isProd) {
       logSystemInfo("background", "Full license validation completed", {
         isActivated,
         initialPage,
-        validationType: "full_validation_with_esp32_binding"
+        validationType: "full_validation_with_esp32_binding",
       });
     } catch (error: any) {
-      logError("background", "Failed to perform full license validation", error, {
-        defaultingToActivationPage: true,
-      });
+      logError(
+        "background",
+        "Failed to perform full license validation",
+        error,
+        {
+          defaultingToActivationPage: true,
+        }
+      );
       initialPage = "activate-key";
     }
 

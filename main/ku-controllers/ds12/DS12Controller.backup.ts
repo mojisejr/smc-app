@@ -1,5 +1,4 @@
 import { SerialPort } from "serialport";
-import { PacketLengthParser } from "@serialport/parser-packet-length";
 import { BrowserWindow } from "electron";
 import { KuControllerBase } from "../base/KuControllerBase";
 import {
@@ -61,7 +60,8 @@ export class DS12Controller extends KuControllerBase {
 
   // Serial communication components
   private serialPort: SerialPort | null = null;
-  private parser: PacketLengthParser | null = null;
+  private rawDataBuffer: Buffer = Buffer.alloc(0);
+  private packetTimeout: NodeJS.Timeout | null = null;
   private protocolParser: IDS12ProtocolParser;
 
   // Connection configuration
@@ -244,20 +244,13 @@ export class DS12Controller extends KuControllerBase {
               this.serialPort = null;
               resolve(false);
             } else {
-              // CONNECTION SUCCESS: Set up PacketLengthParser following KU16 pattern
+              // CONNECTION SUCCESS: Set up raw data reception and start receiving
               this.connected = true;
 
-              // PACKET LENGTH PARSER: Initialize with DS12-specific configuration
-              // Following KU16 pattern: delimiter 0x02 (STX), packetOverhead 8 bytes
-              this.parser = new PacketLengthParser({
-                delimiter: 0x02, // STX delimiter for DS12/CU12 protocol
-                packetOverhead: 8, // Minimum packet size per CU12 specification
-              });
+              // DIRECT DATA HANDLING: No parser needed, handle raw bytes
+              // CU12 protocol packets start with STX (0x02), using parser would corrupt data
 
-              // PIPE PARSER: Connect parser to serial port
-              this.serialPort!.pipe(this.parser);
-
-              // START RECEIVE LOOP: Begin hardware communication with PacketLengthParser
+              // START RECEIVE LOOP: Begin hardware communication
               this.receive();
 
               // MEDICAL AUDIT: Log successful connection
@@ -265,7 +258,7 @@ export class DS12Controller extends KuControllerBase {
                 port,
                 baudRate,
                 deviceType: this.deviceType,
-                message: `DS12 connected successfully to ${port} with PacketLengthParser`,
+                message: `DS12 connected successfully to ${port}`,
               });
 
               resolve(true);
@@ -333,8 +326,11 @@ export class DS12Controller extends KuControllerBase {
 
             // CLEANUP: Reset all states regardless of close result
             this.serialPort = null;
-            this.parser = null;
             this.connected = false;
+
+            // PACKET BUFFER CLEANUP: Clear buffered data and timeout
+            this.rawDataBuffer = Buffer.alloc(0);
+            this.clearPacketTimeout();
 
             // STATE RESET: Ensure clean state for next connection
             this.resetAllStates();
@@ -1257,81 +1253,99 @@ export class DS12Controller extends KuControllerBase {
    * - Maintain system stability during communication issues
    * - Provide detailed error information for troubleshooting
    */
-  /**
-   * RECEIVE DATA FROM DS12 HARDWARE USING PACKETLENGTHPARSER
-   *
-   * This method handles incoming serial data from DS12 devices using PacketLengthParser
-   * following the KU16 pattern. PacketLengthParser automatically handles packet
-   * fragmentation and buffering, eliminating the need for custom buffer management.
-   *
-   * PACKET STRUCTURE (CU12 Protocol):
-   * - STX (0x02): Start of packet marker (delimiter)
-   * - ADDR: Device address
-   * - LOCKNUM: Lock/slot number
-   * - CMD: Command type
-   * - ASK: Response status
-   * - DATALEN: Length of additional data
-   * - ETX (0x03): End of packet marker
-   * - SUM: Checksum
-   * - DATA: Additional data (if DATALEN > 0)
-   *
-   * PACKETLENGTHPARSER BENEFITS:
-   * - Automatic packet fragmentation handling
-   * - No manual buffer management required
-   * - Consistent with KU16 implementation
-   * - Eliminates timeout-based packet detection
-   * - Simplified error handling
-   *
-   * MEDICAL DEVICE COMPLIANCE:
-   * - Log all received data for audit trail
-   * - Handle hardware communication errors gracefully
-   * - Maintain system stability during communication issues
-   * - Provide detailed error information for troubleshooting
-   */
   receive(): void {
     try {
-      // PARSER VALIDATION: Ensure PacketLengthParser is initialized
-      if (!this.parser) {
+      // SERIAL PORT VALIDATION: Ensure serial port is initialized
+      if (!this.serialPort) {
         this.logOperation("receive-error", {
-          error: "PacketLengthParser not initialized",
+          error: "Serial port not initialized",
           deviceType: this.deviceType,
-          message: "DS12 receive failed: PacketLengthParser not initialized",
+          message: "DS12 receive failed: serial port not initialized",
         });
         return;
       }
 
-      // EVENT LISTENER: Set up PacketLengthParser data reception following KU16 pattern
-      this.parser.on("data", async (dataBuffer: Buffer) => {
-        console.log("RECEIVED: COMPLETE PACKET", dataBuffer);
+      // EVENT LISTENER: Set up direct data reception from serial port
+      this.serialPort.on("data", async (dataBuffer: Buffer) => {
+        console.log("RECEIVED: DATA BACK", dataBuffer);
         try {
-          // CONVERT TO ARRAY: Process packet data as number array
-          const completePacket = Array.from(dataBuffer);
+          // ACCUMULATE RAW DATA: Buffer all incoming serial data
+          this.rawDataBuffer = Buffer.concat([
+            this.rawDataBuffer,
+            dataBuffer as Buffer,
+          ]);
 
-          // VALIDATE MINIMUM PACKET SIZE: Ensure packet meets CU12 protocol requirements
-          if (completePacket.length < 8) {
-            await this.logOperation("receive-invalid-packet-size", {
-              received: completePacket.length,
-              minimum: 8,
-              message: `DS12 packet too small: ${completePacket.length} bytes`,
-            });
-            return;
+          // PROCESS COMPLETE PACKETS: Extract packets starting with STX (0x02)
+          while (this.rawDataBuffer.length >= 8) {
+            // FIND STX: Look for start of packet marker
+            const stxIndex = this.rawDataBuffer.indexOf(0x02);
+
+            if (stxIndex === -1) {
+              // NO STX FOUND: Clear buffer and wait for new data
+              this.rawDataBuffer = Buffer.alloc(0);
+              break;
+            }
+
+            if (stxIndex > 0) {
+              // STX NOT AT START: Remove garbage data before STX
+              this.rawDataBuffer = this.rawDataBuffer.slice(stxIndex);
+            }
+
+            if (this.rawDataBuffer.length < 8) {
+              // NOT ENOUGH DATA: Wait for more
+              this.startPacketTimeout();
+              break;
+            }
+
+            // EXTRACT PACKET HEADER: Parse CU12 packet structure
+            const data = Array.from(this.rawDataBuffer);
+            const stx = data[0]; // Should be 0x02
+            const addr = data[1]; // Address
+            const locknum = data[2]; // Lock number
+            const cmd = data[3]; // Command
+            const ask = data[4]; // Response status
+            const datalen = data[5]; // Data length
+            const etx = data[6]; // Should be 0x03
+            const sum = data[7]; // Checksum
+
+            const expectedTotalLen = 8 + datalen;
+
+            // VALIDATE PACKET STRUCTURE
+            if (stx !== 0x02 || etx !== 0x03) {
+              // INVALID PACKET: Remove first byte and try again
+              this.rawDataBuffer = this.rawDataBuffer.slice(1);
+              await this.logOperation("receive-invalid-packet", {
+                stx: `0x${stx.toString(16)}`,
+                etx: `0x${etx.toString(16)}`,
+                message: `DS12 invalid packet markers: STX=${stx}, ETX=${etx}`,
+              });
+              continue;
+            }
+
+            if (this.rawDataBuffer.length < expectedTotalLen) {
+              // INCOMPLETE PACKET: Wait for more data
+              await this.logOperation("receive-buffering-packet", {
+                received: this.rawDataBuffer.length,
+                expected: expectedTotalLen,
+                datalen: datalen,
+                message: `DS12 buffering: ${this.rawDataBuffer.length}/${expectedTotalLen} bytes`,
+              });
+              this.startPacketTimeout();
+              break;
+            }
+
+            // PACKET COMPLETE: Extract complete packet
+            this.clearPacketTimeout();
+            const completePacket = Array.from(
+              this.rawDataBuffer.slice(0, expectedTotalLen)
+            );
+
+            // REMOVE PROCESSED PACKET: Keep remaining data for next packet
+            this.rawDataBuffer = this.rawDataBuffer.slice(expectedTotalLen);
+
+            // PROCESS COMPLETE PACKET: Handle the extracted packet
+            await this.processCompletePacket(completePacket);
           }
-
-          // VALIDATE PACKET STRUCTURE: Check STX and ETX markers
-          const stx = completePacket[0];
-          const etx = completePacket[6];
-
-          if (stx !== 0x02 || etx !== 0x03) {
-            await this.logOperation("receive-invalid-packet-markers", {
-              stx: `0x${stx.toString(16)}`,
-              etx: `0x${etx.toString(16)}`,
-              message: `DS12 invalid packet markers: STX=${stx}, ETX=${etx}`,
-            });
-            return;
-          }
-
-          // PROCESS COMPLETE PACKET: Handle the validated packet
-          await this.processCompletePacket(completePacket);
         } catch (error) {
           // EXCEPTION HANDLING: Log data processing errors
           await this.logOperation("data-processing-exception", {
@@ -1461,7 +1475,36 @@ export class DS12Controller extends KuControllerBase {
     }
   }
 
+  /**
+   * Start packet timeout to handle incomplete packets
+   * Timeout set to 500ms to allow for slower hardware responses
+   */
+  private startPacketTimeout(): void {
+    this.clearPacketTimeout();
+    this.packetTimeout = setTimeout(async () => {
+      if (this.rawDataBuffer.length > 0) {
+        await this.logOperation("packet-timeout", {
+          bufferLength: this.rawDataBuffer.length,
+          rawData: Array.from(this.rawDataBuffer)
+            .map((b) => `0x${b.toString(16)}`)
+            .join(" "),
+          message: `DS12 packet timeout: discarding ${this.rawDataBuffer.length} incomplete bytes`,
+        });
+        // Clear incomplete packet buffer
+        this.rawDataBuffer = Buffer.alloc(0);
+      }
+    }, 500); // 500ms timeout for DS12 hardware response
+  }
 
+  /**
+   * Clear packet timeout when complete packet received
+   */
+  private clearPacketTimeout(): void {
+    if (this.packetTimeout) {
+      clearTimeout(this.packetTimeout);
+      this.packetTimeout = null;
+    }
+  }
 
   /**
    * Parse binary slot state data into SlotState objects with database synchronization
@@ -1802,7 +1845,7 @@ export class DS12Controller extends KuControllerBase {
 
       // USER AUTHENTICATION: Get user information for audit trail
       // Note: passkey is not available in openingSlot, need to get from original dispense call
-      const userId = "1"; // Use admin user ID for system operations (foreign key constraint)
+      const userId = 1; // Use admin user ID for system operations (foreign key constraint)
 
       // STATE UPDATE: Set wait flag for dispense locked back detection
       this.setWaitForDispenseLockedBack(true);
@@ -1959,7 +2002,7 @@ export class DS12Controller extends KuControllerBase {
 
       // PRESERVE SLOT DATA: Store for logging and UI updates before clearing
       const completedSlot = { ...currentSlot };
-      const userId = "1"; // Use admin user ID for system operations (foreign key constraint)
+      const userId = 1; // Use admin user ID for system operations (foreign key constraint)
 
       // NOTE: Slot data reset moved to user decision in clearOrContinue dialog
       // The slot will be cleared only when user chooses "ไม่มียาแล้ว" (reset)
